@@ -48,7 +48,7 @@ app.get('/', (ctx) => ctx.text('Hello OpenSpeed!'));
 app.get('/api/users/:id', (ctx) => {
   return ctx.json({
     id: ctx.params.id,
-    name: 'John Doe'
+    name: 'ElonDuck'
   });
 });
 

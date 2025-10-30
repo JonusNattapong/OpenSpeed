@@ -197,7 +197,7 @@ app.get('/profile', (ctx) => {
 
   return ctx.json({
     userId: sessionId,
-    profile: { name: 'John Doe', email: 'john@example.com' }
+    profile: { name: 'ElonDuck', email: 'ElonDuck@example.com' }
   });
 });
 

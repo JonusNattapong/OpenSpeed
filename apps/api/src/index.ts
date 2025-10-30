@@ -1,16 +1,16 @@
-import { createApp } from 'openspeed-framework';
-import { openapi } from 'openspeed-framework/plugins/openapi';
-import { rateLimit } from 'openspeed-framework/plugins/rateLimit';
-import { errorHandler } from 'openspeed-framework/plugins/errorHandler';
-import { logger } from 'openspeed-framework/plugins/logger';
-import { cors } from 'openspeed-framework/plugins/cors';
-import { json } from 'openspeed-framework/plugins/json';
-import { validate } from 'openspeed-framework/plugins/validate';
-import { static as staticPlugin } from 'openspeed-framework/plugins/static';
-import { helmet } from 'openspeed-framework/plugins/helmet';
-import { prisma } from '@openspeed/db';
-import { hashPassword, verifyPassword, generateAccessToken, generateRefreshToken, verifyAccessToken } from '@openspeed/auth';
-import { createUserSchema, loginSchema, createPostSchema, userSchema, postSchema } from '@openspeed/types';
+/// <reference path="../../../src/openspeed/runtime-globals.d.ts" />
+import { createApp } from '../../../src/openspeed/index.js';
+import { openapi } from '../../../src/openspeed/plugins/openapi.js';
+import { rateLimit } from '../../../src/openspeed/plugins/rateLimit.js';
+import { errorHandler } from '../../../src/openspeed/plugins/errorHandler.js';
+import { logger } from '../../../src/openspeed/plugins/logger.js';
+import { cors } from '../../../src/openspeed/plugins/cors.js';
+import { json } from '../../../src/openspeed/plugins/json.js';
+import { validate } from '../../../src/openspeed/plugins/validate.js';
+import { static as staticPlugin } from '../../../src/openspeed/plugins/static.js';
+import { prisma } from '../../../packages/db/src/index.js';
+import { hashPassword, verifyPassword, generateAccessToken, generateRefreshToken, verifyAccessToken } from '../../../packages/auth/src/index.js';
+import { createUserSchema, loginSchema, createPostSchema, userSchema, postSchema } from '../../../packages/types/src/index.js';
 import * as Sentry from '@sentry/node';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
 
@@ -74,7 +74,6 @@ app.use(requestId());
 app.use(metrics());
 app.use(logger());
 app.use(cors());
-app.use(helmet());
 app.use(json());
 app.use(errorHandler());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requests per 15 minutes
@@ -84,13 +83,17 @@ app.use(staticPlugin({ root: './public' }));
 const api = openapi({ title: 'OpenSpeed API', version: '1.0.0' });
 app.use(api.middleware);
 
+// File-based routes loader (loads files from ./routes)
+// exports in route files should be named GET/POST/PUT/DELETE/PATCH/OPTIONS
+await app.loadRoutes('./routes');
+
 // Routes
-app.get('/', (ctx) => {
+app.get('/', (ctx: any) => {
   return ctx.json({ message: 'Welcome to OpenSpeed API', version: '1.0.0' });
 });
 
 // Auth routes
-app.post('/auth/register', validate(createUserSchema), async (ctx) => {
+app.post('/auth/register', validate({ body: createUserSchema }), async (ctx: any) => {
   const { name, email, password } = ctx.body;
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -114,7 +117,7 @@ app.post('/auth/register', validate(createUserSchema), async (ctx) => {
   });
 });
 
-app.post('/auth/login', validate(loginSchema), async (ctx) => {
+app.post('/auth/login', validate({ body: loginSchema }), async (ctx: any) => {
   const { email, password } = ctx.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -138,7 +141,7 @@ app.post('/auth/login', validate(loginSchema), async (ctx) => {
 });
 
 // User routes (protected)
-app.get('/users/me', auth(), async (ctx) => {
+app.get('/users/me', auth(), async (ctx: any) => {
   const user = await prisma.user.findUnique({
     where: { id: ctx.user.userId },
     select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
@@ -147,7 +150,7 @@ app.get('/users/me', auth(), async (ctx) => {
 });
 
 // Post routes
-app.get('/posts', async (ctx) => {
+app.get('/posts', async (ctx: any) => {
   const posts = await prisma.post.findMany({
     where: { published: true },
     include: { author: { select: { name: true } } },
@@ -155,7 +158,7 @@ app.get('/posts', async (ctx) => {
   return ctx.json(posts);
 });
 
-app.post('/posts', auth(), validate(createPostSchema), async (ctx) => {
+app.post('/posts', auth(), validate({ body: createPostSchema }), async (ctx: any) => {
   const { title, content, published } = ctx.body;
   const post = await prisma.post.create({
     data: { title, content, published, authorId: ctx.user.userId },
@@ -163,7 +166,7 @@ app.post('/posts', auth(), validate(createPostSchema), async (ctx) => {
   return ctx.json(post);
 });
 
-app.get('/posts/:id', async (ctx) => {
+app.get('/posts/:id', async (ctx: any) => {
   const post = await prisma.post.findUnique({
     where: { id: ctx.params.id },
     include: { author: { select: { name: true } } },
@@ -175,7 +178,7 @@ app.get('/posts/:id', async (ctx) => {
 });
 
 // Metrics endpoint
-app.get('/metrics', async (ctx) => {
+app.get('/metrics', async (ctx: any) => {
   const metrics = await register.metrics();
   ctx.res.headers = { ...ctx.res.headers, 'content-type': register.contentType };
   ctx.res.body = metrics;

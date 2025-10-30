@@ -13,12 +13,12 @@ app.use(json());
 app.use(errorHandler());
 
 app.get('/', (ctx: Context) => ctx.text('Hello OpenSpeed!'));
-api.collect('GET', '/', 'Get hello message');
+api.collect('GET', '/', { description: 'Get hello message' });
 
 app.get('/user/:id', validate({ params: z.object({ id: z.string().min(1) }) }), (ctx: Context) =>
   ctx.json({ ok: true, id: ctx.params.id })
 );
-api.collect('GET', '/user/:id', 'Get user by ID');
+api.collect('GET', '/user/:id', { description: 'Get user by ID' });
 
 app.get('/openapi.json', (ctx: Context) => {
   ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };

@@ -7,7 +7,9 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/bcryptjs": "^2.4.0"
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.2",

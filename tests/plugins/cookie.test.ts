@@ -10,7 +10,7 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'session=abc123; user=john'
+        cookie: 'session=abc123; user=ElonDuck'
       }
     };
     const ctx = new Context(req, {});
@@ -18,7 +18,7 @@ describe('cookie plugin', () => {
     await middleware(ctx, async () => {});
 
     expect(ctx.cookies?.get('session')).toBe('abc123');
-    expect(ctx.cookies?.get('user')).toBe('john');
+    expect(ctx.cookies?.get('user')).toBe('ElonDuck');
   });
 
   it('should set outgoing cookies', async () => {
@@ -106,13 +106,13 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'name=John%20Doe'
+        cookie: 'name=John%20Duck'
       }
     };
     const ctx = new Context(req, {});
 
     await middleware(ctx, async () => {});
 
-    expect(ctx.cookies?.get('name')).toBe('John Doe');
+    expect(ctx.cookies?.get('name')).toBe('ElonDuck');
   });
 });

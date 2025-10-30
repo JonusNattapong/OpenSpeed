@@ -1,6 +1,9 @@
 import Router from './router.js';
 import Context, { RequestLike } from './context.js';
 import { createServer } from './server.js';
+import fs from 'fs';
+import path from 'path';
+import { pathToFileURL } from 'url';
 
 type Middleware = (ctx: Context, next: () => Promise<any>) => any;
 type RouteHandler = (ctx: Context) => Promise<any> | any;
@@ -90,6 +93,64 @@ export function createApp() {
       }
       return app;
     }
+  };
+
+  // Load routes from a filesystem directory (file-based routing)
+  // - `routesDir` can be absolute or relative to process.cwd()
+  // - Files export HTTP methods as named exports (GET, POST, PUT, PATCH, DELETE, OPTIONS)
+  // - File/folder names with [param] become :param in route path
+  app.loadRoutes = async (routesDir: string, options: { prefix?: string } = {}) => {
+    const prefix = options.prefix || '';
+    const abs = path.isAbsolute(routesDir) ? routesDir : path.join(process.cwd(), routesDir);
+
+    async function walk(dir: string) {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      for (const ent of entries) {
+        const full = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+          await walk(full);
+          continue;
+        }
+        if (!/\.(js|ts|mjs|cjs)$/.test(ent.name)) continue;
+
+        // compute route path from file path
+        let rel = path.relative(abs, full).split(path.sep).join('/');
+        rel = rel.replace(/\.(js|ts|mjs|cjs)$/, '');
+        // remove trailing /index
+        if (rel.endsWith('/index')) rel = rel.slice(0, -'/index'.length);
+        if (rel === 'index') rel = '';
+        // map [param] -> :param
+        const parts = rel.split('/').filter(Boolean).map(p => p.replace(/^\[(.+)\]$/, ':$1'));
+        const routePath = ('/' + [prefix, ...parts].filter(Boolean).join('/')).replace(/\/+/g, '/');
+
+        // dynamic import
+        const url = pathToFileURL(full).href;
+        let mod: any;
+        try {
+          mod = await import(url);
+        } catch (err) {
+          // swallow module load errors but log for developer
+          // eslint-disable-next-line no-console
+          console.error(`Failed to import route file ${full}:`, err);
+          continue;
+        }
+
+        // register exported HTTP method handlers
+        for (const m of HTTP_METHODS) {
+          const name = m.toUpperCase();
+          const fn = mod[name] || mod[name.toLowerCase()];
+          if (typeof fn === 'function') {
+            // wrap handler to match internal RouteHandler signature
+            const handler: RouteHandler = (ctx: Context) => Promise.resolve(fn(ctx));
+            const middlewareNames = [`file:${path.relative(process.cwd(), full)}`];
+            router.add(name, routePath, handler, middlewareNames);
+          }
+        }
+      }
+    }
+
+    await walk(abs);
+    return app;
   };
 
   for (const method of HTTP_METHODS) {

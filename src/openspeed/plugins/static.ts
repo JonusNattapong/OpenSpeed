@@ -157,3 +157,6 @@ async function serveFile(
     ctx.res.body = 'Error reading file';
   }
 }
+
+// Named export alias for compatibility: `import { static }`
+export { serveStatic as static };
