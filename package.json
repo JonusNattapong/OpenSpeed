@@ -7,7 +7,9 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/examples/hello-openspeed/index.js",
     "dev": "tsx examples/hello-openspeed/index.ts",
-    "benchmark": "npx autocannon -c 100 -d 10 http://localhost:3000"
+    "benchmark": "npx autocannon -c 100 -d 10 http://localhost:3000",
+    "bench:node": "node benchmarks/run.js node",
+    "bench:bun": "node benchmarks/run.js bun"
   },
   "devDependencies": {
     "tsx": "^4.0.0",

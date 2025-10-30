@@ -27,9 +27,20 @@ npm run dev
 
 3. Benchmark with autocannon (start server first):
 
-```powershell
-npm run benchmark
-```
+## Benchmarks
+
+Preliminary benchmark on Node.js 22 (100 connections, 10s):
+
+- **~3,482 req/sec** average
+- **28.21 ms** avg latency
+- **1.34 MB/sec** throughput
+
+Run `npm run benchmark` to test locally.
+
+Comparison targets:
+- Hono (Bun): ~300k req/sec
+- Elysia (Bun): ~400k req/sec
+- OpenSpeed (Node): ~3.5k req/sec (prototype, room for optimization)
 
 ## Plugins
 
