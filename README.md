@@ -2,7 +2,7 @@
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
 
-[![Tests](https://img.shields.io/badge/tests-22%2F22%20passing-brightgreen)](https://github.com/JonusNattapong/OpenSpeed)
+[![Tests](https://img.shields.io/badge/tests-67%2F67%20passing-brightgreen)](https://github.com/JonusNattapong/OpenSpeed)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ## ✨ Features
