@@ -4,14 +4,16 @@ A high-performance, developer-friendly web framework inspired by Hono and Elysia
 
 ## ✨ Features
 
-- **🚀 High Performance**: Trie-based router with optimized middleware chaining
+- **🚀 High Performance**: Optimized trie-based router with caching and O(1) lookups
 - **🔧 Runtime Agnostic**: Native support for Node.js, Bun, and Deno
-- **🛠️ Rich Plugins**: Official plugins for CORS, logging, validation, OpenAPI, and more
+- **🛠️ Rich Plugins**: Official plugins for CORS, logging, validation, OpenAPI, auth, rate limiting, and static files
 - **📝 Type Safety**: Full TypeScript support with Zod validation
 - **🧩 Extensible**: Plugin architecture for custom middleware
 - **📊 Auto-Generated APIs**: OpenAPI spec generation from routes
 - **⚡ Fast Development**: Hot reload and route introspection
 - **🏗️ CLI Tooling**: Scaffold new projects instantly
+- **🔒 Security**: Built-in authentication and rate limiting
+- **📁 Static Serving**: Efficient file serving with caching
 
 ## 📦 Installation
 
@@ -119,6 +121,47 @@ api.collect('GET', '/users', 'List all users');
 app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
 ```
 
+### Authentication
+
+```typescript
+// JWT Authentication
+app.use(auth({
+  jwt: { secret: 'your-secret-key' }
+}));
+
+// Basic Auth
+app.use(auth({
+  basic: { users: { admin: 'password' } }
+}));
+
+// Bearer Token
+app.use(auth({
+  bearer: { tokens: ['token1', 'token2'] }
+}));
+
+app.get('/protected', requireAuth(), (ctx) => ctx.json({ user: ctx.req.user }));
+```
+
+### Rate Limiting
+
+```typescript
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+}));
+```
+
+### Static File Serving
+
+```typescript
+app.use(serveStatic({
+  root: './public',
+  prefix: '/static',
+  maxAge: 86400000 // 1 day
+}));
+```
+
 ## 🌐 Runtime Support
 
 OpenSpeed automatically detects and adapts to your runtime:
@@ -138,7 +181,7 @@ Performance comparison (requests/second):
 | Bun     | ~12,000   | ~11,500 | ~10,200 |
 | Deno    | ~8,500    | ~8,000 | ~7,500 |
 
-*Benchmarks run with autocannon (100 concurrent connections, 10 seconds)*
+> **Note:** Benchmarks run with autocannon (100 concurrent connections, 10 seconds)
 
 ## 🛠️ Development
 
@@ -169,7 +212,36 @@ console.log(app.routes()); // Returns route metadata array
 
 ## 📁 Project Structure
 
+```text
+src/
+├── openspeed/
+│   ├── index.ts          # Main app factory
+│   ├── router.ts         # Trie router implementation
+│   ├── context.ts        # Request/response context
+│   ├── server.ts         # Runtime detection & adapters
+│   ├── adapters/         # Runtime-specific servers
+│   │   ├── node.ts
+│   │   ├── bun.ts
+│   │   └── deno.ts
+│   └── plugins/          # Official plugins
+│       ├── cors.ts
+│       ├── logger.ts
+│       ├── json.ts
+│       ├── error.ts
+│       ├── validate.ts
+│       ├── openapi.ts
+│       ├── auth.ts
+│       ├── rateLimit.ts
+│       └── static.ts
+├── create-openspeed-app/ # CLI scaffold tool
+examples/
+├── hello-openspeed/      # Full example with all features
+benchmarks/               # Performance testing
+tests/                    # Unit test suite
 ```
+```
+
+## 📁 Project Structure
 src/
 ├── openspeed/
 │   ├── index.ts          # Main app factory

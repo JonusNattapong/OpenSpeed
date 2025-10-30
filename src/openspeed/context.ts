@@ -4,6 +4,7 @@ export interface RequestLike {
   headers: Record<string, string | string[] | undefined>;
   body?: any;
   query?: Record<string, string>;
+  user?: any; // For authentication middleware
 }
 
 export interface ResponseLike {
