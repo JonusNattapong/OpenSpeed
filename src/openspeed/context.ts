@@ -3,6 +3,7 @@ export interface RequestLike {
   url: string;
   headers: Record<string, string | string[] | undefined>;
   body?: any;
+  query?: Record<string, string>;
 }
 
 export interface ResponseLike {

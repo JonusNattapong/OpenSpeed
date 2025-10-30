@@ -25,8 +25,21 @@ export function createApp() {
 
   const methods = ['get','post','put','delete','patch','options'] as const;
   for (const m of methods) {
-    app[m] = (path: string, handler: (ctx: Context)=>any) => {
-      router.add(m.toUpperCase(), path, handler);
+    app[m] = (path: string, ...args: any[]) => {
+      const handler = args[args.length - 1];
+      const middlewares = args.slice(0, -1);
+      const combinedHandler = async (ctx: Context) => {
+        let idx = -1;
+        const runner = async () => {
+          idx++;
+          if (idx < middlewares.length) {
+            return await middlewares[idx](ctx, runner);
+          }
+          return await handler(ctx);
+        };
+        return await runner();
+      };
+      router.add(m.toUpperCase(), path, combinedHandler);
       return app;
     };
   }
