@@ -1,6 +1,5 @@
 import { createApp, cors, logger, json, errorHandler, validate, openapi } from '../../src/openspeed/index.js';
 import { z } from 'zod';
-import type { Context } from '../../src/openspeed/context.js';
 
 const app = createApp();
 
@@ -12,15 +11,15 @@ app.use(logger());
 app.use(json());
 app.use(errorHandler());
 
-app.get('/', (ctx: Context) => ctx.text('Hello OpenSpeed!'));
+app.get('/', (ctx) => ctx.text('Hello OpenSpeed!'));
 api.collect('GET', '/', 'Get hello message');
 
-app.get('/user/:id', validate({ params: z.object({ id: z.string().min(1) }) }), (ctx: Context) =>
+app.get('/user/:id', validate({ params: z.object({ id: z.string().min(1) }) }), (ctx) =>
   ctx.json({ ok: true, id: ctx.params.id })
 );
 api.collect('GET', '/user/:id', 'Get user by ID');
 
-app.get('/openapi.json', (ctx: Context) => {
+app.get('/openapi.json', (ctx) => {
   ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
   ctx.res.body = JSON.stringify(api.generate(), null, 2);
   return ctx.res;

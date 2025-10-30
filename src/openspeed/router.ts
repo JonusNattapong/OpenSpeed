@@ -1,4 +1,6 @@
-export type Handler<Req = any, Res = any> = (ctx: any) => Promise<any> | any;
+import type Context from './context.js';
+
+export type Handler = (ctx: Context) => Promise<any> | any;
 
 interface RouteMatch {
   handler: Handler;
@@ -68,9 +70,7 @@ export class Router {
     node.handlers.set(methodKey, handler);
     node.routeKey = routeKey; // Store route key in node for middleware lookup
 
-    if (!this.routeTable.has(routeKey)) {
-      this.routeTable.set(routeKey, { method: methodKey, path, middlewares });
-    }
+    this.routeTable.set(routeKey, { method: methodKey, path, middlewares });
   }
 
   find(method: string, path: string): RouteMatch | null {

@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { createApp } from '../../src/openspeed/index.js';
-import { vi } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi } from 'vitest';
+import { createApp, type RouteMiddleware } from '../../src/openspeed/index.js';
 
 const baseReq = (path: string, method = 'GET') => ({
   method,
@@ -32,16 +31,16 @@ describe('createApp', () => {
     const app = createApp();
     const order: string[] = [];
 
-    const mw1 = async (_ctx: any, next: any) => {
+    const mw1: RouteMiddleware<'/chain'> = async (_ctx, next) => {
       order.push('mw1');
       return next();
     };
-    const mw2 = async (_ctx: any, next: any) => {
+    const mw2: RouteMiddleware<'/chain'> = async (_ctx, next) => {
       order.push('mw2');
       return next();
     };
 
-    app.get('/chain', mw1, mw2, (ctx: any) => {
+    app.get('/chain', mw1, mw2, (ctx) => {
       order.push('handler');
       return ctx.text('done');
     });
@@ -59,14 +58,14 @@ describe('createApp', () => {
 
   it('exposes registered routes metadata', () => {
     const app = createApp();
-    app.get('/hello', (ctx: any) => ctx.text('hi'));
-    app.post('/users', (ctx: any) => ctx.json({}));
+    app.get('/hello', (ctx) => ctx.text('hi'));
+    app.post('/users', (ctx) => ctx.json({}));
 
     const routes = app.routes();
     expect(routes).toEqual(
       expect.arrayContaining([
-        { method: 'GET', path: '/hello', middlewares: [] },
-        { method: 'POST', path: '/users', middlewares: [] }
+        expect.objectContaining({ method: 'GET', path: '/hello', middlewares: [] }),
+        expect.objectContaining({ method: 'POST', path: '/users', middlewares: [] })
       ])
     );
 
@@ -74,5 +73,36 @@ describe('createApp', () => {
     app.printRoutes();
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();
+  });
+
+  it('supports route groups with scoped middleware and typed params', async () => {
+    const app = createApp();
+    const signals: string[] = [];
+
+    app.group('/api', (group) => {
+      group.use(async (_ctx, next) => {
+        signals.push('group');
+        return next();
+      });
+      group.get('/users/:id', (ctx) => {
+        signals.push(ctx.params.id);
+        expectTypeOf(ctx.params.id).toEqualTypeOf<string>();
+        return ctx.json({ id: ctx.params.id });
+      });
+    });
+
+    const res = await app.handle(baseReq('/api/users/42'));
+    expect(res.status).toBe(200);
+    expect(res.body).toBe(JSON.stringify({ id: '42' }));
+    expect(signals).toEqual(['group', '42']);
+  });
+
+  it('infers params from route templates', () => {
+    const app = createApp();
+    app.get('/orders/:orderId/items/:itemId', (ctx) => {
+      expectTypeOf(ctx.params.orderId).toEqualTypeOf<string>();
+      expectTypeOf(ctx.params.itemId).toEqualTypeOf<string>();
+      return ctx.json({});
+    });
   });
 });

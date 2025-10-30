@@ -89,7 +89,7 @@ app.use(errorHandler());
 app.get('/', (ctx) => ctx.json({ message: 'Hello from OpenSpeed!' }));
 
 app.listen(3000).then(() => {
-  console.log('🚀 OpenSpeed app running at http://localhost:3000');
+  console.log('OpenSpeed app running at http://localhost:3000');
 });
 `
 };
@@ -169,7 +169,7 @@ function logNextSteps(targetDir: string, projectName: string) {
   const relative = path.relative(process.cwd(), targetDir);
   const needsCd = relative !== '' && relative !== '.';
 
-  console.log('\n✅ Project scaffolded successfully!');
+  console.log('\nProject scaffolded successfully!');
   if (needsCd) {
     console.log(`\nNext steps:\n  cd ${relative}\n  npm install\n  npm run dev`);
   } else {
@@ -184,12 +184,12 @@ function main() {
     const projectName = path.basename(targetDir);
 
     if (options.template !== 'basic') {
-      console.error(`❌ Unknown template "${options.template}". Available templates: basic`);
+      console.error(`Error: Unknown template "${options.template}". Available templates: basic`);
       process.exit(1);
     }
 
     if (!options.force && !isEmpty(targetDir)) {
-      console.error(`❌ Directory "${projectName}" already exists and is not empty. Use --force to overwrite.`);
+      console.error(`Error: Directory "${projectName}" already exists and is not empty. Use --force to overwrite.`);
       process.exit(1);
     }
 
@@ -203,7 +203,7 @@ function main() {
     writeProjectFiles(targetDir, ctx);
     logNextSteps(targetDir, projectName);
   } catch (err: any) {
-    console.error(`❌ ${err.message || err}`);
+    console.error(`Error: ${err.message || err}`);
     process.exit(1);
   }
 }
