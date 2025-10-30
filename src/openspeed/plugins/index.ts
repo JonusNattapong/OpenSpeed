@@ -7,3 +7,7 @@ export { openapi } from './openapi.js';
 export { auth, requireAuth } from './auth.js';
 export { rateLimit } from './rateLimit.js';
 export { serveStatic } from './static.js';
+export { upload, single, array, fields } from './upload.js';
+export { websocket, WebSocketRoom, wsRoom } from './websocket.js';
+export { cookie, setCookie, getCookie, deleteCookie, clearCookies } from './cookie.js';
+export * from './errorHandler.js';
