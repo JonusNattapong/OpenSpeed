@@ -27,20 +27,16 @@ npm run dev
 
 3. Benchmark with autocannon (start server first):
 
-## Benchmarks
+## Runtime Compatibility
 
-Preliminary benchmark on Node.js 22 (100 connections, 10s):
+OpenSpeed supports multiple JavaScript runtimes using Web Standard APIs:
 
-- **~3,482 req/sec** average
-- **28.21 ms** avg latency
-- **1.34 MB/sec** throughput
+- **Node.js**: Uses `node:http` module
+- **Bun**: Uses `Bun.serve` with Web APIs
+- **Deno**: Uses `Deno.serve` with Web APIs
+- **Cloudflare Workers**: Planned (Web API compatible)
 
-Run `npm run benchmark` to test locally.
-
-Comparison targets:
-- Hono (Bun): ~300k req/sec
-- Elysia (Bun): ~400k req/sec
-- OpenSpeed (Node): ~3.5k req/sec (prototype, room for optimization)
+The framework automatically detects the runtime and uses the appropriate adapter.
 
 ## Plugins
 
@@ -76,4 +72,4 @@ app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
 ```
 
 Notes:
-- This is a minimal prototype to explore architecture and DX. Next steps: add type inference, typed routes, benchmarks comparing Bun and Node, Web Standard adapters, CLI scaffolding, and production build.
+- This is a minimal prototype to explore architecture and DX. Next steps: add type inference, typed routes, benchmarks comparing Bun and Node, CLI scaffolding, production build, and Cloudflare Workers support.

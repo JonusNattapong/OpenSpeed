@@ -27,6 +27,6 @@ app.get('/openapi.json', async (ctx) => {
   return ctx.res;
 });
 
-app.listen(3000);
+await app.listen(3000);
 console.log('OpenSpeed example listening on http://localhost:3000');
 console.log('OpenAPI spec at http://localhost:3000/openapi.json');

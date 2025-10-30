@@ -67,8 +67,8 @@ export function createApp() {
     return result || ctx.res;
   };
 
-  app.listen = (port = 3000) => {
-    const server = createServer(app);
+  app.listen = async (port = 3000) => {
+    const server = await createServer(app);
     server.listen(port);
     return server;
   };
