@@ -4,5 +4,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": false
-  }
+  },
+  "include": ["src/**/*", "examples/**/*"],
+  "exclude": ["tests/**/*"]
 }

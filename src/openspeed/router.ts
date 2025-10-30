@@ -1,67 +1,120 @@
 export type Handler<Req = any, Res = any> = (ctx: any) => Promise<any> | any;
 
-type NodeChildren = Map<string, TrieNode>;
-
 class TrieNode {
   part: string;
-  children: NodeChildren = new Map();
-  paramName: string | null = null; // if this node is a param like :id
   handlers: Map<string, Handler> = new Map();
+  staticChildren: Map<string, TrieNode> = new Map();
+  paramChild: TrieNode | null = null;
+  paramName: string | null = null;
+  isParam: boolean;
 
-  constructor(part: string) {
+  constructor(part: string, isParam = false) {
     this.part = part;
-    if (part.startsWith(':')) this.paramName = part.slice(1);
+    this.isParam = isParam;
+    if (isParam) {
+      this.paramName = part.slice(1);
+    }
   }
 }
 
 export class Router {
   root = new TrieNode('');
+  private routeTable = new Map<string, { method: string; path: string; middlewares: string[] }>();
 
-  add(method: string, path: string, handler: Handler) {
+  add(method: string, path: string, handler: Handler, middlewares: string[] = []) {
     const parts = this._split(path);
     let node = this.root;
     for (const part of parts) {
-      const key = part.startsWith(':') ? ':' : part;
-      let child = node.children.get(key);
-      if (!child) {
-        child = new TrieNode(part);
-        node.children.set(key, child);
+      const isParam = part.charCodeAt(0) === 58; // ':'
+      let child: TrieNode | undefined | null;
+
+      if (isParam) {
+        child = node.paramChild;
+        if (!child) {
+          child = new TrieNode(part, true);
+          node.paramChild = child;
+        }
+      } else {
+        child = node.staticChildren.get(part);
+        if (!child) {
+          child = new TrieNode(part, false);
+          node.staticChildren.set(part, child);
+        }
       }
+
       node = child;
     }
-    node.handlers.set(method.toUpperCase(), handler);
+    const methodKey = method.toUpperCase();
+    node.handlers.set(methodKey, handler);
+
+    const routeKey = `${methodKey} ${path}`;
+    if (!this.routeTable.has(routeKey)) {
+      this.routeTable.set(routeKey, { method: methodKey, path, middlewares });
+    }
   }
 
   find(method: string, path: string) {
     const parts = this._split(path);
-    const params: Record<string, string> = {};
-    let node: TrieNode | undefined = this.root;
+    let node: TrieNode | null = this.root;
+    let params: Record<string, string> | null = null;
+
     for (const part of parts) {
-      // exact match
-      let next = node.children.get(part);
-      if (next) {
-        node = next;
-        continue;
+      if (!node) break;
+
+      let next = node.staticChildren.get(part);
+      let isParamMatch = false;
+
+      if (!next && node.paramChild) {
+        next = node.paramChild;
+        isParamMatch = true;
       }
-      // param match
-      next = node.children.get(':');
-      if (next) {
-        if (next.paramName) params[next.paramName] = decodeURIComponent(part);
-        node = next;
-        continue;
+
+      if (!next) return null;
+
+      if (isParamMatch && next.paramName) {
+        if (!params) params = {};
+        params[next.paramName] = decodeURIComponent(part);
       }
-      // not found
-      node = undefined;
-      break;
+
+      node = next;
     }
+
     if (!node) return null;
     const handler = node.handlers.get(method.toUpperCase());
     if (!handler) return null;
-    return { handler, params };
+    return { handler, params: params ?? {} };
   }
 
-  _split(path: string) {
-    return path.replace(/(^\/|\/$)/g, '').split('/').filter(Boolean);
+  getRoutes() {
+    return Array.from(this.routeTable.values());
+  }
+
+  private _split(path: string) {
+    if (!path || path === '/') return [];
+    let start = path.charCodeAt(0) === 47 ? 1 : 0; // '/'
+    let end = path.length;
+
+    if (end > start && path.charCodeAt(end - 1) === 47) {
+      end -= 1;
+    }
+
+    const parts: string[] = [];
+    let segmentStart = start;
+
+    for (let i = start; i < end; i++) {
+      if (path.charCodeAt(i) === 47) {
+        if (i > segmentStart) parts.push(path.slice(segmentStart, i));
+        segmentStart = i + 1;
+      }
+    }
+
+    if (segmentStart < end) {
+      parts.push(path.slice(segmentStart, end));
+    } else if (parts.length === 0 && start === 0 && end === 0) {
+      return [];
+    }
+
+    return parts;
   }
 }
 
