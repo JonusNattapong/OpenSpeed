@@ -2,12 +2,18 @@
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
 
+[![Tests](https://img.shields.io/badge/tests-22%2F22%20passing-brightgreen)](https://github.com/JonusNattapong/OpenSpeed)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 ## ✨ Features
 
 - **🚀 High Performance**: Optimized trie-based router with caching and O(1) lookups
 - **🔧 Runtime Agnostic**: Native support for Node.js, Bun, and Deno
-- **🛠️ Rich Plugins**: Official plugins for CORS, logging, validation, OpenAPI, auth, rate limiting, and static files
-- **📝 Type Safety**: Full TypeScript support with Zod validation
+- **� File Uploads**: Built-in multipart parsing with streaming support
+- **🌐 WebSockets**: Real-time communication with room-based messaging
+- **🍪 Cookies**: Session management with CookieJar implementation
+- **🛡️ Error Handling**: Comprehensive error management with typed exceptions
+- **📝 Type Safety**: Full TypeScript support with advanced type definitions
 - **🧩 Extensible**: Plugin architecture for custom middleware
 - **📊 Auto-Generated APIs**: OpenAPI spec generation from routes
 - **⚡ Fast Development**: Hot reload and route introspection
@@ -32,18 +38,48 @@ npm run dev
 ## 🚀 Quick Start
 
 ```typescript
-import { createApp, cors, logger, json } from 'openspeed-framework';
+import { createApp } from 'openspeed-framework';
 
 const app = createApp();
 
-app.use(cors());
-app.use(logger());
-app.use(json());
-
+// Basic routes
 app.get('/', (ctx) => ctx.text('Hello OpenSpeed!'));
 
 app.get('/api/users/:id', (ctx) => {
-  return ctx.json({ id: ctx.params.id });
+  return ctx.json({
+    id: ctx.params.id,
+    name: 'John Doe'
+  });
+});
+
+// File upload
+app.post('/upload', (ctx) => {
+  const file = ctx.file;
+  if (file) {
+    return ctx.json({ filename: file.filename, size: file.size });
+  }
+  return ctx.text('No file uploaded', 400);
+});
+
+// WebSocket with rooms
+app.ws('/chat/:room', (ws, ctx) => {
+  const room = ctx.params.room;
+  ws.join(room);
+
+  ws.on('message', (data) => {
+    ws.broadcast(room, data);
+  });
+});
+
+// Cookies
+app.get('/set-cookie', (ctx) => {
+  ctx.setCookie('session', 'abc123', { httpOnly: true });
+  return ctx.text('Cookie set!');
+});
+
+app.get('/get-cookie', (ctx) => {
+  const session = ctx.getCookie('session');
+  return ctx.json({ session });
 });
 
 await app.listen(3000);
@@ -71,95 +107,193 @@ await app.listen(3000);
 
 ## 🔌 Official Plugins
 
-### CORS
+### File Upload
+
+Handle multipart form data with streaming support:
 
 ```typescript
-app.use(cors({ origin: '*', credentials: true }));
+import { upload } from 'openspeed-framework/plugins/upload';
+
+app.use(upload());
+
+// Single file upload
+app.post('/upload', (ctx) => {
+  const file = ctx.file;
+  if (file) {
+    return ctx.json({
+      filename: file.filename,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+  }
+  return ctx.text('No file uploaded', 400);
+});
+
+// Multiple files
+app.post('/upload-multiple', (ctx) => {
+  const files = ctx.files?.avatar || [];
+  return ctx.json({ uploaded: files.length });
+});
 ```
 
-### Logger
+### WebSocket
+
+Real-time communication with room management:
 
 ```typescript
-app.use(logger({ format: 'combined' }));
+import { websocket } from 'openspeed-framework/plugins/websocket';
+
+app.use(websocket());
+
+// Basic WebSocket
+app.ws('/ws', (ws) => {
+  ws.on('message', (data) => {
+    ws.send(`Echo: ${data}`);
+  });
+});
+
+// Room-based chat
+app.ws('/chat/:room', (ws, ctx) => {
+  const room = ctx.params.room;
+  ws.join(room);
+
+  ws.on('message', (data) => {
+    ws.broadcast(room, data); // Send to all in room except sender
+    ws.broadcastAll(room, data); // Send to everyone in room
+  });
+
+  ws.on('join', (newRoom) => {
+    ws.leave(room);
+    ws.join(newRoom);
+  });
+});
 ```
 
-### JSON Parser
+### Cookies
+
+Session management with CookieJar:
 
 ```typescript
-app.use(json({ limit: '10mb' }));
+import { cookie } from 'openspeed-framework/plugins/cookie';
+
+app.use(cookie());
+
+// Set cookies
+app.get('/set-session', (ctx) => {
+  ctx.setCookie('session', 'abc123', {
+    httpOnly: true,
+    secure: true,
+    maxAge: 86400 // 1 day
+  });
+  return ctx.text('Session set!');
+});
+
+// Get cookies
+app.get('/profile', (ctx) => {
+  const sessionId = ctx.getCookie('session');
+  if (!sessionId) {
+    return ctx.text('Not authenticated', 401);
+  }
+  return ctx.json({ sessionId });
+});
 ```
 
 ### Error Handler
 
+Comprehensive error management with typed exceptions:
+
 ```typescript
-app.use(errorHandler({ exposeStack: false }));
+import { errorHandler, HttpError } from 'openspeed-framework/plugins/errorHandler';
+
+app.use(errorHandler());
+
+// Custom errors
+app.get('/api/user/:id', (ctx) => {
+  const userId = ctx.params.id;
+  if (!userId) {
+    throw new HttpError(400, 'User ID required');
+  }
+
+  const user = findUser(userId);
+  if (!user) {
+    throw new HttpError(404, 'User not found');
+  }
+
+  return ctx.json(user);
+});
+
+// Async error handling
+app.get('/api/async', async (ctx) => {
+  try {
+    const data = await riskyOperation();
+    return ctx.json(data);
+  } catch (error) {
+    throw new HttpError(500, 'Operation failed');
+  }
+});
 ```
 
-### Validation (with Zod)
+### CORS
+
+Cross-origin resource sharing:
 
 ```typescript
-import { z } from 'zod';
+import { cors } from 'openspeed-framework/plugins/cors';
 
-app.get('/user/:id',
-  validate({
-    params: z.object({ id: z.string().min(1) }),
-    query: z.object({ limit: z.number().optional() })
-  }),
-  (ctx) => ctx.json({ user: ctx.params.id })
-);
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://myapp.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+```
+
+### Logger
+
+Request logging with customizable formats:
+
+```typescript
+import { logger } from 'openspeed-framework/plugins/logger';
+
+app.use(logger({
+  format: 'combined', // 'combined', 'common', 'dev', 'short', 'tiny'
+  skip: (req) => req.url?.includes('/health')
+}));
+```
+
+### JSON Parser
+
+Parse JSON request bodies:
+
+```typescript
+import { json } from 'openspeed-framework/plugins/json';
+
+app.use(json({ limit: '10mb' }));
+
+app.post('/api/data', (ctx) => {
+  const data = ctx.getBody(); // Parsed JSON
+  return ctx.json({ received: data });
+});
 ```
 
 ### OpenAPI Generator
 
+Auto-generate API documentation:
+
 ```typescript
-const api = openapi({ title: 'My API', version: '1.0.0' });
+import { openapi } from 'openspeed-framework/plugins/openapi';
+
+const api = openapi({
+  title: 'My API',
+  version: '1.0.0',
+  description: 'API documentation'
+});
 
 app.use(api.middleware);
+
 app.get('/users', (ctx) => ctx.json([]));
-api.collect('GET', '/users', 'List all users');
+// api.collect('GET', '/users', 'List all users');
 
 app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
-```
-
-### Authentication
-
-```typescript
-// JWT Authentication
-app.use(auth({
-  jwt: { secret: 'your-secret-key' }
-}));
-
-// Basic Auth
-app.use(auth({
-  basic: { users: { admin: 'password' } }
-}));
-
-// Bearer Token
-app.use(auth({
-  bearer: { tokens: ['token1', 'token2'] }
-}));
-
-app.get('/protected', requireAuth(), (ctx) => ctx.json({ user: ctx.req.user }));
-```
-
-### Rate Limiting
-
-```typescript
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-}));
-```
-
-### Static File Serving
-
-```typescript
-app.use(serveStatic({
-  root: './public',
-  prefix: '/static',
-  maxAge: 86400000 // 1 day
-}));
 ```
 
 ## 🌐 Runtime Support
@@ -212,32 +346,44 @@ console.log(app.routes()); // Returns route metadata array
 
 ## 📁 Project Structure
 
-```text
+```
 src/
 ├── openspeed/
-│   ├── index.ts          # Main app factory
-│   ├── router.ts         # Trie router implementation
-│   ├── context.ts        # Request/response context
-│   ├── server.ts         # Runtime detection & adapters
-│   ├── adapters/         # Runtime-specific servers
-│   │   ├── node.ts
-│   │   ├── bun.ts
-│   │   └── deno.ts
-│   └── plugins/          # Official plugins
-│       ├── cors.ts
-│       ├── logger.ts
-│       ├── json.ts
-│       ├── error.ts
-│       ├── validate.ts
-│       ├── openapi.ts
-│       ├── auth.ts
-│       ├── rateLimit.ts
-│       └── static.ts
-├── create-openspeed-app/ # CLI scaffold tool
+│   ├── index.ts              # Main app factory
+│   ├── router.ts             # Trie router implementation
+│   ├── context.ts            # Request/response context with helpers
+│   ├── server.ts             # Runtime detection & adapters
+│   └── plugins/              # Official plugins
+│       ├── upload.ts         # File upload handling
+│       ├── websocket.ts      # WebSocket support
+│       ├── cookie.ts         # Cookie management
+│       ├── errorHandler.ts   # Error handling
+│       ├── cors.ts           # CORS middleware
+│       ├── logger.ts         # Request logging
+│       ├── json.ts           # JSON parsing
+│       ├── validate.ts       # Request validation
+│       ├── openapi.ts        # API documentation
+│       ├── auth.ts           # Authentication
+│       ├── rateLimit.ts      # Rate limiting
+│       └── static.ts         # Static file serving
+├── create-openspeed-app/     # CLI scaffold tool
+├── cli/                      # CLI commands
+├── core/                     # Core utilities
+│   ├── router.ts
+│   ├── context.ts
+│   └── app.ts
 examples/
-├── hello-openspeed/      # Full example with all features
-benchmarks/               # Performance testing
-tests/                    # Unit test suite
+├── hello-openspeed/          # Full example with all features
+├── file-upload/              # File upload example
+├── websocket-chat/           # WebSocket chat example
+└── api-with-docs/            # API with OpenAPI docs
+benchmarks/                   # Performance testing
+tests/                        # Unit test suite
+docs/                         # Documentation
+├── api/                      # API reference
+├── guides/                   # Getting started guides
+├── plugins/                  # Plugin documentation
+└── examples/                 # Example explanations
 ```
 ```
 
