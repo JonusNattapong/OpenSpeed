@@ -27,7 +27,7 @@ class TrieNode {
   }
 }
 
-export class Router {
+export default class Router {
   root = new TrieNode('');
   private routeTable = new Map<string, { method: string; path: string; middlewares: string[] }>();
   private routeCache = new Map<string, RouteMatch | null>();
@@ -223,5 +223,3 @@ export class Router {
     return parts;
   }
 }
-
-export default Router;
