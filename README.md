@@ -1,15 +1,15 @@
-# Nova (prototype)
+# OpenSpeed (prototype)
 
 Minimal prototype for a high-performance, developer-friendly web framework inspired by Hono and Elysia.
 
 What is included in this prototype:
 
-- A trie-based router with parameter support (src/nova/router.ts)
-- Minimal Context and response helpers (src/nova/context.ts)
-- App API with middleware and method helpers (src/nova/index.ts)
-- A Node HTTP adapter (src/nova/server.ts)
-- Official plugins: CORS, logger, JSON body parser, error handler (src/nova/plugins/)
-- An example app using plugins (examples/hello-nova)
+- A trie-based router with parameter support (src/openspeed/router.ts)
+- Minimal Context and response helpers (src/openspeed/context.ts)
+- App API with middleware and method helpers (src/openspeed/index.ts)
+- A Node HTTP adapter (src/openspeed/server.ts)
+- Official plugins: CORS, logger, JSON body parser, error handler (src/openspeed/plugins/)
+- An example app using plugins (examples/hello-openspeed)
 
 How to run (local development):
 
@@ -43,7 +43,7 @@ Nova includes official plugins for common web development tasks:
 Example usage:
 
 ```ts
-import { createApp, cors, logger, json, errorHandler } from 'nova';
+import { createApp, cors, logger, json, errorHandler } from 'openspeed';
 
 const app = createApp();
 

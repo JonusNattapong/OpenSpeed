@@ -1,6 +1,6 @@
-import Router from './router';
-import Context, { RequestLike } from './context';
-import { createServer } from './server';
+import Router from './router.js';
+import Context, { RequestLike } from './context.js';
+import { createServer } from './server.js';
 
 type Middleware = (ctx: Context, next: () => Promise<any>) => any;
 

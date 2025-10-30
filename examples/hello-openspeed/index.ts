@@ -1,4 +1,4 @@
-import { createApp, cors, logger, json, errorHandler } from '../../src/nova/index.js';
+import { createApp, cors, logger, json, errorHandler } from '../../src/openspeed/index.js';
 
 const app = createApp();
 
@@ -8,7 +8,7 @@ app.use(json());
 app.use(errorHandler());
 
 app.get('/', async (ctx) => {
-  return ctx.text('Hello Nova!');
+  return ctx.text('Hello OpenSpeed!');
 });
 
 app.get('/user/:id', async (ctx) => {
@@ -21,4 +21,4 @@ app.post('/user', async (ctx) => {
 });
 
 app.listen(3000);
-console.log('Nova example listening on http://localhost:3000');
+console.log('OpenSpeed example listening on http://localhost:3000');

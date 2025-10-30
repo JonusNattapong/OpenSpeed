@@ -1,16 +1,19 @@
 {
-  "name": "nova-framework",
+  "name": "openspeed-framework",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/examples/hello-nova/index.js",
-    "dev": "tsx examples/hello-nova/index.ts",
+    "start": "node dist/examples/hello-openspeed/index.js",
+    "dev": "tsx examples/hello-openspeed/index.ts",
     "benchmark": "npx autocannon -c 100 -d 10 http://localhost:3000"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
   }
 }
