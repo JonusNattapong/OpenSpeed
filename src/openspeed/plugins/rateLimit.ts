@@ -8,6 +8,7 @@ export interface RateLimitOptions {
   skipSuccessfulRequests?: boolean;
   skipFailedRequests?: boolean;
   keyGenerator?: (ctx: Context) => string;
+  store?: RateLimitStore;
 }
 
 interface RateLimitEntry {
@@ -15,8 +16,13 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
+export interface RateLimitStore {
+  get(key: string): Promise<RateLimitEntry | undefined>;
+  set(key: string, entry: RateLimitEntry): Promise<void>;
+  clear?(): Promise<void>;
+}
+
 export function rateLimit(options: RateLimitOptions) {
-  const store = new Map<string, RateLimitEntry>();
   const {
     windowMs,
     max,
@@ -24,7 +30,8 @@ export function rateLimit(options: RateLimitOptions) {
     statusCode = 429,
     skipSuccessfulRequests = false,
     skipFailedRequests = false,
-    keyGenerator = (ctx: Context) => ctx.req.headers['x-forwarded-for'] as string || 'anonymous'
+    keyGenerator = (ctx: Context) => ctx.req.headers['x-forwarded-for'] as string || 'anonymous',
+    store = new MemoryStore()
   } = options;
 
   return async (ctx: Context, next: () => Promise<any>) => {
@@ -32,17 +39,10 @@ export function rateLimit(options: RateLimitOptions) {
     const now = Date.now();
     const windowStart = now - windowMs;
 
-    // Clean up expired entries
-    for (const [k, entry] of store.entries()) {
-      if (entry.resetTime < now) {
-        store.delete(k);
-      }
-    }
-
-    let entry = store.get(key);
+    let entry = await store.get(key);
     if (!entry || entry.resetTime < now) {
       entry = { count: 0, resetTime: now + windowMs };
-      store.set(key, entry);
+      await store.set(key, entry);
     }
 
     // Check if limit exceeded
@@ -65,6 +65,7 @@ export function rateLimit(options: RateLimitOptions) {
 
     // Increment counter
     entry.count++;
+    await store.set(key, entry);
 
     try {
       await next();
@@ -72,11 +73,13 @@ export function rateLimit(options: RateLimitOptions) {
       // Skip successful requests if configured
       if (skipSuccessfulRequests && ctx.res.status && ctx.res.status < 400) {
         entry.count--;
+        await store.set(key, entry);
       }
     } catch (error) {
       // Skip failed requests if configured
       if (skipFailedRequests) {
         entry.count--;
+        await store.set(key, entry);
       }
       throw error;
     }
@@ -84,7 +87,7 @@ export function rateLimit(options: RateLimitOptions) {
 }
 
 // Memory store for rate limiting (in production, use Redis or similar)
-export class MemoryStore {
+export class MemoryStore implements RateLimitStore {
   private store = new Map<string, RateLimitEntry>();
 
   async get(key: string): Promise<RateLimitEntry | undefined> {
