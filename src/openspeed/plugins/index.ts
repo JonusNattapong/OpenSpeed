@@ -22,4 +22,7 @@ export { tracingPlugin } from './tracing.js';
 export { metricsPlugin } from './metrics.js';
 export { dashboardPlugin } from './dashboard.js';
 export { anomalyPlugin } from './anomaly.js';
+export { hotReloadPlugin } from './hotReload.js';
+export { playgroundPlugin } from './playground.js';
+export { codeGenPlugin } from './codegen.js';
 export * from './errorHandler.js';

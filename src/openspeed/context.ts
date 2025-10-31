@@ -119,6 +119,9 @@ export class Context {
   metrics?: any;
   dashboard?: any;
   anomaly?: any;
+  hotReload?: any;
+  playground?: any;
+  codegen?: any;
 
   constructor(req: RequestLike, params: Record<string,string> = {}) {
     this.req = req;

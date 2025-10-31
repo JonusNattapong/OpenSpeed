@@ -8,6 +8,11 @@ import { pathToFileURL } from 'url';
 type Middleware = (ctx: Context, next: () => Promise<any>) => any;
 type RouteHandler = (ctx: Context) => Promise<any> | any;
 
+export interface Plugin {
+  name: string;
+  setup: (app: any) => void;
+}
+
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'options'] as const;
 
 function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<any> | any) {
@@ -65,8 +70,14 @@ export function createApp() {
       app[key] = value;
       return app;
     },
-    plugin(_name: string, pluginFn: (app: any) => void) {
-      pluginFn(app);
+    plugin(nameOrPlugin: string | Plugin, pluginFn?: (app: any) => void) {
+      if (typeof nameOrPlugin === 'object' && nameOrPlugin.setup) {
+        // Plugin object with setup method
+        nameOrPlugin.setup(app);
+      } else if (typeof nameOrPlugin === 'string' && pluginFn) {
+        // Legacy plugin function
+        pluginFn(app);
+      }
       return app;
     },
     routes() {
