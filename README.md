@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo.png" width="200" alt="OpenSpeed Logo">
+  <img src="./logo.png" width="500" alt="OpenSpeed Logo">
 </p>
 
 # OpenSpeed
