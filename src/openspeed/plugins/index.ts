@@ -9,4 +9,5 @@ export { serveStatic } from './static.js';
 export { upload, single, array, fields } from './upload.js';
 export { websocket, WebSocketRoom, wsRoom } from './websocket.js';
 export { cookie, setCookie, getCookie, deleteCookie, clearCookies } from './cookie.js';
+export { graphql } from './graphql.js';
 export * from './errorHandler.js';

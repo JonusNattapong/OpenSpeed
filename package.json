@@ -68,8 +68,10 @@
     "vitest": "^4.0.5"
   },
   "dependencies": {
+    "@graphql-tools/schema": "^10.0.26",
     "bcryptjs": "^2.4.3",
     "express-rate-limit": "^7.4.1",
+    "graphql": "^16.11.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
