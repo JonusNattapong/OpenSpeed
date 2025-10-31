@@ -74,10 +74,12 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.921.0",
     "@graphql-tools/schema": "^10.0.26",
+    "@inquirer/prompts": "^7.9.0",
     "@sendgrid/mail": "^8.1.6",
     "@types/ws": "^8.18.1",
     "bcryptjs": "^2.4.3",
     "chokidar": "^4.0.3",
+    "commander": "^14.0.2",
     "compression": "^1.8.1",
     "express-rate-limit": "^7.4.1",
     "graphql": "^16.11.0",
