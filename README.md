@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./logo.png" width="200" alt="OpenSpeed Logo">
+</p>
+
 # OpenSpeed
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
