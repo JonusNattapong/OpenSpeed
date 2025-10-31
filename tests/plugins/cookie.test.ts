@@ -113,6 +113,6 @@ describe('cookie plugin', () => {
 
     await middleware(ctx, async () => {});
 
-    expect(ctx.cookies?.get('name')).toBe('ElonDuck');
+    expect(ctx.cookies?.get('name')).toBe('John Duck');
   });
 });

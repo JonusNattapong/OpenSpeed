@@ -6,3 +6,9 @@ const prisma = new PrismaClient({
 
 export { prisma };
 export * from '@prisma/client';
+
+// Database adapters
+export { MongoDBAdapter } from './mongodb.js';
+export { MySQLAdapter } from './mysql.js';
+export { RedisCache } from './redis.js';
+export { MultiTenantManager } from './multi-tenant.js';

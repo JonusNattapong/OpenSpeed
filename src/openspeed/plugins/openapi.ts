@@ -21,11 +21,15 @@ export function openapi(options: { title?: string; version?: string } = {}) {
   const { title = 'OpenSpeed API', version = '1.0.0' } = options;
 
   const api = {
-    collect: (method: string, path: string, options: Partial<RouteInfo> = {}) => {
+    collect: (method: string, path: string, options: string | Partial<RouteInfo> = {}) => {
+      const routeInfo: Partial<RouteInfo> = typeof options === 'string' 
+        ? { description: options }
+        : options;
+      
       routes.push({
         method: method.toLowerCase(),
         path,
-        ...options,
+        ...routeInfo,
       });
     },
     generate: () => {

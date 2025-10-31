@@ -108,6 +108,17 @@ export class Context {
   res: ResponseLike = { status: 200, headers: {}, body: undefined };
   params: Record<string,string> = {};
   cookies?: CookieJar;
+  email?: any;
+  storage?: any;
+  twilio?: any;
+  stripe?: any;
+  memory?: any;
+  loadBalancer?: any;
+  circuitBreaker?: any;
+  tracing?: any;
+  metrics?: any;
+  dashboard?: any;
+  anomaly?: any;
 
   constructor(req: RequestLike, params: Record<string,string> = {}) {
     this.req = req;

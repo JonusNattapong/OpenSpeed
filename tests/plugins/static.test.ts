@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 describe('static plugin', () => {
-  const testDir = '/tmp/static-test';
+  const testDir = join(process.cwd(), 'test-static');
   
   beforeAll(() => {
     // Create test directory and files
