@@ -151,30 +151,84 @@ class BenchmarkRunner {
     const connections = this.getConnectionsForScenario(scenario);
     const duration = 10; // 10 seconds
 
-    let autocannonCmd: string;
+    let autocannonArgs: string[];
 
     switch (scenario) {
       case 'routing':
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -j http://localhost:${port}/`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-j',
+          `http://localhost:${port}/`,
+        ];
         break;
       case 'json':
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -m POST -H "Content-Type: application/json" -b '{"message":"hello","data":[1,2,3,4,5]}' -j http://localhost:${port}/json`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-m',
+          'POST',
+          '-H',
+          'Content-Type: application/json',
+          '-b',
+          '{"message":"hello","data":[1,2,3,4,5]}',
+          '-j',
+          `http://localhost:${port}/json`,
+        ];
         break;
       case 'middleware':
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -j http://localhost:${port}/middleware`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-j',
+          `http://localhost:${port}/multiple-middlewares`,
+        ];
         break;
       case 'plugins':
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -j http://localhost:${port}/plugins`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-j',
+          `http://localhost:${port}/multiple-plugins`,
+        ];
         break;
       case 'real-world':
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -j http://localhost:${port}/api/users`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-j',
+          `http://localhost:${port}/api/users`,
+        ];
         break;
       default:
-        autocannonCmd = `npx autocannon -c ${connections} -d ${duration} -j http://localhost:${port}/`;
+        autocannonArgs = [
+          'autocannon',
+          '-c',
+          connections.toString(),
+          '-d',
+          duration.toString(),
+          '-j',
+          `http://localhost:${port}/`,
+        ];
     }
 
     try {
-      const result = execSync(autocannonCmd, { encoding: 'utf8' });
+      const result = await this.runCommand(['npx', ...autocannonArgs]);
       return JSON.parse(result);
     } catch (error) {
       console.log(`Load test failed: ${error.message}`);
@@ -183,6 +237,36 @@ class BenchmarkRunner {
         throughput: { average: 0, total: 0 },
       };
     }
+  }
+
+  private async runCommand(args: string[]): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+      const child = spawn(cmd, args.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Command failed with code ${code}: ${stderr}`));
+        }
+      });
+
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
   }
 
   private async getMemoryUsage(pid: number) {

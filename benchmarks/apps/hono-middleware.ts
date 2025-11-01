@@ -1,228 +1,148 @@
 import { Hono } from 'hono';
+import { middlewareChains, templateMiddlewareResponse } from '../shared/middleware.js';
 
-const app = new Hono();
+// Extend Hono context for benchmark properties
+interface BenchmarkContext {
+  startTime?: number;
+  user?: any;
+  requestId?: string;
+  responseTime?: number;
+  rateLimit?: any;
+  compressed?: boolean;
+  cached?: boolean;
+  error?: any;
+  conditional?: boolean;
+  extraData?: any;
+  asyncProcessed?: boolean;
+  asyncTimestamp?: number;
+  processedData?: any[];
+}
 
-// Global middleware - request timing
-app.use('*', async (c, next) => {
-  const start = Date.now();
-  c.set('startTime', start);
-  await next();
-  const duration = Date.now() - start;
-  c.header('X-Response-Time', `${duration}ms`);
-});
+const app = new Hono<{ Variables: BenchmarkContext }>();
 
-// Authentication middleware
-const authMiddleware = async (c: any, next: any) => {
-  const authHeader = c.req.header('Authorization');
+// Define Hono-specific middleware implementations
+const middlewareMap: Record<string, any> = {
+  cors: async (c: any, next: any) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (c.req.method === 'OPTIONS') {
+      return c.text('', 200);
+    }
+    await next();
+  },
+  logger: async (c: any, next: any) => {
+    const start = Date.now();
+    console.log(`${c.req.method} ${c.req.path}`);
+    await next();
+    const duration = Date.now() - start;
+    console.log(`${c.req.method} ${c.req.path} - ${duration}ms`);
+  },
+  'json-parser': async (c: any, next: any) => {
+    if (c.req.method === 'POST' && c.req.header('content-type')?.includes('application/json')) {
+      // Simulate JSON parsing
+      c.set('body', { test: 'data' });
+    }
+    await next();
+  },
+  'rate-limit': (() => {
+    const requests = new Map();
+    return async (c: any, next: any) => {
+      const ip = '127.0.0.1';
+      const now = Date.now();
+      const windowStart = now - 60000;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+      if (!requests.has(ip)) {
+        requests.set(ip, []);
+      }
 
-  const token = authHeader.substring(7);
-  if (token !== 'benchmark-token') {
-    return c.json({ error: 'Invalid token' }, 401);
-  }
+      const userRequests = requests.get(ip).filter((time: number) => time > windowStart);
+      userRequests.push(now);
+      requests.set(ip, userRequests);
 
-  c.set('user', { id: 123, role: 'user' });
-  await next();
+      c.set('rateLimit', {
+        remaining: Math.max(0, 100 - userRequests.length),
+        reset: windowStart + 60000,
+      });
+
+      await next();
+    };
+  })(),
+  auth: async (c: any, next: any) => {
+    const auth = c.req.header('Authorization');
+    if (auth === 'Bearer benchmark-token') {
+      c.set('user', { id: 1, name: 'Benchmark User' });
+    }
+    await next();
+  },
+  cache: (() => {
+    const cache = new Map();
+    return async (c: any, next: any) => {
+      const key = `${c.req.method}:${c.req.path}`;
+      const cached = cache.get(key);
+
+      if (cached && Date.now() - cached.timestamp < 30000) {
+        c.set('cached', true);
+        return c.json(cached.data);
+      }
+
+      await next();
+
+      const response = c.res.clone();
+      if (response.ok) {
+        const data = await response.json();
+        cache.set(key, {
+          data,
+          timestamp: Date.now(),
+        });
+      }
+    };
+  })(),
+  compression: async (c: any, next: any) => {
+    await next();
+    const responseSize = JSON.stringify(c.res.body).length;
+    if (responseSize > 1024) {
+      c.header('Content-Encoding', 'gzip');
+      c.set('compressed', true);
+    }
+  },
+  conditional: async (c: any, next: any) => {
+    const shouldProcess = Math.random() > 0.5;
+    c.set('conditional', shouldProcess);
+
+    if (shouldProcess) {
+      c.set('extraData', {
+        processed: true,
+        randomValue: Math.random(),
+        timestamp: Date.now(),
+      });
+    }
+
+    await next();
+  },
+  async: async (c: any, next: any) => {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    c.set('asyncProcessed', true);
+    c.set('asyncTimestamp', Date.now());
+    await next();
+  },
 };
 
-// CORS middleware
-const corsMiddleware = async (c: any, next: any) => {
-  c.header('Access-Control-Allow-Origin', '*');
-  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+// Apply middleware chains from shared config
+for (const chain of middlewareChains) {
+  const middlewares = chain.middlewares.map((m) => middlewareMap[m.name]).filter(Boolean);
 
-  if (c.req.method === 'OPTIONS') {
-    return c.text('', 200);
-  }
-
-  await next();
-};
-
-// Caching middleware
-const cacheMiddleware = async (c: any, next: any) => {
-  const cacheKey = c.req.path + JSON.stringify(c.req.queries());
-  const cached = c.get(`cache_${cacheKey}`);
-
-  if (cached && (Date.now() - cached.timestamp) < 5000) { // 5 second cache
-    return c.json(cached.data);
-  }
-
-  await next();
-
-  // Cache the response
-  const response = c.res.clone();
-  if (response.ok) {
-    const data = await response.json();
-    c.set(`cache_${cacheKey}`, {
-      data,
-      timestamp: Date.now()
-    });
-  }
-};
-
-// Rate limiting middleware (simple in-memory)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-const rateLimitMiddleware = async (c: any, next: any) => {
-  const clientId = c.req.header('X-Client-ID') || 'anonymous';
-  const now = Date.now();
-  const windowMs = 60000; // 1 minute
-  const maxRequests = 100;
-
-  const clientData = rateLimitStore.get(clientId) || { count: 0, resetTime: now + windowMs };
-
-  if (now > clientData.resetTime) {
-    clientData.count = 0;
-    clientData.resetTime = now + windowMs;
-  }
-
-  if (clientData.count >= maxRequests) {
-    return c.json({ error: 'Rate limit exceeded' }, 429);
-  }
-
-  clientData.count++;
-  rateLimitStore.set(clientId, clientData);
-
-  c.header('X-RateLimit-Remaining', (maxRequests - clientData.count).toString());
-  c.header('X-RateLimit-Reset', clientData.resetTime.toString());
-
-  await next();
-};
-
-// Logging middleware
-const loggingMiddleware = async (c: any, next: any) => {
-  const start = c.get('startTime') || Date.now();
-  console.log(`[${new Date().toISOString()}] ${c.req.method} ${c.req.path}`);
-
-  await next();
-
-  const duration = Date.now() - start;
-  console.log(`[${new Date().toISOString()}] ${c.req.method} ${c.req.path} - ${c.res.status} - ${duration}ms`);
-};
-
-// Health check (no middleware)
-app.get('/health', (c) => {
-  return c.json({
-    status: 'ok',
-    framework: 'hono',
-    scenario: 'middleware',
-    middleware: []
+  // Add the test route with middlewares applied
+  app.get(chain.testRoute, ...middlewares, (c) => {
+    const context = {
+      conditional: c.get('conditional'),
+      extraData: c.get('extraData'),
+      asyncTimestamp: c.get('asyncTimestamp'),
+    };
+    const data = templateMiddlewareResponse(chain.expectedResponse.data, context);
+    return c.json(data);
   });
-});
-
-// Single middleware endpoint
-app.get('/single-middleware', corsMiddleware, (c) => {
-  return c.json({
-    message: 'Single middleware applied',
-    cors: true,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Multiple middleware chain
-app.get('/middleware-chain',
-  corsMiddleware,
-  rateLimitMiddleware,
-  loggingMiddleware,
-  (c) => {
-    return c.json({
-      message: 'Multiple middleware chain applied',
-      middleware: ['cors', 'rate-limit', 'logging'],
-      timestamp: new Date().toISOString(),
-      user: c.get('user')
-    });
-  }
-);
-
-// Authenticated endpoint
-app.get('/authenticated',
-  authMiddleware,
-  corsMiddleware,
-  (c) => {
-    const user = c.get('user');
-    return c.json({
-      message: 'Authenticated endpoint',
-      user,
-      timestamp: new Date().toISOString()
-    });
-  }
-);
-
-// Cached endpoint
-app.get('/cached',
-  cacheMiddleware,
-  corsMiddleware,
-  (c) => {
-    return c.json({
-      message: 'Cached response',
-      data: Math.random(),
-      timestamp: new Date().toISOString(),
-      cached: false // Would be true if served from cache
-    });
-  }
-);
-
-// Heavy middleware chain
-app.get('/heavy-chain',
-  corsMiddleware,
-  rateLimitMiddleware,
-  loggingMiddleware,
-  authMiddleware,
-  cacheMiddleware,
-  (c) => {
-    // Simulate some processing
-    const data = Array.from({ length: 100 }, (_, i) => ({
-      id: i,
-      value: Math.random(),
-      computed: Math.sin(i) * Math.cos(i)
-    }));
-
-    return c.json({
-      message: 'Heavy middleware chain completed',
-      middleware: ['cors', 'rate-limit', 'logging', 'auth', 'cache'],
-      data: data.slice(0, 10), // Return first 10 items
-      totalItems: data.length,
-      timestamp: new Date().toISOString(),
-      user: c.get('user')
-    });
-  }
-);
-
-// Middleware performance test
-app.get('/performance-test', async (c) => {
-  const iterations = parseInt(c.req.query('iterations') || '1000');
-
-  let result = 0;
-  for (let i = 0; i < iterations; i++) {
-    result += Math.sin(i) * Math.cos(i);
-  }
-
-  return c.json({
-    message: 'Performance test completed',
-    iterations,
-    result,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Middleware with async operations
-app.get('/async-middleware',
-  corsMiddleware,
-  async (c) => {
-    // Simulate async database call
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    return c.json({
-      message: 'Async middleware completed',
-      asyncOperation: true,
-      delay: 10,
-      timestamp: new Date().toISOString()
-    });
-  }
-);
+}
 
 const port = process.argv[2] || '3102';
 export default {
