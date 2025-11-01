@@ -26,3 +26,11 @@ export { hotReloadPlugin } from './hotReload.js';
 export { playgroundPlugin } from './playground.js';
 export { codeGenPlugin } from './codegen.js';
 export * from './errorHandler.js';
+
+// Advanced features (Phase 1-6 roadmap)
+export { fileRouting, watchRoutes } from './fileRouting.js';
+export { database, MongoQueryBuilder, SQLQueryBuilder, RedisCache, closeAllConnections } from './database.js';
+export { rbac, requirePermission, requireRole, RoleBuilder } from './rbac.js';
+export { auditLog, queryAuditLogs } from './auditLog.js';
+export { kubernetesOperator, generateDeploymentManifest, generateHPAManifest } from './kubernetes.js';
+export { adaptiveOptimizer, streamLargeResponse, ObjectPool, BloomFilter } from './adaptiveOptimizer.js';
