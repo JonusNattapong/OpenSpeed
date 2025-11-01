@@ -6,8 +6,11 @@
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
 
+[![npm version](https://img.shields.io/npm/v/openspeed.svg)](https://www.npmjs.com/package/openspeed)
 [![Tests](https://img.shields.io/badge/tests-102%2F102%20passing-brightgreen)](https://github.com/JonusNattapong/OpenSpeed)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/JonusNattapong/OpenSpeed.svg)](https://github.com/JonusNattapong/OpenSpeed/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/JonusNattapong/OpenSpeed.svg)](https://github.com/JonusNattapong/OpenSpeed/issues)
 
 ## ✨ Features
 
@@ -129,7 +132,7 @@ app.listen(3000);
 Handle multipart form data with streaming support:
 
 ```typescript
-import { upload } from 'openspeed-framework/plugins/upload';
+import { upload } from 'openspeed/plugins/upload';
 
 app.use(upload());
 
@@ -158,7 +161,7 @@ app.post('/upload-multiple', (ctx) => {
 Real-time communication with room management:
 
 ```typescript
-import { websocket } from 'openspeed-framework/plugins/websocket';
+import { websocket } from 'openspeed/plugins/websocket';
 
 app.use(websocket());
 
@@ -191,7 +194,7 @@ app.ws('/chat/:room', (ws, ctx) => {
 Session management with CookieJar:
 
 ```typescript
-import { cookie } from 'openspeed-framework/plugins/cookie';
+import { cookie } from 'openspeed/plugins/cookie';
 
 app.use(cookie());
 
@@ -220,7 +223,7 @@ app.get('/profile', (ctx) => {
 Comprehensive error management with typed exceptions:
 
 ```typescript
-import { errorHandler, HttpError } from 'openspeed-framework/plugins/errorHandler';
+import { errorHandler, HttpError } from 'openspeed/plugins/errorHandler';
 
 app.use(errorHandler());
 
@@ -255,7 +258,7 @@ app.get('/api/async', async (ctx) => {
 Cross-origin resource sharing:
 
 ```typescript
-import { cors } from 'openspeed-framework/plugins/cors';
+import { cors } from 'openspeed/plugins/cors';
 
 app.use(cors({
   origin: ['http://localhost:3000', 'https://myapp.com'],
@@ -269,7 +272,7 @@ app.use(cors({
 Request logging with customizable formats:
 
 ```typescript
-import { logger } from 'openspeed-framework/plugins/logger';
+import { logger } from 'openspeed/plugins/logger';
 
 app.use(logger({
   format: 'combined', // 'combined', 'common', 'dev', 'short', 'tiny'
@@ -282,7 +285,7 @@ app.use(logger({
 Parse JSON request bodies:
 
 ```typescript
-import { json } from 'openspeed-framework/plugins/json';
+import { json } from 'openspeed/plugins/json';
 
 app.use(json({ limit: '10mb' }));
 
@@ -297,7 +300,7 @@ app.post('/api/data', (ctx) => {
 Auto-generate API documentation:
 
 ```typescript
-import { openapi } from 'openspeed-framework/plugins/openapi';
+import { openapi } from 'openspeed/plugins/openapi';
 
 const api = openapi({
   title: 'My API',
@@ -335,6 +338,36 @@ Performance comparison (requests/second):
 > **Note:** Benchmarks run with autocannon (100 concurrent connections, 10 seconds)
 > *With adaptive optimizer enabled - 2x-3x faster than competition!
 
+### Running Benchmarks
+
+Compare Openspeed with Hono and Elysia across different scenarios:
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build the project
+pnpm run build
+
+# Run comprehensive benchmarks (Node.js)
+pnpm run bench:node
+
+# Run comprehensive benchmarks (Bun)
+pnpm run bench:bun
+
+# Run specific benchmark scenario
+cd benchmarks
+bun run apps/openspeed-routing.ts 3000 &
+autocannon -c 100 -d 10 http://localhost:3000/
+```
+
+Available benchmark scenarios:
+- **routing**: Basic routing performance
+- **json**: JSON parsing and response
+- **middleware**: Middleware chaining
+- **plugins**: Plugin performance
+- **real-world**: Full application simulation
+
 ## 🛠️ Development
 
 ### Running Tests
@@ -362,6 +395,53 @@ app.printRoutes(); // Shows all routes with middleware info
 console.log(app.routes()); // Returns route metadata array
 ```
 
+## 📚 Examples
+
+Openspeed comes with several examples to help you get started:
+
+### Hello World
+
+Basic setup with routing and middleware:
+
+```bash
+cd examples/hello-openspeed
+pnpm install
+pnpm run dev
+```
+
+### ML-Optimized E-commerce API
+
+Full-featured e-commerce API with ML optimization:
+
+```bash
+cd examples/ml-optimized-api
+pnpm install
+pnpm run dev
+```
+
+Features:
+- User authentication and registration
+- Product catalog with search
+- Shopping cart and checkout
+- Order management
+- Analytics dashboard
+- ML-powered performance optimization
+
+### Running Examples
+
+```bash
+# Clone the repo
+git clone https://github.com/JonusNattapong/OpenSpeed.git
+cd OpenSpeed
+
+# Install dependencies
+pnpm install
+
+# Run any example
+cd examples/ml-optimized-api
+pnpm run dev
+```
+
 ## 📁 Project Structure
 
 ```
@@ -372,36 +452,58 @@ src/
 │   ├── context.ts            # Request/response context with helpers
 │   ├── server.ts             # Runtime detection & adapters
 │   └── plugins/              # Official plugins
-│       ├── upload.ts         # File upload handling
-│       ├── websocket.ts      # WebSocket support
-│       ├── cookie.ts         # Cookie management
-│       ├── errorHandler.ts   # Error handling
-│       ├── cors.ts           # CORS middleware
-│       ├── logger.ts         # Request logging
-│       ├── json.ts           # JSON parsing
-│       ├── validate.ts       # Request validation
-│       ├── openapi.ts        # API documentation
+│       ├── adaptiveOptimizer.ts  # ML-powered optimization
+│       ├── auditLog.ts       # Audit logging
 │       ├── auth.ts           # Authentication
+│       ├── circuitBreaker.ts # Circuit breaker pattern
+│       ├── codegen.ts        # Code generation
+│       ├── compression.ts    # Response compression
+│       ├── cookie.ts         # Cookie management
+│       ├── cors.ts           # CORS middleware
+│       ├── database.ts       # Database adapters
+│       ├── dashboard.ts      # Admin dashboard
+│       ├── email.ts          # Email service
+│       ├── errorHandler.ts   # Error handling
+│       ├── fileRouting.ts    # File-based routing
+│       ├── graphql.ts        # GraphQL support
+│       ├── hotReload.ts      # Hot reload
+│       ├── index.ts          # Plugin exports
+│       ├── json.ts           # JSON parsing
+│       ├── kubernetes.ts     # Kubernetes operators
+│       ├── loadBalancer.ts   # Load balancing
+│       ├── logger.ts         # Request logging
+│       ├── memory.ts         # Memory management
+│       ├── metrics.ts        # Metrics collection
+│       ├── mlOptimizer.ts    # ML optimization (legacy)
+│       ├── openapi.ts        # API documentation
+│       ├── playground.ts     # Development playground
 │       ├── rateLimit.ts      # Rate limiting
-│       └── static.ts         # Static file serving
-├── create-openspeed-app/     # CLI scaffold tool
+│       ├── rbac.ts           # Role-based access control
+│       ├── static.ts         # Static file serving
+│       ├── storage.ts        # File storage
+│       ├── stripe.ts         # Stripe payment
+│       ├── tracing.ts        # Request tracing
+│       ├── twilio.ts         # SMS service
+│       ├── upload.ts         # File upload handling
+│       ├── validate.ts       # Request validation
+│       └── websocket.ts      # WebSocket support
 ├── cli/                      # CLI commands
-├── core/                     # Core utilities
-│   ├── router.ts
-│   ├── context.ts
-│   └── app.ts
+├── create-openspeed-app/     # CLI scaffold tool
 examples/
-├── hello-openspeed/          # Full example with all features
-├── file-upload/              # File upload example
-├── websocket-chat/           # WebSocket chat example
-└── api-with-docs/            # API with OpenAPI docs
+├── ml-optimized-api/         # Full e-commerce API with ML optimization
 benchmarks/                   # Performance testing
+├── apps/                     # Benchmark applications
+│   ├── openspeed-*.ts        # Openspeed benchmarks
+│   ├── hono-*.ts             # Hono benchmarks
+│   └── elysia-*.ts           # Elysia benchmarks
+├── run-comprehensive.ts      # Comprehensive benchmark runner
+├── tsconfig.benchmark.json   # Benchmark TypeScript config
 tests/                        # Unit test suite
+├── plugins/                  # Plugin tests
 docs/                         # Documentation
-├── api/                      # API reference
-├── guides/                   # Getting started guides
 ├── plugins/                  # Plugin documentation
-└── examples/                 # Example explanations
+apps/                         # Application templates
+packages/                     # Monorepo packages
 ```
 ```
 
@@ -412,38 +514,102 @@ src/
 │   ├── router.ts         # Trie router implementation
 │   ├── context.ts        # Request/response context
 │   ├── server.ts         # Runtime detection & adapters
-│   ├── adapters/         # Runtime-specific servers
-│   │   ├── node.ts
-│   │   ├── bun.ts
-│   │   └── deno.ts
-│   └── plugins/          # Official plugins
-│       ├── cors.ts
-│       ├── logger.ts
-│       ├── json.ts
-│       ├── error.ts
-│       ├── validate.ts
-│       └── openapi.ts
+│   └── plugins/          # Official plugins (see above)
+├── cli/                  # CLI commands
 ├── create-openspeed-app/ # CLI scaffold tool
 examples/
-├── hello-openspeed/      # Full example with all features
-benchmarks/               # Performance testing
+├── ml-optimized-api/     # Full e-commerce API with ML optimization
+benchmarks/               # Performance testing (see above)
 tests/                    # Unit tests
+docs/                     # Documentation
+apps/                     # Application templates
+packages/                 # Monorepo packages
 ```
 
 ## 🤝 Contributing
 
+We welcome contributions to Openspeed! Here's how you can help:
+
+### 🚀 Getting Started
+
+1. **Fork the repository** on GitHub
+2. **Clone your fork**:
+   ```bash
+   git clone https://github.com/your-username/OpenSpeed.git
+   cd OpenSpeed
+   ```
+3. **Install dependencies**:
+   ```bash
+   pnpm install
+   ```
+4. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+### 🛠️ Development Workflow
+
+- **Build the project**: `pnpm run build`
+- **Run tests**: `pnpm test`
+- **Run benchmarks**: `pnpm run bench:node` or `pnpm run bench:bun`
+- **Lint code**: `pnpm run lint`
+- **Format code**: `pnpm run format`
+
+### 📝 Creating Custom Plugins
+
 Openspeed is designed for extensibility. Create custom plugins:
 
 ```typescript
-function myPlugin(options) {
-  return (ctx, next) => {
+function myPlugin(options: { config: string }) {
+  return (ctx: Context, next: () => Promise<any>) => {
     // Your middleware logic
+    console.log('Plugin config:', options.config);
     return next();
   };
 }
 
 app.use(myPlugin({ config: 'value' }));
 ```
+
+### 🧪 Testing
+
+- Add unit tests in `tests/` directory
+- Run tests with `pnpm test`
+- Aim for high test coverage
+
+### 📋 Pull Request Process
+
+1. **Update documentation** if needed
+2. **Add tests** for new features
+3. **Ensure CI passes** (build, test, lint)
+4. **Create a Pull Request** with clear description
+5. **Wait for review** and address feedback
+
+### 🎯 Code Style
+
+- Use TypeScript for all new code
+- Follow existing code patterns
+- Run `pnpm run lint` and `pnpm run format` before committing
+- Use meaningful commit messages
+
+### 📚 Documentation
+
+- Update README.md for API changes
+- Add examples in `examples/` directory
+- Update plugin documentation in `docs/plugins/`
+
+### 🐛 Reporting Issues
+
+- Use GitHub Issues for bugs and feature requests
+- Provide clear reproduction steps
+- Include environment details (Node.js/Bun version, OS)
+
+### 📞 Community
+
+- Join discussions on GitHub Issues
+- Follow the project for updates
+
+Thank you for contributing to Openspeed! 🎉
 
 ## 📄 License
 
