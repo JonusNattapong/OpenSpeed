@@ -71,7 +71,7 @@ interface OptimizationDecision {
 
 /**
  * ML-Powered Performance Optimizer
- * 
+ *
  * Advanced machine learning capabilities:
  * - Real-time performance prediction using time-series forecasting
  * - Intelligent resource allocation with reinforcement learning
@@ -153,9 +153,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
           requestType: ctx.req.method,
           estimatedLoad: metricsStore.getCurrentLoad(),
           availableResources: getSystemResources(),
-          priority: Array.isArray(priorityHeader)
-            ? priorityHeader[0]
-            : (priorityHeader || 'normal'),
+          priority: Array.isArray(priorityHeader) ? priorityHeader[0] : priorityHeader || 'normal',
         });
 
         ctx.resourceAllocation = allocation;
@@ -177,7 +175,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
         statusCode: ctx.res.status || 200,
         memoryUsage: endMemory.heapUsed - startMemory.heapUsed,
         cpuUsage: (endCpu.user + endCpu.system) / 1000,
-        responseSize: JSON.stringify(ctx.res.body).length,
+        responseSize: (ctx.res.body || '').length,
         queryCount: ctx.queryCount || 0,
         cacheHit: ctx.cacheHit || false,
       };
@@ -192,10 +190,10 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
         });
 
         if (anomalies.length > 0) {
-          anomalies.forEach(anomaly => {
+          anomalies.forEach((anomaly) => {
             anomalyHistory.push(anomaly);
             console.warn(`[ML Optimizer] Anomaly detected: ${anomaly.message}`);
-            
+
             // Auto-healing
             if (anomaly.severity === 'critical') {
               applyAutoHealing(anomaly, ctx);
@@ -221,13 +219,10 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
       // 8. Add optimization headers
       ctx.res.headers = {
         ...ctx.res.headers,
-        'x-ml-prediction-confidence': String(
-          Math.round((ctx.predictionConfidence || 0) * 100)
-        ),
+        'x-ml-prediction-confidence': String(Math.round((ctx.predictionConfidence || 0) * 100)),
         'x-optimization-applied': ctx.optimizationApplied || 'none',
         'x-anomaly-score': String(anomalyDetector.getScore(metric)),
       };
-
     } catch (error) {
       // Error tracking for ML improvement
       metricsStore.addError({
@@ -267,7 +262,7 @@ class PerformancePredictor {
     const durations = historical.map((h: MetricData) => h.duration);
     const alpha = 0.3; // smoothing factor
     let forecast = durations[0];
-    
+
     for (let i = 1; i < durations.length; i++) {
       forecast = alpha * durations[i] + (1 - alpha) * forecast;
     }
@@ -277,21 +272,13 @@ class PerformancePredictor {
     const confidence = Math.max(0, 1 - variance / 1000);
 
     // Pattern-based recommendation
-    const recommendedAction = this.getRecommendedAction(
-      forecast,
-      historical,
-      input.timeOfDay
-    );
+    const recommendedAction = this.getRecommendedAction(forecast, historical, input.timeOfDay);
 
     // Resource estimation using linear regression
-    const avgMemory = historical.reduce(
-      (sum: number, h: MetricData) => sum + h.memoryUsage,
-      0
-    ) / historical.length;
-    const avgCpu = historical.reduce(
-      (sum: number, h: MetricData) => sum + h.cpuUsage,
-      0
-    ) / historical.length;
+    const avgMemory =
+      historical.reduce((sum: number, h: MetricData) => sum + h.memoryUsage, 0) / historical.length;
+    const avgCpu =
+      historical.reduce((sum: number, h: MetricData) => sum + h.cpuUsage, 0) / historical.length;
 
     return {
       expectedDuration: Math.round(forecast),
@@ -307,7 +294,7 @@ class PerformancePredictor {
 
   private calculateVariance(values: number[]): number {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+    const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
     return squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
   }
 
@@ -318,21 +305,21 @@ class PerformancePredictor {
   ): 'cache' | 'prefetch' | 'batch' | 'optimize' | 'throttle' {
     // Analyze patterns
     const avgDuration = historical.reduce((sum, h) => sum + h.duration, 0) / historical.length;
-    const cacheHitRate = historical.filter(h => h.cacheHit).length / historical.length;
-    
+    const cacheHitRate = historical.filter((h) => h.cacheHit).length / historical.length;
+
     if (forecast > avgDuration * 2) return 'throttle';
     if (forecast > 100 && cacheHitRate < 0.3) return 'cache';
     if (timeOfDay >= 9 && timeOfDay <= 17) return 'prefetch'; // Business hours
     if (historical.length > 50 && forecast > 50) return 'optimize';
-    
+
     return 'batch';
   }
 
   async train(data: MetricData[]): Promise<void> {
     // Group by endpoint
     const grouped = new Map<string, MetricData[]>();
-    
-    data.forEach(metric => {
+
+    data.forEach((metric) => {
       const key = `${metric.method}:${metric.path}`;
       if (!grouped.has(key)) {
         grouped.set(key, []);
@@ -342,7 +329,7 @@ class PerformancePredictor {
 
     // Update patterns
     grouped.forEach((metrics, key) => {
-      const durations = metrics.map(m => m.duration);
+      const durations = metrics.map((m) => m.duration);
       this.patterns.set(key, durations);
     });
   }
@@ -353,12 +340,15 @@ class PerformancePredictor {
  * Uses statistical analysis and pattern recognition
  */
 class AnomalyDetector {
-  private baselineMetrics = new Map<string, {
-    mean: number;
-    stdDev: number;
-    p95: number;
-    p99: number;
-  }>();
+  private baselineMetrics = new Map<
+    string,
+    {
+      mean: number;
+      stdDev: number;
+      p95: number;
+      p99: number;
+    }
+  >();
 
   async detect(
     metric: MetricData,
@@ -376,9 +366,7 @@ class AnomalyDetector {
     if (!baseline) return alerts;
 
     // 1. Latency anomaly (using Z-score)
-    const latencyZScore = Math.abs(
-      (metric.duration - baseline.mean) / baseline.stdDev
-    );
+    const latencyZScore = Math.abs((metric.duration - baseline.mean) / baseline.stdDev);
 
     if (latencyZScore > 3) {
       alerts.push({
@@ -396,10 +384,7 @@ class AnomalyDetector {
     }
 
     // 2. Memory anomaly
-    if (
-      thresholds.maxMemory &&
-      metric.memoryUsage > thresholds.maxMemory * 1024 * 1024
-    ) {
+    if (thresholds.maxMemory && metric.memoryUsage > thresholds.maxMemory * 1024 * 1024) {
       alerts.push({
         severity: 'high',
         type: 'memory',
@@ -416,7 +401,7 @@ class AnomalyDetector {
     // 3. Error rate anomaly
     if (metric.statusCode >= 500) {
       const recentErrors = historicalData.filter(
-        h => h.statusCode >= 500 && Date.now() - h.timestamp < 60000
+        (h) => h.statusCode >= 500 && Date.now() - h.timestamp < 60000
       );
 
       if (recentErrors.length > 10) {
@@ -443,9 +428,7 @@ class AnomalyDetector {
 
     if (!baseline) return 0;
 
-    const zScore = Math.abs(
-      (metric.duration - baseline.mean) / baseline.stdDev
-    );
+    const zScore = Math.abs((metric.duration - baseline.mean) / baseline.stdDev);
 
     return Math.min(zScore / 5, 1); // Normalize to 0-1
   }
@@ -453,7 +436,7 @@ class AnomalyDetector {
   private updateBaseline(data: MetricData[]): void {
     const grouped = new Map<string, number[]>();
 
-    data.forEach(metric => {
+    data.forEach((metric) => {
       const key = `${metric.method}:${metric.path}`;
       if (!grouped.has(key)) {
         grouped.set(key, []);
@@ -464,8 +447,7 @@ class AnomalyDetector {
     grouped.forEach((durations, key) => {
       const mean = durations.reduce((sum, d) => sum + d, 0) / durations.length;
       const variance =
-        durations.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) /
-        durations.length;
+        durations.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / durations.length;
       const stdDev = Math.sqrt(variance);
 
       const sorted = [...durations].sort((a, b) => a - b);
@@ -495,7 +477,7 @@ class ResourceAllocator {
 
     // State representation
     const state = this.getState(estimatedLoad, availableResources);
-    
+
     // Action selection (epsilon-greedy)
     const action = this.selectAction(state, requestType);
 
@@ -520,7 +502,8 @@ class ResourceAllocator {
 
   private getState(load: number, resources: any): string {
     const loadLevel = load < 50 ? 'low' : load < 80 ? 'medium' : 'high';
-    const memoryLevel = resources.memory < 1000 ? 'low' : resources.memory < 5000 ? 'medium' : 'high';
+    const memoryLevel =
+      resources.memory < 1000 ? 'low' : resources.memory < 5000 ? 'medium' : 'high';
     return `${loadLevel}_${memoryLevel}`;
   }
 
@@ -532,7 +515,7 @@ class ResourceAllocator {
     }
 
     const actions = ['increase', 'decrease', 'maintain', 'adaptive'];
-    
+
     // Epsilon-greedy selection
     if (Math.random() < epsilon) {
       return actions[Math.floor(Math.random() * actions.length)];
@@ -543,7 +526,7 @@ class ResourceAllocator {
     let bestAction = 'maintain';
     let bestValue = -Infinity;
 
-    actions.forEach(action => {
+    actions.forEach((action) => {
       const value = stateActions.get(action) || 0;
       if (value > bestValue) {
         bestValue = value;
@@ -578,9 +561,9 @@ class QueryOptimizer {
   private indexSuggestions = new Map<string, string[]>();
 
   async learn(executions: any[], totalDuration: number): Promise<void> {
-    executions.forEach(exec => {
+    executions.forEach((exec) => {
       const pattern = this.extractPattern(exec.query);
-      
+
       if (!this.queryPatterns.has(pattern)) {
         this.queryPatterns.set(pattern, {
           count: 0,
@@ -605,11 +588,7 @@ class QueryOptimizer {
 
   private extractPattern(query: string): string {
     // Simple pattern extraction
-    return query
-      .replace(/['"]/g, '')
-      .replace(/\d+/g, 'N')
-      .replace(/\s+/g, ' ')
-      .toLowerCase();
+    return query.replace(/['"]/g, '').replace(/\d+/g, 'N').replace(/\s+/g, ' ').toLowerCase();
   }
 
   private suggestIndex(query: string, pattern: string): void {
@@ -635,18 +614,17 @@ class QueryOptimizer {
  * Adaptive Load Balancer
  */
 class AdaptiveLoadBalancer {
-  private endpointMetrics = new Map<string, {
-    totalRequests: number;
-    successfulRequests: number;
-    avgResponseTime: number;
-    lastUpdated: number;
-  }>();
+  private endpointMetrics = new Map<
+    string,
+    {
+      totalRequests: number;
+      successfulRequests: number;
+      avgResponseTime: number;
+      lastUpdated: number;
+    }
+  >();
 
-  updateMetrics(data: {
-    endpoint: string;
-    responseTime: number;
-    success: boolean;
-  }): void {
+  updateMetrics(data: { endpoint: string; responseTime: number; success: boolean }): void {
     if (!this.endpointMetrics.has(data.endpoint)) {
       this.endpointMetrics.set(data.endpoint, {
         totalRequests: 0,
@@ -659,11 +637,10 @@ class AdaptiveLoadBalancer {
     const metrics = this.endpointMetrics.get(data.endpoint)!;
     metrics.totalRequests++;
     if (data.success) metrics.successfulRequests++;
-    
+
     // Exponential moving average
     const alpha = 0.2;
-    metrics.avgResponseTime =
-      alpha * data.responseTime + (1 - alpha) * metrics.avgResponseTime;
+    metrics.avgResponseTime = alpha * data.responseTime + (1 - alpha) * metrics.avgResponseTime;
     metrics.lastUpdated = Date.now();
   }
 
@@ -674,7 +651,7 @@ class AdaptiveLoadBalancer {
     const successRate = metrics.successfulRequests / metrics.totalRequests;
     const responseTimeFactor = Math.max(0, 1 - metrics.avgResponseTime / 1000);
 
-    return (successRate * 0.7 + responseTimeFactor * 0.3);
+    return successRate * 0.7 + responseTimeFactor * 0.3;
   }
 }
 
@@ -705,15 +682,15 @@ class TimeSeriesStore {
 
   getCurrentLoad(): number {
     const now = Date.now();
-    const lastMinute = this.metrics.filter(m => now - m.timestamp < 60000);
+    const lastMinute = this.metrics.filter((m) => now - m.timestamp < 60000);
     return lastMinute.length; // Requests per minute
   }
 
   private startCleanup(): void {
     setInterval(() => {
       const cutoff = Date.now() - this.retentionHours * 60 * 60 * 1000;
-      this.metrics = this.metrics.filter(m => m.timestamp > cutoff);
-      this.errors = this.errors.filter(e => e.timestamp > cutoff);
+      this.metrics = this.metrics.filter((m) => m.timestamp > cutoff);
+      this.errors = this.errors.filter((e) => e.timestamp > cutoff);
     }, 60000); // Every minute
   }
 }
@@ -730,11 +707,11 @@ class MLMonitor {
 
   getStats(): any {
     const metrics = this.metricsStore.getRecentMetrics(1000);
-    
+
     return {
       totalRequests: metrics.length,
       avgResponseTime: metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length || 0,
-      errorRate: metrics.filter(m => m.statusCode >= 400).length / metrics.length || 0,
+      errorRate: metrics.filter((m) => m.statusCode >= 400).length / metrics.length || 0,
       anomaliesDetected: this.anomalyHistory.length,
       optimizationsApplied: this.optimizationHistory.length,
       currentLoad: this.metricsStore.getCurrentLoad(),
@@ -807,19 +784,19 @@ function getSystemResources(): any {
   };
 }
 
-function startTrainingScheduler(
-  intervalMinutes: number,
-  models: any
-): void {
-  setInterval(async () => {
-    console.log('[ML Optimizer] Starting scheduled training...');
-    
-    const data = models.metricsStore.getRecentMetrics(10000);
-    
-    await models.performanceModel.train(data);
-    
-    console.log('[ML Optimizer] Training completed');
-  }, intervalMinutes * 60 * 1000);
+function startTrainingScheduler(intervalMinutes: number, models: any): void {
+  setInterval(
+    async () => {
+      console.log('[ML Optimizer] Starting scheduled training...');
+
+      const data = models.metricsStore.getRecentMetrics(10000);
+
+      await models.performanceModel.train(data);
+
+      console.log('[ML Optimizer] Training completed');
+    },
+    intervalMinutes * 60 * 1000
+  );
 }
 
 export default mlOptimizer;

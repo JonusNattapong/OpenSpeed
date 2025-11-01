@@ -10,8 +10,8 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'session=abc123; user=ElonDuck'
-      }
+        cookie: 'session=abc123; user=ElonDuck',
+      },
     };
     const ctx = new Context(req, {});
 
@@ -27,7 +27,7 @@ describe('cookie plugin', () => {
     const req: any = {
       method: 'GET',
       url: '/test',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -35,9 +35,9 @@ describe('cookie plugin', () => {
       ctx.cookies?.set('session', 'xyz789', { httpOnly: true });
     });
 
-    expect(ctx.res.headers['Set-Cookie']).toBeDefined();
-    expect(ctx.res.headers['Set-Cookie']).toContain('session=xyz789');
-    expect(ctx.res.headers['Set-Cookie']).toContain('HttpOnly');
+    expect(ctx.res.headers!['Set-Cookie']).toBeDefined();
+    expect(ctx.res.headers!['Set-Cookie']).toContain('session=xyz789');
+    expect(ctx.res.headers!['Set-Cookie']).toContain('HttpOnly');
   });
 
   it('should handle setCookie helper', async () => {
@@ -46,7 +46,7 @@ describe('cookie plugin', () => {
     const req: any = {
       method: 'GET',
       url: '/test',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -54,9 +54,9 @@ describe('cookie plugin', () => {
       setCookie(ctx, 'token', 'secret123', { secure: true, maxAge: 3600 });
     });
 
-    expect(ctx.res.headers['Set-Cookie']).toBeDefined();
-    expect(ctx.res.headers['Set-Cookie']).toContain('token=secret123');
-    expect(ctx.res.headers['Set-Cookie']).toContain('Secure');
+    expect(ctx.res.headers!['Set-Cookie']).toBeDefined();
+    expect(ctx.res.headers!['Set-Cookie']).toContain('token=secret123');
+    expect(ctx.res.headers!['Set-Cookie']).toContain('Secure');
   });
 
   it('should handle getCookie helper', async () => {
@@ -66,8 +66,8 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'auth=token123'
-      }
+        cookie: 'auth=token123',
+      },
     };
     const ctx = new Context(req, {});
 
@@ -84,8 +84,8 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'session=abc123'
-      }
+        cookie: 'session=abc123',
+      },
     };
     const ctx = new Context(req, {});
 
@@ -95,8 +95,8 @@ describe('cookie plugin', () => {
 
     // After delete, the cookie value is set to empty string with Max-Age=0
     expect(ctx.cookies?.get('session')).toBe('');
-    expect(ctx.res.headers['Set-Cookie']).toBeDefined();
-    expect(ctx.res.headers['Set-Cookie']).toContain('Max-Age=0');
+    expect(ctx.res.headers!['Set-Cookie']).toBeDefined();
+    expect(ctx.res.headers!['Set-Cookie']).toContain('Max-Age=0');
   });
 
   it('should handle URL-encoded cookie values', async () => {
@@ -106,8 +106,8 @@ describe('cookie plugin', () => {
       method: 'GET',
       url: '/test',
       headers: {
-        cookie: 'name=John%20Duck'
-      }
+        cookie: 'name=John%20Duck',
+      },
     };
     const ctx = new Context(req, {});
 

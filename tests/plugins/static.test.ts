@@ -6,7 +6,7 @@ import { join } from 'path';
 
 describe('static plugin', () => {
   const testDir = join(process.cwd(), 'test-static');
-  
+
   beforeAll(() => {
     // Create test directory and files
     mkdirSync(testDir, { recursive: true });
@@ -24,13 +24,13 @@ describe('static plugin', () => {
   it('should serve static files', async () => {
     const middleware = serveStatic({
       root: testDir,
-      prefix: '/static'
+      prefix: '/static',
     });
 
     const req: any = {
       method: 'GET',
       url: 'http://localhost/static/test.txt',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -41,38 +41,38 @@ describe('static plugin', () => {
 
     expect(nextCalled).toBe(false);
     expect(ctx.res.body).toEqual(Buffer.from('Hello World'));
-    expect(ctx.res.headers['Content-Type']).toBe('text/plain');
+    expect(ctx.res.headers!['Content-Type']).toBe('text/plain');
   });
 
   it('should serve HTML files with correct content type', async () => {
     const middleware = serveStatic({
       root: testDir,
-      prefix: '/static'
+      prefix: '/static',
     });
 
     const req: any = {
       method: 'GET',
       url: 'http://localhost/static/test.html',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
     await middleware(ctx, async () => {});
 
     expect(ctx.res.body).toEqual(Buffer.from('<h1>Test</h1>'));
-    expect(ctx.res.headers['Content-Type']).toBe('text/html');
+    expect(ctx.res.headers!['Content-Type']).toBe('text/html');
   });
 
   it('should serve index.html for directories', async () => {
     const middleware = serveStatic({
       root: testDir,
-      prefix: '/static'
+      prefix: '/static',
     });
 
     const req: any = {
       method: 'GET',
       url: 'http://localhost/static/subdir/',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -84,13 +84,13 @@ describe('static plugin', () => {
   it('should prevent directory traversal', async () => {
     const middleware = serveStatic({
       root: testDir,
-      prefix: '/static'
+      prefix: '/static',
     });
 
     const req: any = {
       method: 'GET',
       url: 'http://localhost/static/../../../etc/passwd',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -107,13 +107,13 @@ describe('static plugin', () => {
   it('should pass through for non-matching paths', async () => {
     const middleware = serveStatic({
       root: testDir,
-      prefix: '/static'
+      prefix: '/static',
     });
 
     const req: any = {
       method: 'GET',
       url: 'http://localhost/api/test',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -129,19 +129,19 @@ describe('static plugin', () => {
     const middleware = serveStatic({
       root: testDir,
       prefix: '/static',
-      etag: true
+      etag: true,
     });
 
     // First request to get ETag
     const req1: any = {
       method: 'GET',
       url: 'http://localhost/static/test.txt',
-      headers: {}
+      headers: {},
     };
     const ctx1 = new Context(req1, {});
     await middleware(ctx1, async () => {});
-    
-    const etag = ctx1.res.headers['ETag'];
+
+    const etag = ctx1.res.headers!['ETag'];
     expect(etag).toBeDefined();
 
     // Second request with ETag
@@ -149,8 +149,8 @@ describe('static plugin', () => {
       method: 'GET',
       url: 'http://localhost/static/test.txt',
       headers: {
-        'if-none-match': etag
-      }
+        'if-none-match': etag,
+      },
     };
     const ctx2 = new Context(req2, {});
     await middleware(ctx2, async () => {});

@@ -6,7 +6,7 @@ const createCtx = () =>
   new Context({
     method: 'GET',
     url: 'http://localhost/',
-    headers: {}
+    headers: {},
   });
 
 describe('errorHandler plugin', () => {
@@ -20,7 +20,7 @@ describe('errorHandler plugin', () => {
     });
 
     expect(ctx.res.status).toBe(500);
-    expect(ctx.res.headers['Content-Type']).toBe('application/json');
+    expect(ctx.res.headers!['Content-Type']).toBe('application/json');
     const body = JSON.parse(ctx.res.body as string);
     expect(body.error.message).toBe('Internal Server Error');
     expect(body.error.status).toBe(500);
@@ -46,7 +46,7 @@ describe('errorHandler plugin', () => {
   it('invokes custom error transformation', async () => {
     const transformError = vi.fn((error: Error) => ({
       custom: 'error',
-      message: error.message
+      message: error.message,
     }));
     const ctx = createCtx();
     const mw = errorHandler({ transformError });

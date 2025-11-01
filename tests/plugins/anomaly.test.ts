@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { anomalyPlugin } from '../../src/openspeed/plugins/anomaly.js';
-import { Context } from '../../src/openspeed/context.js';
+import Context from '../../src/openspeed/context.js';
 
 // Mock fetch for webhook alerts
 global.fetch = vi.fn();
@@ -10,10 +10,10 @@ describe('Anomaly Detection Plugin', () => {
     const plugin = anomalyPlugin({
       windowSize: 60, // 1 minute
       threshold: 3,
-      alertInterval: 1000
+      alertInterval: 1000,
     });
 
-    const ctx = new Context({ url: '/', method: 'GET' });
+    const ctx = new Context({ url: '/', method: 'GET', headers: {} });
     const next = vi.fn();
 
     await plugin(ctx, next);
@@ -31,10 +31,10 @@ describe('Anomaly Detection Plugin', () => {
     const plugin = anomalyPlugin({
       windowSize: 60,
       threshold: 2, // Lower threshold for easier detection
-      alertInterval: 1000
+      alertInterval: 1000,
     });
 
-    const ctx = new Context({ url: '/', method: 'GET' });
+    const ctx = new Context({ url: '/', method: 'GET', headers: {} });
     const next = vi.fn();
 
     await plugin(ctx, next);
@@ -52,7 +52,7 @@ describe('Anomaly Detection Plugin', () => {
   it('should provide statistics', async () => {
     const plugin = anomalyPlugin();
 
-    const ctx = new Context({ url: '/', method: 'GET' });
+    const ctx = new Context({ url: '/', method: 'GET', headers: {} });
     const next = vi.fn();
 
     await plugin(ctx, next);
@@ -72,7 +72,7 @@ describe('Anomaly Detection Plugin', () => {
   it('should handle anomaly stats endpoint', async () => {
     const plugin = anomalyPlugin();
 
-    const ctx = new Context({ url: '/anomaly/stats', method: 'GET' });
+    const ctx = new Context({ url: '/anomaly/stats', method: 'GET', headers: {} });
     ctx.res = { status: 200, headers: {}, body: undefined };
 
     await plugin(ctx, () => Promise.resolve());
@@ -90,10 +90,10 @@ describe('Anomaly Detection Plugin', () => {
       windowSize: 60,
       threshold: 2,
       alertWebhook: 'https://example.com/webhook',
-      alertInterval: 100
+      alertInterval: 100,
     });
 
-    const ctx = new Context({ url: '/', method: 'GET' });
+    const ctx = new Context({ url: '/', method: 'GET', headers: {} });
     const next = vi.fn();
 
     await plugin(ctx, next);
@@ -107,11 +107,14 @@ describe('Anomaly Detection Plugin', () => {
     ctx.anomaly.detect('memory_usage', 1000);
 
     // Wait for alert
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
-    expect(mockFetch).toHaveBeenCalledWith('https://example.com/webhook', expect.objectContaining({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }));
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://example.com/webhook',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
   });
 });

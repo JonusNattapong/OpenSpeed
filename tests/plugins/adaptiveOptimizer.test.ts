@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { adaptiveOptimizer, BloomFilter, ObjectPool } from '../../dist/src/openspeed/plugins/adaptiveOptimizer.js';
+import {
+  adaptiveOptimizer,
+  BloomFilter,
+  ObjectPool,
+} from '../../dist/src/openspeed/plugins/adaptiveOptimizer.js';
 
 describe('Adaptive Optimizer Plugin', () => {
   it('should create adaptive optimizer plugin', () => {
@@ -48,7 +52,7 @@ describe('Adaptive Optimizer Plugin', () => {
   describe('ObjectPool', () => {
     it('should acquire and release objects', () => {
       const pool = new ObjectPool(
-        () => ({ data: null }),
+        () => ({ data: null as string | null }),
         (obj) => {
           obj.data = null;
         }

@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createApp } from '../../src/openspeed/index.js';
+import Context from '../../src/openspeed/context.js';
 import { vi } from 'vitest';
 
 const baseReq = (path: string, method = 'GET') => ({
   method,
   url: `http://localhost${path}`,
-  headers: {}
+  headers: {},
 });
 
 describe('createApp', () => {
@@ -13,12 +14,12 @@ describe('createApp', () => {
     const app = createApp();
     const steps: string[] = [];
 
-    app.use(async (_ctx, next) => {
+    app.use(async (_ctx: Context, next: () => Promise<any>) => {
       steps.push('global');
       return next();
     });
 
-    app.get('/hello', (ctx) => {
+    app.get('/hello', (ctx: Context) => {
       steps.push('handler');
       return ctx.text('ok');
     });
@@ -32,16 +33,16 @@ describe('createApp', () => {
     const app = createApp();
     const order: string[] = [];
 
-    const mw1 = async (_ctx: any, next: any) => {
+    const mw1 = async (_ctx: Context, next: () => Promise<any>) => {
       order.push('mw1');
       return next();
     };
-    const mw2 = async (_ctx: any, next: any) => {
+    const mw2 = async (_ctx: Context, next: () => Promise<any>) => {
       order.push('mw2');
       return next();
     };
 
-    app.get('/chain', mw1, mw2, (ctx: any) => {
+    app.get('/chain', mw1, mw2, (ctx: Context) => {
       order.push('handler');
       return ctx.text('done');
     });
@@ -59,14 +60,14 @@ describe('createApp', () => {
 
   it('exposes registered routes metadata', () => {
     const app = createApp();
-    app.get('/hello', (ctx: any) => ctx.text('hi'));
-    app.post('/users', (ctx: any) => ctx.json({}));
+    app.get('/hello', (ctx: Context) => ctx.text('hi'));
+    app.post('/users', (ctx: Context) => ctx.json({}));
 
     const routes = app.routes();
     expect(routes).toEqual(
       expect.arrayContaining([
         { method: 'GET', path: '/hello', middlewares: [] },
-        { method: 'POST', path: '/users', middlewares: [] }
+        { method: 'POST', path: '/users', middlewares: [] },
       ])
     );
 

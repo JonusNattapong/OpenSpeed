@@ -6,7 +6,7 @@ import Context from '../../src/openspeed/context.js';
 class MockWebSocket {
   public readyState = 1; // OPEN
   static OPEN = 1;
-  
+
   send(data: any) {
     // Mock send
   }
@@ -21,13 +21,13 @@ describe('websocket plugin', () => {
       get: (path: string, handler: any) => {
         expect(path).toBe('/ws');
         expect(handler).toBeDefined();
-      }
+      },
     };
 
     const handler = {
       message: (ws: any, message: any) => {
         // Handler
-      }
+      },
     };
 
     const plugin = websocket('/ws', handler);
@@ -41,16 +41,16 @@ describe('websocket plugin', () => {
   it('should store websocket handler options', () => {
     const app: any = {
       get: () => {},
-      _websocketRoutes: []
+      _websocketRoutes: [],
     };
 
     const handler = {
-      message: (ws: any, message: any) => {}
+      message: (ws: any, message: any) => {},
     };
 
     const options = {
       idleTimeout: 30000,
-      maxConnections: 100
+      maxConnections: 100,
     };
 
     const plugin = websocket('/chat', handler, options);
@@ -66,19 +66,19 @@ describe('websocket plugin', () => {
         const req: any = {
           method: 'GET',
           url: '/ws',
-          headers: {}
+          headers: {},
         };
         const ctx = new Context(req, {});
         handler(ctx);
-        
+
         expect(ctx.res.status).toBe(426);
         expect(ctx.res.body).toBe('Upgrade Required');
-        expect(ctx.res.headers['Upgrade']).toBe('websocket');
-      }
+        expect(ctx.res.headers!['Upgrade']).toBe('websocket');
+      },
     };
 
     const handler = {
-      message: () => {}
+      message: () => {},
     };
 
     const plugin = websocket('/ws', handler);
@@ -132,7 +132,7 @@ describe('WebSocketRoom', () => {
 
     room.join(ws1 as any, 'room1');
     room.join(ws2 as any, 'room1');
-    
+
     room.broadcast('room1', 'Hello Room', ws1 as any);
 
     // ws1 should not receive (excluded)
@@ -151,7 +151,7 @@ describe('WebSocketRoom', () => {
 
     room.join(ws1 as any, 'room1');
     room.join(ws2 as any, 'room2');
-    
+
     room.broadcastAll('Hello All');
 
     expect(ws1Messages).toHaveLength(1);
@@ -161,7 +161,7 @@ describe('WebSocketRoom', () => {
   it('should get list of rooms', () => {
     room.join(ws1 as any, 'room1');
     room.join(ws2 as any, 'room2');
-    
+
     const rooms = room.getRooms();
     expect(rooms).toContain('room1');
     expect(rooms).toContain('room2');
@@ -171,9 +171,9 @@ describe('WebSocketRoom', () => {
   it('should cleanup websocket connections', () => {
     room.join(ws1 as any, 'room1');
     room.join(ws1 as any, 'room2');
-    
+
     room.cleanup(ws1 as any);
-    
+
     expect(room.getRoomSize('room1')).toBe(0);
     expect(room.getRoomSize('room2')).toBe(0);
   });
