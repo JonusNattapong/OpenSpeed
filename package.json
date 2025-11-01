@@ -1,6 +1,6 @@
 {
   "name": "openspeed",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "High-performance web framework inspired by Hono and Elysia",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
@@ -46,6 +46,9 @@
   ],
   "author": "OpenSpeed Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/JonusNattapong/OpenSpeed.git"
@@ -77,7 +80,7 @@
     "prom-client": "^15.1.3",
     "tsx": "^4.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.5"
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.921.0",
@@ -96,6 +99,7 @@
     "mongodb": "^6.20.0",
     "mysql2": "^3.15.3",
     "nodemailer": "^7.0.10",
+    "openspeed": "^0.6.1",
     "pg": "^8.13.1",
     "redis": "^4.7.0",
     "spdy": "^4.0.2",
