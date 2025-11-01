@@ -11,6 +11,7 @@
  */
 
 import { createApp } from '../../src/openspeed/index.js';
+import type { Context } from '../../src/openspeed/context.js';
 import {
   fileRouting,
   database,
@@ -40,12 +41,12 @@ app.use(adaptiveOptimizer({
 // ============================================================================
 
 // Health check
-app.get('/health', (ctx) => {
+app.get('/health', (ctx: Context) => {
   return ctx.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Public routes
-app.get('/', (ctx) => {
+app.get('/', (ctx: Context) => {
   return ctx.json({
     name: 'OpenSpeed Advanced Demo',
     version: '1.0.0',
