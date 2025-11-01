@@ -31,7 +31,7 @@
     "format:check": "prettier --check src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc src",
-    "release": "pnpm version patch && pnpm publish",
+    "release": "pnpm version patch && pnpm build && pnpm publish",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "prepare": "husky install"

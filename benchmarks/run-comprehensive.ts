@@ -57,7 +57,11 @@ class BenchmarkRunner {
     this.generateReport();
   }
 
-  private runBenchmark(framework: string, runtime: string, scenario: string): BenchmarkResult {
+  private async runBenchmark(
+    framework: string,
+    runtime: string,
+    scenario: string
+  ): Promise<BenchmarkResult> {
     const appPath = join('benchmarks', 'apps', `${framework}-${scenario}.ts`);
 
     if (!existsSync(appPath)) {
@@ -104,17 +108,36 @@ class BenchmarkRunner {
     const port = 3000 + this.getPortOffset(framework, scenario);
     const appPath = join('benchmarks', 'apps', `${framework}-${scenario}.ts`);
 
-    const cmd = runtime === 'bun' ? `bun run ${appPath} ${port}` : `npx tsx ${appPath} ${port}`;
+    let cmd: string[];
+    if (runtime === 'bun') {
+      cmd = ['bun', 'run', appPath, port.toString()];
+    } else {
+      cmd = [process.platform === 'win32' ? 'npx.cmd' : 'npx', 'tsx', appPath, port.toString()];
+    }
 
-    return exec(cmd, { stdio: ['ignore', 'ignore', 'ignore'] });
+    return spawn(cmd[0], cmd.slice(1), { stdio: ['ignore', 'ignore', 'ignore'] });
   }
 
   private async waitForServer(port: number, timeout = 10000): Promise<void> {
     const start = Date.now();
+    const http = await import('http');
 
     while (Date.now() - start < timeout) {
       try {
-        execSync(`curl -s http://localhost:${port}/health > /dev/null`, { timeout: 1000 });
+        await new Promise((resolve, reject) => {
+          const req = http.get(`http://localhost:${port}/health`, { timeout: 1000 }, (res) => {
+            if (res.statusCode === 200) {
+              resolve(void 0);
+            } else {
+              reject(new Error(`Status: ${res.statusCode}`));
+            }
+          });
+          req.on('error', reject);
+          req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('Timeout'));
+          });
+        });
         return;
       } catch {
         await new Promise((resolve) => setTimeout(resolve, 100));

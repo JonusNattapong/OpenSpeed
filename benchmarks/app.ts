@@ -67,4 +67,4 @@ app.post('/json', (ctx: Context) => {
 });
 
 console.log('Starting server...');
-app.listen(3007);
+app.listen(3000);
