@@ -1,4 +1,4 @@
-# 🚀 OpenSpeed Future Roadmap
+# 🚀 Openspeed Future Roadmap
 
 ## Phase 1: Core Framework Enhancements (Q1 2026)
 

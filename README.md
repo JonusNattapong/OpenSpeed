@@ -1,10 +1,12 @@
 <p align="center">
-  <img src="./logo.png" width="500" alt="OpenSpeed Logo">
+  <img src="./logo.png" width="500" alt="Openspeed Logo">
 </p>
 
 # Openspeed
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
+
+Openspeed provides a modern, type-safe API with runtime-agnostic support for Node.js, Bun, and Deno. It features a powerful plugin system, advanced routing, and built-in optimizations for production applications.
 
 [![npm version](https://img.shields.io/npm/v/openspeed.svg)](https://www.npmjs.com/package/openspeed)
 [![Tests](https://img.shields.io/badge/tests-102%2F102%20passing-brightgreen)](https://github.com/JonusNattapong/OpenSpeed)
@@ -43,11 +45,25 @@ A high-performance, developer-friendly web framework inspired by Hono and Elysia
 
 ## 📦 Installation
 
+Install Openspeed using your preferred package manager:
+
 ```bash
+# npm
 npm install openspeed
+
+# pnpm
+pnpm add openspeed
+
+# yarn
+yarn add openspeed
+
+# bun
+bun add openspeed
 ```
 
-Or create a new project:
+### Creating a New Project
+
+Use the CLI tool to scaffold a new Openspeed project:
 
 ```bash
 npx create-openspeed-app my-app
@@ -55,55 +71,96 @@ cd my-app
 npm run dev
 ```
 
+This creates a complete project structure with TypeScript, testing, and example routes.
+
+For more details, see the [Getting Started Guide](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs/guides/getting-started.md).
+
 ## 🚀 Quick Start
+
+Here's a complete example showing Openspeed's core features:
 
 ```typescript
 import { Openspeed } from 'openspeed';
 
 const app = Openspeed();
 
-// Basic routes
-app.get('/', (ctx) => ctx.text('Hello Openspeed'));
+// Basic routing with parameter extraction
+app.get('/', (ctx) => ctx.text('Hello Openspeed!'));
 
 app.get('/api/users/:id', (ctx) => {
+  const userId = ctx.getParam('id');
   return ctx.json({
-    id: ctx.getParam('id'),
-    name: 'ElonDuck'
+    id: userId,
+    name: 'ElonDuck',
+    timestamp: new Date().toISOString()
   });
 });
 
-// File upload
+// JSON handling with automatic parsing
+app.post('/api/data', async (ctx) => {
+  const data = ctx.getBody(); // Automatically parsed JSON
+  return ctx.json({ received: data, success: true });
+});
+
+// File upload with multipart support
 app.post('/upload', (ctx) => {
   const file = ctx.file;
   if (file) {
-    return ctx.json({ filename: file.filename, size: file.size });
+    return ctx.json({
+      filename: file.filename,
+      size: file.size,
+      mimetype: file.mimetype
+    });
   }
-  return ctx.text('No file uploaded', 400);
+  return ctx.json({ error: 'No file uploaded' }, 400);
 });
 
-// WebSocket with rooms
+// Real-time WebSocket with room-based messaging
 app.ws('/chat/:room', (ws, ctx) => {
   const room = ctx.getParam('room');
   ws.join(room);
 
   ws.on('message', (data) => {
-    ws.broadcast(room, data);
+    // Broadcast to all users in the room
+    ws.broadcast(room, `User said: ${data}`);
+  });
+
+  ws.on('join', (newRoom) => {
+    ws.leave(room);
+    ws.join(newRoom);
   });
 });
 
-// Cookies
-app.get('/set-cookie', (ctx) => {
-  ctx.setCookie('session', 'abc123', { httpOnly: true });
-  return ctx.text('Cookie set!');
+// Session management with secure cookies
+app.get('/login', (ctx) => {
+  ctx.setCookie('session', 'user123', {
+    httpOnly: true,
+    secure: true,
+    maxAge: 86400 // 24 hours
+  });
+  return ctx.text('Logged in successfully!');
 });
 
-app.get('/get-cookie', (ctx) => {
-  const session = ctx.getCookie('session');
-  return ctx.json({ session });
+app.get('/profile', (ctx) => {
+  const sessionId = ctx.getCookie('session');
+  if (!sessionId) {
+    return ctx.json({ error: 'Not authenticated' }, 401);
+  }
+  return ctx.json({ userId: sessionId, profile: 'User data' });
 });
 
-app.listen(3000);
+// Error handling with custom status codes
+app.get('/error', (ctx) => {
+  throw new Error('Something went wrong!');
+});
+
+// Start the server
+app.listen(3000, () => {
+  console.log('🚀 Openspeed server running on http://localhost:3000');
+});
 ```
+
+This example demonstrates routing, JSON handling, file uploads, WebSockets, cookies, and error handling. For more examples, see the [examples directory](https://github.com/JonusNattapong/OpenSpeed/tree/main/examples).
 
 ## 🏗️ Core Architecture
 
@@ -397,11 +454,11 @@ console.log(app.routes()); // Returns route metadata array
 
 ## 📚 Examples
 
-Openspeed comes with several examples to help you get started:
+Openspeed includes comprehensive examples to demonstrate real-world usage patterns. All examples are available in the [examples directory](https://github.com/JonusNattapong/OpenSpeed/tree/main/examples).
 
-### Hello World
+### Hello World Example
 
-Basic setup with routing and middleware:
+A minimal setup showing basic routing and middleware:
 
 ```bash
 cd examples/hello-openspeed
@@ -409,9 +466,17 @@ pnpm install
 pnpm run dev
 ```
 
+Features:
+- Basic routing with parameters
+- Middleware setup
+- JSON responses
+- Error handling
+
+[View Source](https://github.com/JonusNattapong/OpenSpeed/tree/main/examples/hello-openspeed)
+
 ### ML-Optimized E-commerce API
 
-Full-featured e-commerce API with ML optimization:
+A production-ready e-commerce application with advanced features:
 
 ```bash
 cd examples/ml-optimized-api
@@ -420,17 +485,23 @@ pnpm run dev
 ```
 
 Features:
-- User authentication and registration
-- Product catalog with search
-- Shopping cart and checkout
-- Order management
-- Analytics dashboard
-- ML-powered performance optimization
+- **User Management**: Registration, login, profiles
+- **Product Catalog**: CRUD operations, search, categories
+- **Shopping Cart**: Add/remove items, persistence
+- **Order Processing**: Checkout flow, payment simulation
+- **Analytics Dashboard**: Sales metrics, user behavior
+- **ML Optimization**: Performance prediction, caching, anomaly detection
+- **Database Integration**: PostgreSQL with connection pooling
+- **Authentication**: JWT-based auth with role management
+
+This example showcases Openspeed's enterprise capabilities and serves as a reference architecture.
+
+[View Source](https://github.com/JonusNattapong/OpenSpeed/tree/main/examples/ml-optimized-api) | [API Documentation](https://github.com/JonusNattapong/OpenSpeed/blob/main/examples/ml-optimized-api/README.md)
 
 ### Running Examples
 
 ```bash
-# Clone the repo
+# Clone the repository
 git clone https://github.com/JonusNattapong/OpenSpeed.git
 cd OpenSpeed
 
@@ -440,7 +511,11 @@ pnpm install
 # Run any example
 cd examples/ml-optimized-api
 pnpm run dev
+
+# Visit http://localhost:3000 to see the API in action
 ```
+
+For more examples and tutorials, check out our [documentation](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs).
 
 ## 📁 Project Structure
 
@@ -528,11 +603,11 @@ packages/                 # Monorepo packages
 
 ## 🤝 Contributing
 
-We welcome contributions to Openspeed! Here's how you can help:
+We welcome contributions to Openspeed! Whether you're fixing bugs, adding features, improving documentation, or helping with testing, your help is appreciated.
 
 ### 🚀 Getting Started
 
-1. **Fork the repository** on GitHub
+1. **Fork the repository** on [GitHub](https://github.com/JonusNattapong/OpenSpeed/fork)
 2. **Clone your fork**:
    ```bash
    git clone https://github.com/your-username/OpenSpeed.git
@@ -554,62 +629,102 @@ We welcome contributions to Openspeed! Here's how you can help:
 - **Run benchmarks**: `pnpm run bench:node` or `pnpm run bench:bun`
 - **Lint code**: `pnpm run lint`
 - **Format code**: `pnpm run format`
+- **Generate docs**: `pnpm run docs`
 
 ### 📝 Creating Custom Plugins
 
-Openspeed is designed for extensibility. Create custom plugins:
+Openspeed's plugin system makes it easy to extend functionality. Here's how to create a custom plugin:
 
 ```typescript
-function myPlugin(options: { config: string }) {
-  return (ctx: Context, next: () => Promise<any>) => {
-    // Your middleware logic
-    console.log('Plugin config:', options.config);
-    return next();
+import type { Context } from 'openspeed';
+
+interface MyPluginOptions {
+  config: string;
+  enabled?: boolean;
+}
+
+function myPlugin(options: MyPluginOptions) {
+  const { config, enabled = true } = options;
+
+  return async (ctx: Context, next: () => Promise<any>) => {
+    if (!enabled) return next();
+
+    // Your middleware logic here
+    console.log('Plugin config:', config);
+    ctx.setHeader('X-Custom-Plugin', 'active');
+
+    await next();
+
+    // Post-processing logic
+    console.log('Request completed');
   };
 }
 
-app.use(myPlugin({ config: 'value' }));
+// Usage
+app.use(myPlugin({ config: 'my-config', enabled: true }));
 ```
+
+For more plugin examples, see the [plugins documentation](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs/plugins).
 
 ### 🧪 Testing
 
-- Add unit tests in `tests/` directory
+- Add unit tests in `tests/` directory using Vitest
 - Run tests with `pnpm test`
-- Aim for high test coverage
+- Aim for high test coverage (>80%)
+- Test both success and error scenarios
 
 ### 📋 Pull Request Process
 
-1. **Update documentation** if needed
+1. **Update documentation** if needed (README, docs, examples)
 2. **Add tests** for new features
-3. **Ensure CI passes** (build, test, lint)
-4. **Create a Pull Request** with clear description
+3. **Ensure CI passes** (build, test, lint, typecheck)
+4. **Create a Pull Request** with clear description:
+   - What changes were made
+   - Why they were needed
+   - How to test the changes
 5. **Wait for review** and address feedback
 
-### 🎯 Code Style
+### 🎯 Code Style Guidelines
 
-- Use TypeScript for all new code
-- Follow existing code patterns
-- Run `pnpm run lint` and `pnpm run format` before committing
-- Use meaningful commit messages
+- **TypeScript**: Use TypeScript for all new code
+- **Naming**: Follow camelCase for variables/functions, PascalCase for classes/types
+- **Imports**: Group imports (external libs, then internal modules)
+- **Error Handling**: Use proper error types and meaningful messages
+- **Documentation**: Add JSDoc comments for public APIs
+- **Commits**: Use conventional commits (`feat:`, `fix:`, `docs:`, etc.)
 
 ### 📚 Documentation
 
-- Update README.md for API changes
+- Update `README.md` for API changes
 - Add examples in `examples/` directory
 - Update plugin documentation in `docs/plugins/`
+- Keep CHANGELOG.md up to date
 
 ### 🐛 Reporting Issues
 
-- Use GitHub Issues for bugs and feature requests
-- Provide clear reproduction steps
-- Include environment details (Node.js/Bun version, OS)
+Found a bug? Have a feature request?
+
+- **Bug Reports**: Use [GitHub Issues](https://github.com/JonusNattapong/OpenSpeed/issues/new?template=bug_report.md)
+- **Feature Requests**: Use [GitHub Discussions](https://github.com/JonusNattapong/OpenSpeed/discussions)
+- **Security Issues**: Email maintainers directly
+
+When reporting issues, please include:
+- Clear reproduction steps
+- Expected vs actual behavior
+- Environment details (Node.js/Bun version, OS, Openspeed version)
+- Code snippets or minimal reproduction repo
 
 ### 📞 Community
 
-- Join discussions on GitHub Issues
-- Follow the project for updates
+- **Discussions**: Join [GitHub Discussions](https://github.com/JonusNattapong/OpenSpeed/discussions) for questions and ideas
+- **Issues**: Check [existing issues](https://github.com/JonusNattapong/OpenSpeed/issues) before creating new ones
+- **Roadmap**: See our [future plans](https://github.com/JonusNattapong/OpenSpeed/blob/main/ROADMAP.md)
 
-Thank you for contributing to Openspeed! 🎉
+### 📋 Contributor License Agreement
+
+By contributing to Openspeed, you agree that your contributions will be licensed under the same MIT license as the project.
+
+Thank you for contributing to Openspeed! Your help makes the framework better for everyone. 🎉
 
 ## 📄 License
 
@@ -623,6 +738,27 @@ Openspeed aims to provide:
 - **DX**: Excellent developer experience with tooling
 - **Ecosystem**: Rich plugin ecosystem
 - **Compatibility**: Work everywhere JavaScript runs
+
+---
+
+## 📖 Additional Resources
+
+- **[Documentation](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs)**: Comprehensive guides and API reference
+- **[API Reference](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs/api)**: Detailed API documentation
+- **[Plugin Marketplace](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs/plugins)**: Official and community plugins
+- **[Migration Guide](https://github.com/JonusNattapong/OpenSpeed/blob/main/docs/guides/migration.md)**: Migrate from Express, Hono, or Elysia
+- **[Performance Guide](https://github.com/JonusNattapong/OpenSpeed/blob/main/docs/guides/performance.md)**: Optimization tips and best practices
+
+## 🆘 Support
+
+- **Documentation**: [docs/](https://github.com/JonusNattapong/OpenSpeed/tree/main/docs)
+- **Issues**: [GitHub Issues](https://github.com/JonusNattapong/OpenSpeed/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/JonusNattapong/OpenSpeed/discussions)
+- **Discord**: Join our community (coming soon)
+
+## 📄 License
+
+Openspeed is [MIT licensed](https://github.com/JonusNattapong/OpenSpeed/blob/main/LICENSE).
 
 ---
 
