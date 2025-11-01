@@ -1,0 +1,42 @@
+OpenSpeed\.npmignore
+# Source files
+src/
+examples/
+benchmarks/
+tests/
+docs/
+
+# Config files
+.github/
+.husky/
+*.config.*
+tsconfig*.json
+vitest.config.*
+eslint*
+prettier*
+
+# Development files
+*.md
+!README.md
+CHANGELOG.md
+ROADMAP.md
+logo.png
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# Build artifacts (keep dist)
+!dist/

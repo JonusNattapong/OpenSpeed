@@ -2,7 +2,7 @@
   <img src="./logo.png" width="500" alt="OpenSpeed Logo">
 </p>
 
-# OpenSpeed
+# Openspeed
 
 A high-performance, developer-friendly web framework inspired by Hono and Elysia. Built for speed, extensibility, and excellent DX across multiple JavaScript runtimes.
 
@@ -41,7 +41,7 @@ A high-performance, developer-friendly web framework inspired by Hono and Elysia
 ## 📦 Installation
 
 ```bash
-npm install openspeed-framework
+npm install openspeed
 ```
 
 Or create a new project:
@@ -55,16 +55,16 @@ npm run dev
 ## 🚀 Quick Start
 
 ```typescript
-import { createApp } from 'openspeed-framework';
+import { Openspeed } from 'openspeed';
 
-const app = createApp();
+const app = Openspeed();
 
 // Basic routes
-app.get('/', (ctx) => ctx.text('Hello OpenSpeed!'));
+app.get('/', (ctx) => ctx.text('Hello Openspeed'));
 
 app.get('/api/users/:id', (ctx) => {
   return ctx.json({
-    id: ctx.params.id,
+    id: ctx.getParam('id'),
     name: 'ElonDuck'
   });
 });
@@ -80,7 +80,7 @@ app.post('/upload', (ctx) => {
 
 // WebSocket with rooms
 app.ws('/chat/:room', (ws, ctx) => {
-  const room = ctx.params.room;
+  const room = ctx.getParam('room');
   ws.join(room);
 
   ws.on('message', (data) => {
@@ -99,7 +99,7 @@ app.get('/get-cookie', (ctx) => {
   return ctx.json({ session });
 });
 
-await app.listen(3000);
+app.listen(3000);
 ```
 
 ## 🏗️ Core Architecture
@@ -171,7 +171,7 @@ app.ws('/ws', (ws) => {
 
 // Room-based chat
 app.ws('/chat/:room', (ws, ctx) => {
-  const room = ctx.params.room;
+  const room = ctx.getParam('room');
   ws.join(room);
 
   ws.on('message', (data) => {
@@ -226,7 +226,7 @@ app.use(errorHandler());
 
 // Custom errors
 app.get('/api/user/:id', (ctx) => {
-  const userId = ctx.params.id;
+  const userId = ctx.getParam('id');
   if (!userId) {
     throw new HttpError(400, 'User ID required');
   }
@@ -315,7 +315,7 @@ app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
 
 ## 🌐 Runtime Support
 
-OpenSpeed automatically detects and adapts to your runtime:
+Openspeed automatically detects and adapts to your runtime:
 
 - **Node.js**: Uses `http` module
 - **Bun**: Uses `Bun.serve`
@@ -326,7 +326,7 @@ OpenSpeed automatically detects and adapts to your runtime:
 
 Performance comparison (requests/second):
 
-| Runtime | OpenSpeed | Hono | Elysia |
+| Runtime | Openspeed | Hono | Elysia |
 |---------|-----------|------|--------|
 | Node.js | ~7,000*   | ~3,200 | ~2,800 |
 | Bun     | ~24,000*  | ~11,500 | ~10,200 |
@@ -340,19 +340,19 @@ Performance comparison (requests/second):
 ### Running Tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 ### Building
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Development Server
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### Route Inspection
@@ -432,7 +432,7 @@ tests/                    # Unit tests
 
 ## 🤝 Contributing
 
-OpenSpeed is designed for extensibility. Create custom plugins:
+Openspeed is designed for extensibility. Create custom plugins:
 
 ```typescript
 function myPlugin(options) {
@@ -451,7 +451,7 @@ MIT License - see LICENSE file for details.
 
 ## 🎯 Goals
 
-OpenSpeed aims to provide:
+Openspeed aims to provide:
 
 - **Performance**: Outperform existing frameworks
 - **DX**: Excellent developer experience with tooling

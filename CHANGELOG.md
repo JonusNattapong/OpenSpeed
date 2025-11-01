@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime-agnostic support (Node.js, Bun, Deno)
 - Plugin architecture for extensibility
 - TypeScript-first development experience
+- **ML Optimizer Plugin**: Machine learning-powered performance optimization
+  - Real-time performance prediction with time-series forecasting
+  - Intelligent resource allocation using reinforcement learning (Q-learning)
+  - Anomaly detection with statistical analysis and auto-healing
+  - Query optimization with learned index suggestions
+  - Adaptive load balancing with health score tracking
+  - Comprehensive metrics collection and monitoring
 
 ### Core Features
 - **File Upload Plugin**: Multipart parsing with streaming support

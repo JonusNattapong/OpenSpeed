@@ -122,6 +122,14 @@ export class Context {
   hotReload?: any;
   playground?: any;
   codegen?: any;
+  
+  // ML Optimizer properties
+  resourceAllocation?: any;
+  queryCount?: number;
+  cacheHit?: boolean;
+  queryExecutions?: any[];
+  predictionConfidence?: number;
+  optimizationApplied?: string;
 
   constructor(req: RequestLike, params: Record<string,string> = {}) {
     this.req = req;

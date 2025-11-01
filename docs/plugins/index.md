@@ -36,6 +36,20 @@ import { errorHandler } from 'openspeed-framework/plugins/errorHandler';
 app.use(errorHandler());
 ```
 
+### [ML Optimizer](./mlOptimizer.md)
+**NEW!** Machine learning-powered performance optimization with predictive caching, anomaly detection, and intelligent resource allocation.
+
+```typescript
+import mlOptimizer from 'openspeed-framework/plugins/mlOptimizer';
+app.use(mlOptimizer({
+  features: {
+    performancePrediction: true,
+    anomalyDetection: true,
+    resourceAllocation: true,
+  },
+}));
+```
+
 ## Community Plugins
 
 ### Logger

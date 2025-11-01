@@ -103,7 +103,7 @@ export function createApp() {
         console.log(`  ${method}  ${path}${middlewares}`);
       }
       return app;
-    }
+    },
   };
 
   // Load routes from a filesystem directory (file-based routing)
@@ -131,7 +131,10 @@ export function createApp() {
         if (rel.endsWith('/index')) rel = rel.slice(0, -'/index'.length);
         if (rel === 'index') rel = '';
         // map [param] -> :param
-        const parts = rel.split('/').filter(Boolean).map(p => p.replace(/^\[(.+)\]$/, ':$1'));
+        const parts = rel
+          .split('/')
+          .filter(Boolean)
+          .map((p) => p.replace(/^\[(.+)\]$/, ':$1'));
         const routePath = ('/' + [prefix, ...parts].filter(Boolean).join('/')).replace(/\/+/g, '/');
 
         // dynamic import
@@ -172,7 +175,7 @@ export function createApp() {
       const handler = args[args.length - 1] as RouteHandler;
       const routeMiddlewares = args.slice(0, -1) as Middleware[];
       const compiledHandler = composeRoute(routeMiddlewares, handler);
-      const middlewareNames = routeMiddlewares.map(m => m.name || 'anonymous');
+      const middlewareNames = routeMiddlewares.map((m) => m.name || 'anonymous');
       router.add(method.toUpperCase(), path, compiledHandler, middlewareNames);
       return app;
     };
@@ -208,6 +211,8 @@ export function createApp() {
   return app;
 }
 
+export const Openspeed = createApp;
+
 export * from './plugins/index.js';
 
-export default createApp;
+export default Openspeed;

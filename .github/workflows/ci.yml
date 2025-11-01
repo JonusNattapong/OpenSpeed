@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -15,48 +16,90 @@ jobs:
         runtime: [node, bun]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
-    - name: Setup Bun
-      if: matrix.runtime == 'bun'
-      uses: oven-sh/setup-bun@v1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v1
 
-    - name: Lint
-      run: npm run lint
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Type check
-      run: npm run typecheck
+      - name: Lint
+        run: pnpm run lint
 
-    - name: Build
-      run: npm run build
+      - name: Type check
+        run: pnpm run typecheck
 
-    - name: Run tests
-      run: npm test
+      - name: Build
+        run: pnpm run build
+
+      - name: Run tests
+        run: pnpm run test
 
   benchmark:
     runs-on: ubuntu-latest
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
-    - name: Build
-      run: npm run build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Run benchmarks
-      run: npm run bench:node && npm run bench:bun
+      - name: Build
+        run: pnpm run build
+
+      - name: Run benchmarks
+        run: pnpm run bench:node && pnpm run bench:bun
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Publish to npm
+        run: pnpm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

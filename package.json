@@ -1,9 +1,13 @@
 {
-  "name": "openspeed-framework",
-  "version": "0.1.0",
+  "name": "openspeed",
+  "version": "0.6.0",
   "description": "High-performance web framework inspired by Hono and Elysia",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": "./dist/src/openspeed/index.js",
     "./plugins": "./dist/src/openspeed/plugins/index.js",
@@ -26,6 +30,8 @@
     "format": "prettier --write src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "format:check": "prettier --check src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "typecheck": "tsc --noEmit",
+    "docs": "typedoc src",
+    "release": "pnpm version patch && pnpm publish",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "prepare": "husky install"
@@ -59,7 +65,9 @@
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "docker-compose": "^0.24.8",
+    "elysia": "^1.4.13",
     "eslint": "^9.15.0",
+    "hono": "^4.10.4",
     "husky": "^9.1.6",
     "ioredis": "^5.4.1",
     "k6": "^0.0.0",
