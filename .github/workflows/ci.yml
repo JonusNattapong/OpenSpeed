@@ -33,6 +33,10 @@ jobs:
         if: matrix.runtime == 'bun'
         uses: oven-sh/setup-bun@v1
 
+      - name: Add pnpm to PATH for Bun
+        if: matrix.runtime == 'bun'
+        run: echo "$PNPM_HOME" >> $GITHUB_PATH
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
