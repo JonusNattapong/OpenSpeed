@@ -3,6 +3,16 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { input, select } from '@inquirer/prompts';
 
+const LOGO = `
+   ___  ____  _____ _____ _____ _____
+  / _ \\|  _ \\| ____| ____|_   _| ____|
+ | | | | |_) |  _| |  _|   | | |  _|
+ | |_| |  __/| |___| |___  | | | |___
+  \\___/|_|   |_____|_____| |_| |_____|
+
+Welcome to OpenSpeed CLI!
+`;
+
 interface CliOptions {
   template: 'basic' | 'api';
   force: boolean;
@@ -79,21 +89,33 @@ npm run build
 npm run start
 \`\`\`
 `,
-    'src/index.ts': () =>
+    'src/index.ts': ({ projectName }) =>
       `import { createApp, json, logger, errorHandler } from 'openspeed';
 
-const app = createApp();
+  const LOGO = \`
+     ___  ____  _____ _____ _____ _____
+    / _ \\\|  _ \\\| ____| ____|_   _| ____|
+   | | | | |_) |  _| |  _|   | | |  _|
+   | |_| |  __/| |___| |___  | | | |___
+    \\\___/|_|   |_____|_____| |_| |_____|
 
-app.use(logger());
-app.use(json());
-app.use(errorHandler());
+  \`;
 
-app.get('/', (ctx) => ctx.json({ message: 'Hello from OpenSpeed!' }));
+  const app = createApp();
 
-app.listen(3000).then(() => {
-  console.log('OpenSpeed app running at http://localhost:3000');
-});
-`,
+  app.use(logger());
+  app.use(json());
+  app.use(errorHandler());
+
+  app.get('/', (ctx) => ctx.json({ message: 'Hello from OpenSpeed!' }));
+
+  app.listen(3000).then(() => {
+    console.log(LOGO);
+    console.log(\`🚀 ${projectName} is running at http://localhost:3000\`);
+    console.log(\`📖 Documentation: https://github.com/JonusNattapong/OpenSpeed\`);
+    console.log(\`🐛 Issues: https://github.com/JonusNattapong/OpenSpeed/issues\`);
+  });
+  `,
   },
   api: {
     'package.json': ({ packageName }) =>
@@ -247,14 +269,25 @@ app.delete('/api/users/:id', validate({
 });
 
 app.listen(3000).then(() => {
-  console.log('${projectName} API running at http://localhost:3000');
-  console.log('Available endpoints:');
-  console.log('  GET  /');
-  console.log('  GET  /api/users');
-  console.log('  POST /api/users');
-  console.log('  GET  /api/users/:id');
-  console.log('  PUT  /api/users/:id');
-  console.log('  DELETE /api/users/:id');
+  const LOGO = \`
+   ___  ____  _____ _____ _____ _____
+  / _ \\\|  _ \\\| ____| ____|_   _| ____|
+ | | | | |_) |  _| |  _|   | | |  _|
+ | |_| |  __/| |___| |___  | | | |___
+  \\\___/|_|   |_____|_____| |_| |_____|
+
+\`;
+  console.log(LOGO);
+  console.log(\`🚀 ${projectName} API is running at http://localhost:3000\`);
+  console.log(\`📖 Documentation: https://github.com/JonusNattapong/OpenSpeed\`);
+  console.log(\`🐛 Issues: https://github.com/JonusNattapong/OpenSpeed/issues\`);
+  console.log(\`\\n📋 Available endpoints:\`);
+  console.log(\`  GET  /\`);
+  console.log(\`  GET  /api/users\`);
+  console.log(\`  POST /api/users\`);
+  console.log(\`  GET  /api/users/:id\`);
+  console.log(\`  PUT  /api/users/:id\`);
+  console.log(\`  DELETE /api/users/:id\`);
 });
 `,
   },
@@ -369,12 +402,20 @@ function logNextSteps(targetDir: string, projectName: string) {
   const relative = path.relative(process.cwd(), targetDir);
   const needsCd = relative !== '' && relative !== '.';
 
-  console.log('\nProject scaffolded successfully!');
+  console.log('\n🎉 Project scaffolded successfully!');
+  console.log(`\n🚀 Ready to start developing your ${projectName} app!`);
   if (needsCd) {
-    console.log(`\nNext steps:\n  cd ${relative}\n  npm install\n  npm run dev`);
+    console.log(`\n📋 Next steps:`);
+    console.log(`  cd ${relative}`);
+    console.log(`  npm install`);
+    console.log(`  npm run dev`);
   } else {
-    console.log('\nNext steps:\n  npm install\n  npm run dev');
+    console.log(`\n📋 Next steps:`);
+    console.log(`  npm install`);
+    console.log(`  npm run dev`);
   }
+  console.log(`\n📖 Documentation: https://github.com/JonusNattapong/OpenSpeed`);
+  console.log(`🐛 Issues: https://github.com/JonusNattapong/OpenSpeed/issues`);
 }
 
 async function main() {
@@ -405,9 +446,10 @@ async function main() {
     };
 
     writeProjectFiles(targetDir, ctx, options.template);
+    console.log(LOGO);
     logNextSteps(targetDir, projectName);
   } catch (err: any) {
-    console.error(`Error: ${err.message || err}`);
+    console.error(`❌ Error: ${err.message || err}`);
     process.exit(1);
   }
 }
