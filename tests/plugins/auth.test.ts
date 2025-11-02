@@ -4,20 +4,26 @@ import Context from '../../src/openspeed/context.js';
 
 describe('auth plugin', () => {
   it('should authenticate with Basic auth', async () => {
+    // Hash the password as the auth plugin now requires hashed passwords
+    const hashedPassword = require('crypto')
+      .createHmac('sha256', 'openspeed-salt')
+      .update('password123')
+      .digest('hex');
+
     const middleware = auth({
       basic: {
         users: {
-          'admin': 'password123'
-        }
-      }
+          admin: hashedPassword,
+        },
+      },
     });
 
     const req: any = {
       method: 'GET',
       url: '/protected',
       headers: {
-        authorization: 'Basic ' + Buffer.from('admin:password123').toString('base64')
-      }
+        authorization: 'Basic ' + Buffer.from('admin:password123').toString('base64'),
+      },
     };
     const ctx = new Context(req, {});
 
@@ -31,20 +37,26 @@ describe('auth plugin', () => {
   });
 
   it('should reject invalid Basic auth', async () => {
+    // Hash the correct password
+    const hashedPassword = require('crypto')
+      .createHmac('sha256', 'openspeed-salt')
+      .update('password123')
+      .digest('hex');
+
     const middleware = auth({
       basic: {
         users: {
-          'admin': 'password123'
-        }
-      }
+          admin: hashedPassword,
+        },
+      },
     });
 
     const req: any = {
       method: 'GET',
       url: '/protected',
       headers: {
-        authorization: 'Basic ' + Buffer.from('admin:wrongpassword').toString('base64')
-      }
+        authorization: 'Basic ' + Buffer.from('admin:wrongpassword').toString('base64'),
+      },
     };
     const ctx = new Context(req, {});
 
@@ -60,16 +72,16 @@ describe('auth plugin', () => {
   it('should authenticate with Bearer token', async () => {
     const middleware = auth({
       bearer: {
-        tokens: ['secret-token-123']
-      }
+        tokens: ['secret-token-123'],
+      },
     });
 
     const req: any = {
       method: 'GET',
       url: '/protected',
       headers: {
-        authorization: 'Bearer secret-token-123'
-      }
+        authorization: 'Bearer secret-token-123',
+      },
     };
     const ctx = new Context(req, {});
 
@@ -85,14 +97,14 @@ describe('auth plugin', () => {
   it('should require authentication header', async () => {
     const middleware = auth({
       bearer: {
-        tokens: ['secret-token-123']
-      }
+        tokens: ['secret-token-123'],
+      },
     });
 
     const req: any = {
       method: 'GET',
       url: '/protected',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -111,7 +123,7 @@ describe('auth plugin', () => {
     const req: any = {
       method: 'GET',
       url: '/protected',
-      headers: {}
+      headers: {},
     };
     const ctx = new Context(req, {});
 
@@ -131,7 +143,7 @@ describe('auth plugin', () => {
       method: 'GET',
       url: '/protected',
       headers: {},
-      user: { username: 'admin' }
+      user: { username: 'admin' },
     };
     const ctx = new Context(req, {});
 
