@@ -6,6 +6,12 @@ export interface CorsOptions {
   headers?: string[];
   credentials?: boolean;
   maxAge?: number;
+  // Security headers
+  contentSecurityPolicy?: string;
+  xFrameOptions?: 'DENY' | 'SAMEORIGIN' | 'ALLOW-FROM';
+  xContentTypeOptions?: boolean;
+  referrerPolicy?: string;
+  permissionsPolicy?: string;
 }
 
 export function cors(options: CorsOptions = {}) {
@@ -15,6 +21,11 @@ export function cors(options: CorsOptions = {}) {
     headers = ['Content-Type', 'Authorization'],
     credentials = false,
     maxAge = 86400,
+    contentSecurityPolicy,
+    xFrameOptions,
+    xContentTypeOptions = true,
+    referrerPolicy,
+    permissionsPolicy,
   } = options;
 
   return async (ctx: Context, next: () => Promise<any>) => {
@@ -37,6 +48,12 @@ export function cors(options: CorsOptions = {}) {
       'Access-Control-Allow-Methods': methods.join(', '),
       'Access-Control-Allow-Headers': headers.join(', '),
       'Access-Control-Max-Age': maxAge.toString(),
+      // Security headers
+      ...(contentSecurityPolicy && { 'Content-Security-Policy': contentSecurityPolicy }),
+      ...(xFrameOptions && { 'X-Frame-Options': xFrameOptions }),
+      ...(xContentTypeOptions && { 'X-Content-Type-Options': 'nosniff' }),
+      ...(referrerPolicy && { 'Referrer-Policy': referrerPolicy }),
+      ...(permissionsPolicy && { 'Permissions-Policy': permissionsPolicy }),
     };
 
     if (credentials) {

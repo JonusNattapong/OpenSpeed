@@ -1,4 +1,5 @@
 export { cors } from './cors.js';
+export { security, securityPresets, generateCSRFToken, setCSRFCookie } from './security.js';
 export { logger } from './logger.js';
 export { json } from './json.js';
 export { validate, createValidatedHandler } from './validate.js';
@@ -110,6 +111,7 @@ export {
 } from './adaptiveOptimizer.js';
 
 // Type exports for better TypeScript support
+export type { SecurityOptions, SecurityEvent } from './security.js';
 export type { ValidationOptions, ValidationError, Validator } from './validate.js';
 export type { JSXOptions, JSXElement, JSXChild } from './jsx.js';
 export type { SSGOptions, SSGRoute, SSGStats, SSGContext } from './ssg.js';

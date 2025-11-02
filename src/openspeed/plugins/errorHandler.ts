@@ -94,7 +94,7 @@ export class ServiceUnavailableError extends HttpError {
 
 // Error handler middleware
 export interface ErrorHandlerOptions {
-  exposeStack?: boolean;
+  exposeStack?: boolean; // WARNING: Never set to true in production!
   includeDetails?: boolean;
   transformError?: (error: Error, ctx: Context) => any;
   logErrors?: boolean;
@@ -102,11 +102,18 @@ export interface ErrorHandlerOptions {
 
 export function errorHandler(options: ErrorHandlerOptions = {}) {
   const {
-    exposeStack = false,
-    includeDetails = true,
+    exposeStack = false, // Never expose stack traces in production!
+    includeDetails = process.env.NODE_ENV !== 'production',
     transformError,
-    logErrors = true
+    logErrors = true,
   } = options;
+
+  // Warn about security risk
+  if (exposeStack && process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[SECURITY WARNING] exposeStack is enabled in production! This may leak sensitive information.'
+    );
+  }
 
   return async (ctx: Context, next: () => Promise<any>) => {
     try {
@@ -141,19 +148,17 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
           status,
           ...(code && { code }),
           ...(includeDetails && details && { details }),
-          ...(exposeStack && error.stack && { stack: error.stack })
-        }
+          ...(exposeStack && error.stack && { stack: error.stack }),
+        },
       };
 
       // Allow custom error transformation
-      const finalResponse = transformError
-        ? transformError(error, ctx)
-        : errorResponse;
+      const finalResponse = transformError ? transformError(error, ctx) : errorResponse;
 
       ctx.res.status = status;
       ctx.res.headers = {
         ...ctx.res.headers,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       };
       ctx.res.body = JSON.stringify(finalResponse);
     }
