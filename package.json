@@ -1,6 +1,6 @@
 {
   "name": "openspeed",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "High-performance web framework inspired by Hono and Elysia",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
