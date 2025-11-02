@@ -1,0 +1,30 @@
+{
+  "name": "openspeed-devtools-demo",
+  "version": "1.0.0",
+  "description": "OpenSpeed development tools demonstration with route visualization, performance monitoring, and API playground",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx index.ts",
+    "start": "node index.js",
+    "build": "tsc",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "openspeed",
+    "devtools",
+    "api",
+    "development",
+    "monitoring",
+    "visualization"
+  ],
+  "author": "OpenSpeed Team",
+  "license": "MIT",
+  "dependencies": {
+    "openspeed": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
