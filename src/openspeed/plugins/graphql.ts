@@ -32,7 +32,7 @@ export interface SubscriptionContext {
 }
 
 // DataLoader factory for efficient batching
-export class DataLoaderFactory {
+class DataLoaderFactory {
   private loaders = new Map<string, DataLoader<any, any>>();
 
   createLoader<T, K>(
@@ -69,7 +69,7 @@ export class DataLoaderFactory {
 }
 
 // Schema-first development utilities
-export class GraphQLSchemaBuilder {
+class GraphQLSchemaBuilder {
   private typeDefs: string[] = [];
   private resolvers: Record<string, any> = {};
   private dataLoaderFactory = new DataLoaderFactory();
@@ -129,7 +129,7 @@ export class GraphQLSchemaBuilder {
 }
 
 // Type generation utilities
-export class TypeGenerator {
+class TypeGenerator {
   static generateTypes(schema: GraphQLSchema, outputPath?: string): string {
     const schemaString = printSchema(schema);
 
@@ -162,7 +162,7 @@ export type DateTime = string;
 }
 
 // Subscription manager for real-time updates
-export class SubscriptionManager {
+class SubscriptionManager {
   private pubsub = new PubSub();
   private subscriptions = new Map<string, Set<WebSocket>>();
 
@@ -202,7 +202,7 @@ export class SubscriptionManager {
 
             // Execute subscription
             const result = await subscribe({
-              schema: context.pubsub['schema'], // Would need proper schema access
+              schema: (context.pubsub as any)['schema'], // Would need proper schema access
               document: parse(query),
               variableValues: variables,
               operationName,
@@ -234,7 +234,7 @@ export class SubscriptionManager {
         connection.send(
           JSON.stringify({
             type: 'error',
-            payload: { message: error.message },
+            payload: { message: (error as Error).message },
           })
         );
       }
@@ -270,7 +270,7 @@ export function graphqlPlugin(options: GraphQLOptions) {
   // Initialize DataLoader factory
   const dataLoaderFactory = new DataLoaderFactory();
   Object.entries(dataLoaders).forEach(([name, loaderFn]) => {
-    dataLoaderFactory.createLoader(name, loaderFn);
+    dataLoaderFactory.createLoader(name, loaderFn as any);
   });
 
   // Initialize subscription manager
@@ -354,7 +354,7 @@ async function handleGraphQLHTTP(
         dataLoaders: dataLoaderFactory,
         pubsub: subscriptionManager['pubsub'],
         ...(contextFn ? contextFn(ctx) : {}),
-      } as GraphQLContext;
+      } as unknown as GraphQLContext;
 
       // Execute query
       const result = await execute({
@@ -455,7 +455,7 @@ export function createLoaderResolver<T, K>(
   keyFn: (parent: any, args: any, context: GraphQLContext) => K
 ) {
   return async (parent: any, args: any, context: GraphQLContext) => {
-    const loader = context.dataLoaders.getLoader(loaderName);
+    const loader = (context.dataLoaders as any).getLoader(loaderName);
     if (!loader) {
       throw new Error(`DataLoader '${loaderName}' not found`);
     }
@@ -469,7 +469,7 @@ export function createBatchResolver<T>(
   keyFn: (args: any, context: GraphQLContext) => any[]
 ) {
   return async (parent: any, args: any, context: GraphQLContext) => {
-    const loader = context.dataLoaders.getLoader(loaderName);
+    const loader = (context.dataLoaders as any).getLoader(loaderName);
     if (!loader) {
       throw new Error(`DataLoader '${loaderName}' not found`);
     }
