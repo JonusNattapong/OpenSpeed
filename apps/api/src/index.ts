@@ -8,6 +8,7 @@ import { cors } from '../../../src/openspeed/plugins/cors.js';
 import { json } from '../../../src/openspeed/plugins/json.js';
 import { validate } from '../../../src/openspeed/plugins/validate.js';
 import { static as staticPlugin } from '../../../src/openspeed/plugins/static.js';
+import { database, healthCheck } from '../../../src/openspeed/plugins/database.js';
 import { prisma } from '../../../packages/db/src/index.js';
 import {
   hashPassword,
@@ -33,6 +34,21 @@ import {
 import * as Sentry from '@sentry/node';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
 
+// Database configuration with security
+const dbConfig = {
+  type: 'postgresql' as const,
+  connection: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/openspeed',
+  pool: {
+    min: 2,
+    max: 10,
+    idleTimeoutMillis: 30000,
+  },
+  encryptionKey: process.env.DB_ENCRYPTION_KEY,
+  enableQueryLogging: process.env.NODE_ENV === 'development',
+  enableAuditLog: process.env.DB_AUDIT_LOG === 'true',
+  maxQueryTime: 30000,
+};
+
 // Audit logging function
 function auditLog(event: string, details: any, ctx?: any) {
   const timestamp = new Date().toISOString();
@@ -45,7 +61,6 @@ function auditLog(event: string, details: any, ctx?: any) {
 
   const auditEntry = {
     timestamp,
-    event,
     ip: clientIP,
     userAgent: ctx?.req.headers.get('user-agent') || 'unknown',
     details,
@@ -133,6 +148,24 @@ app.use(api.middleware);
 // exports in route files should be named GET/POST/PUT/DELETE/PATCH/OPTIONS
 await app.loadRoutes('./routes');
 
+// Database middleware with security
+app.use(database('main-db', dbConfig));
+
+// Health check endpoint
+app.get('/health', async (ctx: any) => {
+  const dbHealth = await healthCheck('main-db');
+  const status = dbHealth.status === 'healthy' ? 200 : 503;
+
+  return ctx.json(
+    {
+      status: dbHealth.status,
+      database: dbHealth,
+      timestamp: new Date().toISOString(),
+    },
+    status
+  );
+});
+
 // Routes
 app.get('/', (ctx: any) => {
   return ctx.json({ message: 'Welcome to OpenSpeed API', version: '1.0.0' });
@@ -171,7 +204,7 @@ app.post('/auth/register', validate({ body: createUserSchema }), async (ctx: any
   const hashedPassword = await hashPassword(password);
   const user = await prisma.user.create({
     data: { name, email, password: hashedPassword },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true }, // Exclude sensitive timestamps
   });
 
   auditLog('USER_REGISTERED', { userId: user.id, email, clientIP }, ctx);
@@ -225,7 +258,10 @@ app.post('/auth/login', validate({ body: loginSchema }), async (ctx: any) => {
   }
 
   // Timing-safe authentication to prevent timing attacks
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { id: true, email: true, password: true }, // Only select needed fields
+  });
 
   // Always perform password verification to prevent timing attacks
   const isValidPassword = user ? await verifyPassword(password, user.password) : false;
@@ -431,8 +467,13 @@ app.post(
 app.get('/users/me', auth(), async (ctx: any) => {
   const user = await prisma.user.findUnique({
     where: { id: ctx.user.userId },
-    select: { id: true, email: true, name: true }, // Remove sensitive timestamps
+    select: { id: true, email: true, name: true }, // Exclude sensitive data
   });
+
+  if (!user) {
+    return ctx.json({ code: 'USER_NOT_FOUND', message: 'User not found' }, 404);
+  }
+
   return ctx.json(user);
 });
 
@@ -477,31 +518,52 @@ app.post(
   }
 );
 
-// Post routes
+// Post routes with security
 app.get('/posts', async (ctx: any) => {
   const posts = await prisma.post.findMany({
     where: { published: true },
     include: { author: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
   });
   return ctx.json(posts);
 });
 
 app.post('/posts', auth(), validate({ body: createPostSchema }), async (ctx: any) => {
   const { title, content, published } = ctx.body;
+
+  // Validate content length to prevent abuse
+  if (content && content.length > 10000) {
+    return ctx.json({ code: 'CONTENT_TOO_LONG', message: 'Content exceeds maximum length' }, 400);
+  }
+
   const post = await prisma.post.create({
     data: { title, content, published, authorId: ctx.user.userId },
+    include: { author: { select: { name: true } } },
   });
   return ctx.json(post);
 });
 
 app.get('/posts/:id', async (ctx: any) => {
+  // Validate ID format
+  const id = ctx.params.id;
+  if (!id || typeof id !== 'string' || id.length > 100) {
+    return ctx.json({ code: 'INVALID_ID', message: 'Invalid post ID' }, 400);
+  }
+
   const post = await prisma.post.findUnique({
-    where: { id: ctx.params.id },
+    where: { id },
     include: { author: { select: { name: true } } },
   });
+
   if (!post) {
     return ctx.json({ code: 'NOT_FOUND', message: 'Post not found' }, 404);
   }
+
+  // Check if post is published or user is author
+  if (!post.published && (!ctx.user || ctx.user.userId !== post.authorId)) {
+    return ctx.json({ code: 'FORBIDDEN', message: 'Access denied' }, 403);
+  }
+
   return ctx.json(post);
 });
 
