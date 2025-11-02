@@ -1,9 +1,128 @@
 # OpenSpeed v0.7.0: Achieving Feature Parity with Hono and Elysia
 
 **Published on:** October 30, 2025  
-**Author:** OpenSpeed Team  
+**Author:** OpenSpeed Team
 
 We're thrilled to announce the release of **OpenSpeed v0.7.0**, a major milestone that brings OpenSpeed to **feature parity with Hono and Elysia**! This release introduces groundbreaking features that make OpenSpeed not just competitive, but a powerhouse in the web framework landscape.
+
+## 🛡️ Security Enhancements
+
+OpenSpeed v0.7.0 includes comprehensive security improvements to protect your applications:
+
+### New Security Plugin
+
+A powerful security middleware with multiple layers of protection:
+
+```typescript
+import { createApp } from 'openspeed';
+import { security, securityPresets } from 'openspeed/plugins/security';
+
+const app = createApp()
+  .use(security(securityPresets.production))
+  .get('/', (ctx) => ctx.text('Secure API!'));
+
+// Or custom configuration
+app.use(security({
+  contentSecurityPolicy: "default-src 'self'",
+  csrf: { secret: process.env.CSRF_SECRET },
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+  customChecks: [
+    async (ctx) => {
+      if (ctx.req.headers['x-api-key'] !== process.env.API_KEY) {
+        return { error: 'Invalid API key', status: 401 };
+      }
+      return true;
+    }
+  ]
+}));
+```
+
+**Security Features:**
+- **CSRF Protection**: Automatic CSRF token validation
+- **Input Sanitization**: Detects and blocks suspicious requests (XSS, directory traversal)
+- **Security Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- **Request Size Limits**: Prevents large payload attacks
+- **Security Event Logging**: Comprehensive monitoring and alerting
+
+### Enhanced Authentication Security
+
+**JWT Authentication** now properly verifies signatures:
+- HMAC-SHA256 signature verification
+- Token expiration validation
+- Secure token generation
+
+**Basic Authentication** improvements:
+- Password hashing instead of plain text storage
+- Secure credential validation
+
+### Production-Ready Error Handling
+
+**Error Handler** security improvements:
+- Stack traces hidden in production by default
+- Configurable error exposure
+- Security warnings for dangerous configurations
+
+### Security Headers in CORS
+
+**CORS Plugin** now includes security headers:
+- Content Security Policy (CSP)
+- X-Frame-Options for clickjacking protection
+- X-Content-Type-Options to prevent MIME sniffing
+- Referrer Policy and Permissions Policy
+
+## 🔒 Security Best Practices
+
+### For Production Deployments
+
+```typescript
+import { security, securityPresets } from 'openspeed/plugins/security';
+
+// Use production preset
+app.use(security(securityPresets.production));
+
+// Or configure manually
+app.use(security({
+  contentSecurityPolicy: "default-src 'self'; script-src 'self'",
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  csrf: { secret: process.env.CSRF_SECRET || 'your-secret-key' },
+  logSecurityEvents: true,
+}));
+```
+
+### Environment Variables
+
+Set these environment variables for enhanced security:
+
+```bash
+# CSRF protection
+CSRF_SECRET=your-super-secret-csrf-key
+
+# JWT signing
+JWT_SECRET=your-jwt-signing-secret
+
+# API keys
+API_KEY=your-api-key
+
+# Node environment
+NODE_ENV=production
+```
+
+### Security Monitoring
+
+Enable security event logging to monitor threats:
+
+```typescript
+app.use(security({
+  logSecurityEvents: true,
+  customChecks: [
+    // Rate limiting per IP
+    // API key validation
+    // Suspicious pattern detection
+  ]
+}));
+```
+
+All security events are logged with timestamps, IP addresses, and detailed information for incident response.
 
 ## 🚀 What's New in v0.7.0
 
@@ -232,4 +351,4 @@ A huge thank you to our community for the feedback and contributions that made t
 
 **Ready to experience the future of web frameworks?** Try OpenSpeed v0.7.0 today and see the difference!
 
-#OpenSpeed #WebFramework #TypeScript #Performance #JSX #SSG #RPC
+#OpenSpeed #WebFramework #TypeScript #Performance #JSX #SSG #RPC #Security
