@@ -1,0 +1,25 @@
+schema: './index.ts' # Points to the schema defined in our TypeScript file
+documents: './**/*.ts' # Look for GraphQL operations in TypeScript files
+generates:
+  ./schema/types.ts:
+    plugins:
+      - typescript
+      - typescript-resolvers
+    config:
+      useIndexSignature: true
+      contextType: '../src/openspeed/context.js#Context'
+      mappers:
+        User: '../src/openspeed/context.js#User'
+        Post: '../src/openspeed/context.js#Post'
+        Comment: '../src/openspeed/context.js#Comment'
+      scalars:
+        DateTime: Date
+      enumsAsTypes: true
+      immutableTypes: true
+      strictScalars: true
+      noSchemaStitching: true
+  ./schema/graphql.schema.graphql:
+    plugins:
+      - schema-ast
+    config:
+      includeDirectives: true

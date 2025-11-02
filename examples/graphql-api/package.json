@@ -1,0 +1,42 @@
+{
+  "name": "openspeed-graphql-example",
+  "version": "1.0.0",
+  "description": "OpenSpeed GraphQL API Example with DataLoader, subscriptions, and type generation",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "start": "node index.js",
+    "build": "tsc",
+    "test": "node test.js",
+    "generate-types": "graphql-code-generator"
+  },
+  "keywords": [
+    "graphql",
+    "openspeed",
+    "api",
+    "typescript",
+    "dataloader",
+    "subscriptions"
+  ],
+  "author": "OpenSpeed Team",
+  "license": "MIT",
+  "dependencies": {
+    "dataloader": "^2.2.2",
+    "graphql": "^16.11.0",
+    "graphql-subscriptions": "^2.0.0",
+    "graphql-tag": "^2.12.6"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.0",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-resolvers": "^4.0.0",
+    "@types/node": "^20.0.0",
+    "node-fetch": "^3.3.2",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
