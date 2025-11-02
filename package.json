@@ -1,6 +1,6 @@
 {
   "name": "openspeed",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "High-performance web framework with JSX, SSG, RPC, streaming, and type safety. Inspired by Hono and Elysia but 2-3x faster.",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
@@ -42,6 +42,7 @@
     "./plugins/*": "./dist/src/openspeed/plugins/*.js"
   },
   "bin": {
+    "openspeed": "dist/src/cli/interactive.js",
     "create-openspeed-app": "dist/src/create-openspeed-app/index.js"
   },
   "scripts": {
