@@ -27,18 +27,33 @@ export function cookie() {
   };
 }
 
+// Safe URL decoding with error handling
+function safeDecodeURIComponent(encoded: string): string {
+  try {
+    // Check for potentially malicious encoding patterns
+    if (encoded.includes('%00') || encoded.includes('%0D') || encoded.includes('%0A')) {
+      throw new Error('Invalid cookie value: contains null bytes or line breaks');
+    }
+    return decodeURIComponent(encoded);
+  } catch (error) {
+    // If decoding fails, return the original value (could be malformed)
+    console.warn('[COOKIE SECURITY] Failed to decode cookie value:', encoded, error);
+    return encoded;
+  }
+}
+
 // Parse cookie header string into CookieJar
 function parseCookies(cookieHeader: string, jar: CookieJar) {
   const cookies = cookieHeader.split(';').map(c => c.trim());
 
   for (const cookie of cookies) {
-    const [nameValue, ..._attributes] = cookie.split(';');
+    const [nameValue] = cookie.split(';');
     const [name, value] = nameValue.split('=').map(s => s.trim());
 
     if (name && value !== undefined) {
       // For simplicity, we're not parsing all attributes here
       // In production, you might want to parse expires, max-age, etc.
-      jar.set(name, decodeURIComponent(value));
+      jar.set(name, safeDecodeURIComponent(value));
     }
   }
 }

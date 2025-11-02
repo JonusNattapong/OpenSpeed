@@ -48,6 +48,14 @@ Openspeed provides a modern, type-safe API with runtime-agnostic support for Nod
 - **🚀 Zero-Copy Streaming**: Memory-efficient large payload handling
 - **🎯 Object Pooling**: High-frequency object reuse for optimal performance
 
+### 🛠️ Development Tools
+- **📍 Route Visualizer**: Interactive dashboard showing all API routes with methods, handlers, and middleware
+- **⚡ Performance Monitor**: Real-time performance tracking with response times, error rates, and bottleneck detection
+- **🎮 API Playground**: Test endpoints directly from the browser with custom headers and request bodies
+- **📊 DevTools Dashboard**: Unified development interface combining all debugging and monitoring tools
+- **🔍 Request Inspector**: Detailed request/response logging with timing and memory usage
+- **🚨 Error Enhancement**: Developer-friendly error pages with actionable debugging information
+
 ## 📦 Installation
 
 Install Openspeed using your preferred package manager:

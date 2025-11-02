@@ -28,6 +28,14 @@ export function cors(options: CorsOptions = {}) {
     permissionsPolicy,
   } = options;
 
+  // SECURITY FIX: Validate credentials setting - cannot use '*' with credentials
+  if (credentials && origin === '*') {
+    throw new Error(
+      'CORS security violation: Cannot use wildcard origin (*) when credentials are enabled. ' +
+      'Specify explicit origins or disable credentials.'
+    );
+  }
+
   return async (ctx: Context, next: () => Promise<any>) => {
     const reqOrigin = ctx.req.headers.origin as string;
     let allowOrigin = '*';
