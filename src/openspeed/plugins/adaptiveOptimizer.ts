@@ -129,7 +129,7 @@ export function adaptiveOptimizer(config: AdaptiveConfig = {}): Middleware {
 /**
  * Initialize ML model for request prediction
  */
-async function initializeMLModel(mlConfig: NonNullable<AdaptiveConfig['ml']>): Promise<void> {
+async function initializeMLModel(_mlConfig: NonNullable<AdaptiveConfig['ml']>): Promise<void> {
   // This would load a trained model for request prediction
   // Using TensorFlow.js or similar
   console.log('[Adaptive] ML model initialized');
@@ -349,7 +349,7 @@ function predictAndPrefetch(ctx: Context, patterns: Map<string, RequestPattern>)
 /**
  * Analyze patterns and optimize strategies
  */
-function analyzeAndOptimize(patterns: Map<string, RequestPattern>, config: AdaptiveConfig): void {
+function analyzeAndOptimize(patterns: Map<string, RequestPattern>, _config: AdaptiveConfig): void {
   const allPatterns = Array.from(patterns.values());
 
   // Find hot paths

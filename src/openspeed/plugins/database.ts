@@ -1,5 +1,5 @@
 import { MongoClient, Db, Document } from 'mongodb';
-import { createPool, Pool } from 'mysql2/promise';
+import { createPool } from 'mysql2/promise';
 import { Pool as PgPool } from 'pg';
 import { Redis } from 'ioredis';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';

@@ -38,7 +38,7 @@ class AnomalyDetector {
     return this.detectAnomaly(metric, filtered);
   }
 
-  private detectAnomaly(metric: string, data: AnomalyData[]): boolean {
+  private detectAnomaly(_metric: string, data: AnomalyData[]): boolean {
     if (data.length < 10) return false; // Need minimum data points
 
     const values = data.map(d => d.value);

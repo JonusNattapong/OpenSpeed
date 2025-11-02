@@ -32,7 +32,7 @@ function parseCookies(cookieHeader: string, jar: CookieJar) {
   const cookies = cookieHeader.split(';').map(c => c.trim());
 
   for (const cookie of cookies) {
-    const [nameValue, ...attributes] = cookie.split(';');
+    const [nameValue, ..._attributes] = cookie.split(';');
     const [name, value] = nameValue.split('=').map(s => s.trim());
 
     if (name && value !== undefined) {

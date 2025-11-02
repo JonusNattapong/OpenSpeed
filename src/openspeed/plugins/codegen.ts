@@ -1,7 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname, extname } from 'path';
-import { fileURLToPath } from 'url';
-import * as ts from 'typescript';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import type { Context } from '../context.js';
 import type { Plugin } from '../index.js';
 
@@ -78,7 +76,6 @@ class CodeGenerator {
   private spec: OpenAPISpec;
   private config: CodeGenConfig;
   private typeCache = new Map<string, string>();
-  private schemaCache = new Map<string, OpenAPISchema>();
 
   constructor(spec: OpenAPISpec, config: CodeGenConfig) {
     this.spec = spec;
@@ -322,7 +319,6 @@ export class ${this.spec.info.title.replace(/\s+/g, '')}Client {
 
         // Build path with parameters
         let apiPath = path;
-        const params: string[] = [];
         const queryParams: string[] = [];
 
         if (operation.parameters) {
@@ -368,7 +364,6 @@ export type * from './types.js';
   private async generateJavaScript(outputDir: string): Promise<void> {
     // Generate JavaScript version (similar to TypeScript but without types)
     const client = this.generateTypeScriptClient().replace(/import type .* from .*\n/g, '');
-    const types = '// Type definitions available in types.d.ts\n';
 
     writeFileSync(join(outputDir, 'client.js'), client);
     writeFileSync(join(outputDir, 'types.d.ts'), this.generateTypeScriptTypes());

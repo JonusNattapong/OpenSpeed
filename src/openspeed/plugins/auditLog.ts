@@ -1,4 +1,4 @@
-import { writeFile, appendFile, mkdir } from 'fs/promises';
+import { appendFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import type { Context } from '../context.js';
@@ -101,7 +101,6 @@ const COMPLIANCE_RULES: Record<string, ComplianceRule> = {
  */
 export function auditLog(config: AuditConfig): Middleware {
   const logQueue: AuditLogEntry[] = [];
-  let isProcessing = false;
 
   // Initialize storage
   initializeStorage(config);
@@ -278,7 +277,7 @@ async function writeToDatabase(entries: AuditLogEntry[], config: AuditConfig): P
 /**
  * Write logs to Elasticsearch
  */
-async function writeToElasticsearch(entries: AuditLogEntry[], config: AuditConfig): Promise<void> {
+async function writeToElasticsearch(entries: AuditLogEntry[], _config: AuditConfig): Promise<void> {
   // Implementation would use Elasticsearch client
   // This is a placeholder
   console.log('[Audit] Would write to Elasticsearch:', entries.length, 'entries');

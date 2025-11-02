@@ -7,13 +7,7 @@ export interface DashboardOptions {
   updateInterval?: number;
 }
 
-export function dashboardPlugin(options: DashboardOptions = {}) {
-  const {
-    metricsEndpoint = '/metrics',
-    healthEndpoint = '/health',
-    enableWebSocket = true,
-    updateInterval = 5000
-  } = options;
+export function dashboardPlugin(_options: DashboardOptions = {}) {
 
   return async (ctx: Context, next: () => Promise<unknown>) => {
     // Add dashboard endpoints to context

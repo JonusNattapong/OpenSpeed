@@ -1,4 +1,4 @@
-import { readdir, stat } from 'fs/promises';
+import { readdir } from 'fs/promises';
 import { join, extname, relative, sep } from 'path';
 import { pathToFileURL } from 'url';
 import type { Context } from '../context.js';
@@ -84,10 +84,7 @@ export function fileRouting(options: FileRoutingOptions): MiddlewareFn {
     hot = process.env.NODE_ENV === 'development',
   } = options;
 
-  const routeCache = new Map<string, RouteModule>();
-  const layoutCache = new Map<string, LayoutComponent>();
-
-  return async (ctx: Context, next: () => Promise<any>) => {
+  return async (_ctx: Context, next: () => Promise<any>) => {
     // File routing requires manual route discovery
     // Use watchRoutes() separately to monitor file changes
     return next();
@@ -95,91 +92,8 @@ export function fileRouting(options: FileRoutingOptions): MiddlewareFn {
 }
 
 /**
- * Discover and register routes from file system
+ * Watch for file changes and reload routes (hot reload)
  */
-async function discoverRoutes(
-  routesDir: string,
-  app: any,
-  basePath: string,
-  extensions: string[],
-  conventions: NonNullable<FileRoutingOptions['conventions']>,
-  routeCache: Map<string, RouteModule>,
-  layoutCache: Map<string, LayoutComponent>
-): Promise<void> {
-  const routes = await scanDirectory(routesDir, routesDir, extensions);
-
-  // Sort routes by priority (static > dynamic > catch-all)
-  const parsedRoutes = routes.map((r) => parseRoute(r, routesDir, basePath)).sort((a, b) => b.priority - a.priority);
-
-  // Register routes
-  for (const route of parsedRoutes) {
-    if (route.isLayout) {
-      // Cache layout for child routes
-      const module = await importRoute(route.filePath);
-      if (module.layout) {
-        layoutCache.set(route.pattern, module.layout);
-      }
-      continue;
-    }
-
-    // Import route module
-    const module = await importRoute(route.filePath);
-    routeCache.set(route.pattern, module);
-
-    // Register HTTP methods
-    const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'] as const;
-
-    for (const method of methods) {
-      const handler = module[method] || module.default;
-      if (!handler) continue;
-
-      // Build middleware chain
-      const middlewares: Middleware[] = [...(module.middleware || [])];
-
-      // Add layout wrapper if exists
-      const layout = findLayout(route.pattern, layoutCache);
-      if (layout) {
-        middlewares.unshift(createLayoutMiddleware(layout));
-      }
-
-      // Register route with app
-      const finalHandler = async (ctx: Context) => {
-        // Apply middlewares
-        let index = 0;
-        const next = async (): Promise<any> => {
-          if (index < middlewares.length) {
-            const middleware = middlewares[index++];
-            return middleware(ctx, next);
-          }
-          return handler(ctx);
-        };
-        return next();
-      };
-
-      // Register based on method
-      switch (method) {
-        case 'GET':
-          app.get(route.pattern, finalHandler);
-          break;
-        case 'POST':
-          app.post(route.pattern, finalHandler);
-          break;
-        case 'PUT':
-          app.put(route.pattern, finalHandler);
-          break;
-        case 'DELETE':
-          app.delete(route.pattern, finalHandler);
-          break;
-        case 'PATCH':
-          app.patch(route.pattern, finalHandler);
-          break;
-        case 'OPTIONS':
-          app.options(route.pattern, finalHandler);
-          break;
-      }
-    }
-  }
-}
 
 /**
  * Scan directory recursively for route files
@@ -326,8 +240,8 @@ function createLayoutMiddleware(layout: LayoutComponent): Middleware {
  */
 export async function watchRoutes(
   routesDir: string,
-  app: any,
-  options: Omit<FileRoutingOptions, 'routesDir'>
+  _app: any,
+  _options: Omit<FileRoutingOptions, 'routesDir'>
 ): Promise<void> {
   const { default: chokidar } = await import('chokidar');
 
