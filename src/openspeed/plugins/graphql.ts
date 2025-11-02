@@ -18,6 +18,17 @@ export interface GraphQLOptions {
   context?: (ctx: Context) => Record<string, any>;
   formatError?: (error: GraphQLError) => any;
   validationRules?: any[];
+  // Security options
+  requireAuth?: boolean;
+  allowedOrigins?: string[];
+  maxQueryDepth?: number;
+  maxQueryComplexity?: number;
+  rateLimit?: {
+    windowMs: number;
+    maxQueries: number;
+  };
+  disablePlaygroundInProduction?: boolean;
+  sanitizeInputs?: boolean;
 }
 
 export interface GraphQLContext extends Context {
@@ -254,12 +265,24 @@ export function graphqlPlugin(options: GraphQLOptions) {
     endpoint = '/graphql',
     subscriptionsEndpoint = '/graphql/subscriptions',
     playground = process.env.NODE_ENV === 'development',
-    introspection = true,
+    introspection = process.env.NODE_ENV === 'development',
     dataLoaders = {},
     context: contextFn,
     formatError,
     validationRules = [],
+    // Security options
+    requireAuth = false,
+    allowedOrigins = [],
+    maxQueryDepth = 10,
+    maxQueryComplexity = 1000,
+    rateLimit,
+    disablePlaygroundInProduction = true,
+    sanitizeInputs = true,
   } = options;
+
+  // Security: Disable playground in production if requested
+  const effectivePlayground =
+    disablePlaygroundInProduction && process.env.NODE_ENV === 'production' ? false : playground;
 
   // Create schema and resolvers
   const executableSchema = makeExecutableSchema({
@@ -276,19 +299,70 @@ export function graphqlPlugin(options: GraphQLOptions) {
   // Initialize subscription manager
   const subscriptionManager = new SubscriptionManager();
 
+  // Rate limiting storage (use Redis in production)
+  const queryCounts = new Map<string, { count: number; resetTime: number }>();
+
   return async (ctx: Context, next: () => Promise<any>) => {
     const url = new URL(ctx.req.url);
+    const clientIP = getClientIP(ctx);
+
+    // Security: Check origin
+    if (allowedOrigins.length > 0) {
+      const origin = ctx.req.headers.origin as string;
+      if (!allowedOrigins.includes(origin)) {
+        ctx.res.status = 403;
+        ctx.res.body = JSON.stringify({ error: 'Origin not allowed for GraphQL' });
+        return;
+      }
+    }
+
+    // Security: Rate limiting
+    if (rateLimit) {
+      const now = Date.now();
+      const counts = queryCounts.get(clientIP) || {
+        count: 0,
+        resetTime: now + rateLimit.windowMs,
+      };
+
+      if (counts.resetTime < now) {
+        counts.count = 0;
+        counts.resetTime = now + rateLimit.windowMs;
+      }
+
+      if (counts.count >= rateLimit.maxQueries) {
+        ctx.res.status = 429;
+        ctx.res.body = JSON.stringify({
+          error: 'GraphQL query rate limit exceeded',
+          retryAfter: Math.ceil((counts.resetTime - now) / 1000),
+        });
+        return;
+      }
+
+      counts.count++;
+      queryCounts.set(clientIP, counts);
+    }
+
+    // Security: Authentication check
+    if (requireAuth && !ctx.req.user) {
+      ctx.res.status = 401;
+      ctx.res.body = JSON.stringify({ error: 'Authentication required for GraphQL' });
+      return;
+    }
 
     // Handle GraphQL HTTP endpoint
     if (url.pathname === endpoint) {
       return handleGraphQLHTTP(ctx, executableSchema, {
         dataLoaderFactory,
         subscriptionManager,
-        playground,
+        playground: effectivePlayground,
         introspection,
         contextFn,
         formatError,
         validationRules,
+        maxQueryDepth,
+        maxQueryComplexity,
+        sanitizeInputs,
+        clientIP,
       });
     }
 
@@ -299,6 +373,16 @@ export function graphqlPlugin(options: GraphQLOptions) {
 
     return next();
   };
+}
+
+// Security utility function
+function getClientIP(ctx: Context): string {
+  return (
+    ctx.req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+    ctx.req.headers['x-real-ip']?.toString() ||
+    ctx.req.headers['cf-connecting-ip']?.toString() ||
+    'unknown'
+  );
 }
 
 // Handle HTTP GraphQL requests
@@ -313,6 +397,10 @@ async function handleGraphQLHTTP(
     contextFn?: (ctx: Context) => Record<string, any>;
     formatError?: (error: GraphQLError) => any;
     validationRules: any[];
+    maxQueryDepth: number;
+    maxQueryComplexity: number;
+    sanitizeInputs: boolean;
+    clientIP: string;
   }
 ) {
   const {
@@ -335,15 +423,55 @@ async function handleGraphQLHTTP(
     try {
       const { query, variables, operationName } = ctx.req.body as any;
 
+      // Security: Sanitize inputs
+      if (options.sanitizeInputs) {
+        if (typeof query === 'string' && containsDangerousPatterns(query)) {
+          console.warn(`[GRAPHQL SECURITY] Dangerous pattern in query from ${options.clientIP}`);
+          ctx.res.status = 400;
+          ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
+          ctx.res.body = JSON.stringify({ error: 'Query contains invalid characters' });
+          return;
+        }
+
+        if (variables && typeof variables === 'object') {
+          sanitizeObject(variables);
+        }
+      }
+
       // Parse and validate query
       const document = parse(query);
-      const validationErrors = validate(schema, document, validationRules);
+
+      // Security: Check query depth
+      const depth = getQueryDepth(document);
+      if (depth > options.maxQueryDepth) {
+        console.warn(`[GRAPHQL SECURITY] Query too deep (${depth}) from ${options.clientIP}`);
+        ctx.res.status = 400;
+        ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
+        ctx.res.body = JSON.stringify({ error: 'Query too complex' });
+        return;
+      }
+
+      // Security: Check query complexity
+      const complexity = estimateComplexity(document);
+      if (complexity > options.maxQueryComplexity) {
+        console.warn(
+          `[GRAPHQL SECURITY] Query too complex (${complexity}) from ${options.clientIP}`
+        );
+        ctx.res.status = 400;
+        ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
+        ctx.res.body = JSON.stringify({ error: 'Query too complex' });
+        return;
+      }
+
+      const validationErrors = validate(schema, document, options.validationRules);
 
       if (validationErrors.length > 0) {
         ctx.res.status = 400;
         ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
         ctx.res.body = JSON.stringify({
-          errors: validationErrors.map((error) => (formatError ? formatError(error) : error)),
+          errors: validationErrors.map((error) =>
+            options.formatError ? options.formatError(error) : error
+          ),
         });
         return;
       }
@@ -365,15 +493,24 @@ async function handleGraphQLHTTP(
         contextValue,
       });
 
-      // Format errors if needed
-      if (result.errors && formatError) {
-        result.errors = result.errors.map(formatError);
+      // Format errors if needed (mask sensitive information)
+      if (result.errors && options.formatError) {
+        result.errors = result.errors.map(options.formatError);
       }
 
       ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
       ctx.res.body = JSON.stringify(result);
     } catch (error) {
-      const formattedError = formatError ? formatError(error as GraphQLError) : error;
+      // Security: Mask error details in production
+      const isProduction = process.env.NODE_ENV === 'production';
+      const formattedError = options.formatError
+        ? options.formatError(error as GraphQLError)
+        : isProduction
+          ? { message: 'Internal server error' }
+          : error;
+
+      console.error(`[GRAPHQL ERROR] ${options.clientIP}:`, error);
+
       ctx.res.status = 500;
       ctx.res.headers = { ...ctx.res.headers, 'content-type': 'application/json' };
       ctx.res.body = JSON.stringify({
@@ -461,6 +598,80 @@ export function createLoaderResolver<T, K>(
     }
     return loader.load(keyFn(parent, args, context));
   };
+}
+
+// Security utility functions
+function containsDangerousPatterns(str: string): boolean {
+  const dangerousPatterns = [
+    /(\bUNION\b|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bCREATE\b|\bALTER\b)/i,
+    /('|(\\x27)|(\\x2D\\x2D)|(\\#)|(\\x23)|(\%27)|(\%23)|(\%2D\\x2D))/i,
+    /<script/i,
+    /javascript:/i,
+    /vbscript:/i,
+    /onload=/i,
+    /onerror=/i,
+  ];
+
+  return dangerousPatterns.some((pattern) => pattern.test(str));
+}
+
+function sanitizeObject(obj: any): void {
+  for (const key in obj) {
+    if (typeof obj[key] === 'string') {
+      // Basic sanitization - remove dangerous characters
+      obj[key] = obj[key].replace(/[<>'"&]/g, '');
+    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      sanitizeObject(obj[key]);
+    }
+  }
+}
+
+function getQueryDepth(document: any): number {
+  let maxDepth = 0;
+
+  function traverse(node: any, depth: number = 0): void {
+    if (depth > maxDepth) maxDepth = depth;
+
+    if (node.selectionSet && node.selectionSet.selections) {
+      for (const selection of node.selectionSet.selections) {
+        traverse(selection, depth + 1);
+      }
+    }
+  }
+
+  if (document.definitions) {
+    for (const definition of document.definitions) {
+      if (definition.selectionSet) {
+        traverse(definition, 0);
+      }
+    }
+  }
+
+  return maxDepth;
+}
+
+function estimateComplexity(document: any): number {
+  let complexity = 0;
+
+  function traverse(node: any): void {
+    complexity += 1; // Base cost for each field
+
+    if (node.selectionSet && node.selectionSet.selections) {
+      for (const selection of node.selectionSet.selections) {
+        traverse(selection);
+      }
+    }
+  }
+
+  if (document.definitions) {
+    for (const definition of document.definitions) {
+      if (definition.selectionSet) {
+        traverse(definition);
+      }
+    }
+  }
+
+  return complexity;
 }
 
 // Helper for creating batch resolvers
