@@ -11,7 +11,7 @@ const LOGO = `
 ╚██████╔╝██║     ███████╗██║ ╚████║███████║██║     ███████╗███████╗██████╔╝
  ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝     ╚══════╝╚══════╝╚═════╝
 
-Welcome to OpenSpeed CLI!
+Welcome to OpenSpeed
 `;
 
 interface CliOptions {

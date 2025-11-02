@@ -30,6 +30,11 @@ Openspeed provides a modern, type-safe API with runtime-agnostic support for Nod
 - **🏗️ CLI Tooling**: Scaffold new projects instantly
 - **🔒 Security**: Built-in authentication and rate limiting
 - **📁 Static Serving**: Efficient file serving with caching
+- **⚛️ JSX Support**: React-like JSX rendering for HTML templating (like Hono)
+- **📄 Static Site Generation**: Pre-render routes to static HTML files
+- **🔗 RPC Type Safety**: End-to-end type safety without code generation (like Elysia)
+- **🌊 Streaming Responses**: Generator functions, SSE, and NDJSON streaming
+- **✅ Enhanced Validation**: Support for Zod, Valibot, ArkType, Effect via Standard Schema
 
 ### 🌟 Advanced Features (NEW!)
 - **📂 File-based Routing**: Next.js-style automatic route generation from file structure

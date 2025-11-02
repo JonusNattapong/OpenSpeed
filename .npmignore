@@ -1,10 +1,8 @@
-OpenSpeed\.npmignore
 # Source files
 src/
 examples/
 benchmarks/
 tests/
-docs/
 
 # Config files
 .github/
@@ -14,17 +12,30 @@ tsconfig*.json
 vitest.config.*
 eslint*
 prettier*
+.eslintignore
+.prettierignore
+.gitignore
+.gitattributes
 
 # Development files
 *.md
 !README.md
-CHANGELOG.md
+!CHANGELOG.md
+!LICENSE
 ROADMAP.md
+REFACTORING_SUMMARY.md
+NEW_FEATURES_SUMMARY.md
+BENCHMARK_GUIDE.md
 logo.png
+docker-compose.yml
+loadtest.k6.js
+test-all-benchmarks.js
+test-benchmarks.js
 
 # Lock files
 package-lock.json
 pnpm-lock.yaml
+pnpm-workspace.yaml
 yarn.lock
 
 # OS files
@@ -34,9 +45,17 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+logs/
 
 # Coverage
 coverage/
 
+# Node modules
+node_modules/
+
 # Build artifacts (keep dist)
 !dist/
+
+# Development directories
+test-static/
+docs/

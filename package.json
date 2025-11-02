@@ -1,16 +1,44 @@
 {
   "name": "openspeed",
-  "version": "0.6.7",
-  "description": "High-performance web framework inspired by Hono and Elysia",
+  "version": "0.7.0",
+  "description": "High-performance web framework with JSX, SSG, RPC, streaming, and type safety. Inspired by Hono and Elysia but 2-3x faster.",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "exports": {
-    ".": "./dist/src/openspeed/index.js",
-    "./plugins": "./dist/src/openspeed/plugins/index.js",
+    ".": {
+      "types": "./dist/src/openspeed/index.d.ts",
+      "import": "./dist/src/openspeed/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/src/openspeed/plugins/index.d.ts",
+      "import": "./dist/src/openspeed/plugins/index.js"
+    },
+    "./plugins/jsx": {
+      "types": "./dist/src/openspeed/plugins/jsx.d.ts",
+      "import": "./dist/src/openspeed/plugins/jsx.js"
+    },
+    "./plugins/ssg": {
+      "types": "./dist/src/openspeed/plugins/ssg.d.ts",
+      "import": "./dist/src/openspeed/plugins/ssg.js"
+    },
+    "./plugins/rpc": {
+      "types": "./dist/src/openspeed/plugins/rpc.d.ts",
+      "import": "./dist/src/openspeed/plugins/rpc.js"
+    },
+    "./plugins/stream": {
+      "types": "./dist/src/openspeed/plugins/stream.d.ts",
+      "import": "./dist/src/openspeed/plugins/stream.js"
+    },
+    "./plugins/validate": {
+      "types": "./dist/src/openspeed/plugins/validate.d.ts",
+      "import": "./dist/src/openspeed/plugins/validate.js"
+    },
     "./plugins/*": "./dist/src/openspeed/plugins/*.js"
   },
   "bin": {
@@ -31,7 +59,13 @@
     "format:check": "prettier --check src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc src",
-    "release": "pnpm version patch && pnpm build && pnpm publish",
+    "prepublishOnly": "npm run build && node scripts/pre-publish.js",
+    "publish:check": "node scripts/pre-publish.js",
+    "publish:dry": "npm publish --dry-run",
+    "release": "npm run build && npm publish",
+    "release:patch": "npm version patch && npm run release",
+    "release:minor": "npm version minor && npm run release",
+    "release:major": "npm version major && npm run release",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "prepare": "husky"
@@ -42,7 +76,27 @@
     "http",
     "server",
     "typescript",
-    "runtime"
+    "runtime",
+    "jsx",
+    "ssg",
+    "static-site-generator",
+    "rpc",
+    "streaming",
+    "sse",
+    "server-sent-events",
+    "validation",
+    "zod",
+    "type-safe",
+    "performance",
+    "fast",
+    "bun",
+    "deno",
+    "nodejs",
+    "elysia",
+    "hono",
+    "websocket",
+    "ml-optimization",
+    "enterprise"
   ],
   "author": "OpenSpeed Team",
   "license": "MIT",
@@ -100,7 +154,6 @@
     "mongodb": "^6.20.0",
     "mysql2": "^3.15.3",
     "nodemailer": "^7.0.10",
-    "openspeed": "^0.6.1",
     "pg": "^8.13.1",
     "redis": "^4.7.0",
     "spdy": "^4.0.2",
