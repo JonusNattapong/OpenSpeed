@@ -754,12 +754,12 @@ export function codeGenPlugin(config: CodeGenConfig = {
 
       // Add code generation routes
       app.post('/api/codegen/generate', async (ctx: Context) => {
-        const { specPath, specUrl } = ctx.req.body || {};
+        const body = ctx.req.body as { specPath?: string; specUrl?: string } || {};
 
-        if (specPath) {
-          ctx.res.body = await ctx.codegen!.generateFromSpec(specPath);
-        } else if (specUrl) {
-          ctx.res.body = await ctx.codegen!.generateFromUrl(specUrl);
+        if (body.specPath) {
+          ctx.res.body = await (ctx.codegen as any).generateFromSpec(body.specPath);
+        } else if (body.specUrl) {
+          ctx.res.body = await (ctx.codegen as any).generateFromUrl(body.specUrl);
         } else {
           ctx.res.status = 400;
           ctx.res.body = { error: 'Either specPath or specUrl is required' };

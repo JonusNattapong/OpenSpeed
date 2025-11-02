@@ -15,12 +15,12 @@ export function dashboardPlugin(options: DashboardOptions = {}) {
     updateInterval = 5000
   } = options;
 
-  return async (ctx: Context, next: () => Promise<any>) => {
+  return async (ctx: Context, next: () => Promise<unknown>) => {
     // Add dashboard endpoints to context
-    ctx.dashboard = {
+    (ctx as any).dashboard = {
       getMetrics: async () => {
-        if (ctx.metrics) {
-          return await ctx.metrics.getMetrics();
+        if ((ctx as any).metrics) {
+          return await (ctx as any).metrics.getMetrics();
         }
         return '# No metrics available';
       },
@@ -35,8 +35,8 @@ export function dashboardPlugin(options: DashboardOptions = {}) {
         };
 
         // Check if critical services are healthy
-        if (ctx.memory) {
-          const memStats = ctx.memory.getStats();
+        if ((ctx as any).memory) {
+          const memStats = (ctx as any).memory.getStats();
           if (memStats.current.heapUsed > memStats.current.heapTotal * 0.9) {
             health.status = 'warning';
           }
@@ -47,11 +47,11 @@ export function dashboardPlugin(options: DashboardOptions = {}) {
 
       getStats: () => {
         return {
-          requests: ctx.metrics?.manager ? 'Available via /metrics' : 'Metrics not enabled',
-          memory: ctx.memory?.getStats() || 'Memory monitoring not enabled',
-          tracing: ctx.tracing ? 'Enabled' : 'Disabled',
-          loadBalancer: ctx.loadBalancer?.getStats() || 'Load balancer not enabled',
-          circuitBreaker: ctx.circuitBreaker?.getStats() || 'Circuit breaker not enabled'
+          requests: (ctx as any).metrics?.manager ? 'Available via /metrics' : 'Metrics not enabled',
+          memory: (ctx as any).memory?.getStats() || 'Memory monitoring not enabled',
+          tracing: (ctx as any).tracing ? 'Enabled' : 'Disabled',
+          loadBalancer: (ctx as any).loadBalancer?.getStats() || 'Load balancer not enabled',
+          circuitBreaker: (ctx as any).circuitBreaker?.getStats() || 'Circuit breaker not enabled'
         };
       }
     };

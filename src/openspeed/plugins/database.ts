@@ -1,7 +1,7 @@
-import { MongoClient, Db } from 'mongodb';
+import { MongoClient, Db, Document } from 'mongodb';
 import { createPool, Pool } from 'mysql2/promise';
 import { Pool as PgPool } from 'pg';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { URL } from 'url';
 import type { Context } from '../context.js';
@@ -188,7 +188,7 @@ export function database(name: string, config: DatabaseConfig): Middleware {
       ctx.req.headers['x-real-ip']?.toString() ||
       ctx.req.headers['cf-connecting-ip']?.toString() ||
       'unknown';
-    const userId = (ctx as { user?: unknown }).user?.userId || (ctx as { user?: unknown }).user?.id;
+    const userId = ((ctx as any).user as { userId?: string; id?: string })?.userId || ((ctx as any).user as { userId?: string; id?: string })?.id;
 
     // Multi-tenant support
     if (config.multiTenant) {
@@ -385,11 +385,10 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
     Object.assign(options, config.connection);
   }
 
-  const RedisClient = Redis as unknown;
   const client =
     typeof config.connection === 'string'
-      ? new RedisClient(config.connection)
-      : new RedisClient(options);
+      ? new Redis(config.connection)
+      : new Redis(options);
 
   return {
     type: 'redis',
@@ -427,21 +426,21 @@ async function getTenantDatabase(
   switch (type) {
     case 'mongodb':
       // Each tenant gets their own database
-      return (connection.pool as unknown).db(`tenant_${tenantId}`);
+      return (connection.pool as MongoClient).db(`tenant_${tenantId}`);
 
     case 'mysql':
     case 'postgresql':
       // Use schema/database per tenant
       // This is a simplified implementation
       return {
-        ...(connection.client as unknown),
+        ...(connection.client as Record<string, unknown>),
         __tenantId: tenantId,
       };
 
     case 'redis':
       // Use key prefix per tenant
       return {
-        ...(connection.client as unknown),
+        ...(connection.client as Record<string, unknown>),
         __tenantPrefix: `tenant:${tenantId}:`,
       };
 
@@ -504,7 +503,7 @@ export class MongoQueryBuilder<T = unknown> implements IMongoQueryBuilder<T> {
   async aggregate(pipeline: unknown[]): Promise<unknown[]> {
     return this.db
       .collection(this.collection)
-      .aggregate(pipeline as unknown[])
+      .aggregate(pipeline as Document[])
       .toArray();
   }
 }

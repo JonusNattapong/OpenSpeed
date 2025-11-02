@@ -35,8 +35,8 @@ export interface OpenSpeedApp {
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'options'] as const;
 
-function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unknown> | unknown) {
-  if (stack.length === 0) {
+function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unknown>): Promise<unknown> {
+  if (!stack.length) {
     return Promise.resolve(terminal());
   }
 
@@ -45,7 +45,7 @@ function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unk
   for (let i = stack.length - 1; i >= 0; i--) {
     const middleware = stack[i];
     const currentNext = next;
-    next = () => middleware(ctx, currentNext);
+    next = () => Promise.resolve(middleware(ctx, currentNext));
   }
 
   return next();
@@ -55,7 +55,7 @@ function composeRoute(middlewares: Middleware[], handler: RouteHandler): RouteHa
   if (!middlewares.length) {
     return handler;
   }
-  return (ctx: Context) => runStack(ctx, middlewares, () => handler(ctx));
+  return (ctx: Context) => runStack(ctx, middlewares, () => Promise.resolve(handler(ctx)));
 }
 
 function pathnameFromUrl(url: string) {
@@ -177,7 +177,7 @@ export function createApp(): OpenSpeedApp {
             // wrap handler to match internal RouteHandler signature
             const handler: RouteHandler = (ctx: Context) => Promise.resolve(fn(ctx));
             const middlewareNames = [`file:${path.relative(process.cwd(), full)}`];
-            router.add(name, routePath, handler, middlewareNames);
+            router.add(name, routePath, handler as (ctx: unknown) => Promise<unknown>, middlewareNames);
           }
         }
       }
@@ -196,7 +196,7 @@ export function createApp(): OpenSpeedApp {
       const routeMiddlewares = args.slice(0, -1) as Middleware[];
       const compiledHandler = composeRoute(routeMiddlewares, handler);
       const middlewareNames = routeMiddlewares.map((m) => m.name || 'anonymous');
-      router.add(method.toUpperCase(), path, compiledHandler, middlewareNames);
+      router.add(method.toUpperCase(), path, compiledHandler as (ctx: unknown) => Promise<unknown>, middlewareNames);
       return app;
     };
   }
@@ -209,7 +209,7 @@ export function createApp(): OpenSpeedApp {
     }
 
     const ctx = new Context(req, match.params);
-    const executeRoute = () => match.handler(ctx);
+    const executeRoute = () => Promise.resolve(match.handler(ctx));
     const result = await runStack(ctx, globalMiddlewares, executeRoute);
 
     return result ?? ctx.res;

@@ -175,7 +175,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
         statusCode: ctx.res.status || 200,
         memoryUsage: endMemory.heapUsed - startMemory.heapUsed,
         cpuUsage: (endCpu.user + endCpu.system) / 1000,
-        responseSize: (ctx.res.body || '').length,
+        responseSize: typeof ctx.res.body === 'string' ? ctx.res.body.length : JSON.stringify(ctx.res.body || '').length,
         queryCount: ctx.queryCount || 0,
         cacheHit: ctx.cacheHit || false,
       };

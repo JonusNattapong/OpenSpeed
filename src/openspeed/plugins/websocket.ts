@@ -74,7 +74,7 @@ export function websocket(path: string, handler: WebSocketHandler, options: WebS
     });
 
     // Add a regular route that will be intercepted by the WebSocket handler
-    app.get(path, (ctx: Context) => {
+    app.get(path, async (ctx: Context) => {
       // Security checks before upgrade
       const clientIP = getClientIP(ctx);
       const origin = ctx.req.headers.origin as string;
@@ -114,6 +114,7 @@ export function websocket(path: string, handler: WebSocketHandler, options: WebS
       ctx.res.status = 426;
       ctx.res.body = 'Upgrade Required';
       ctx.res.headers = { ...ctx.res.headers, Upgrade: 'websocket' };
+      return Promise.resolve();
     });
   };
 }
