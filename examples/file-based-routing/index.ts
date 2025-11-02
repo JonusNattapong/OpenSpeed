@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 /**
  * File-Based Routing Example
  *
@@ -21,7 +23,7 @@ import type { Context } from '../../src/openspeed/context.js';
 const app = createApp();
 
 // Global middleware
-app.use(async (ctx: Context, next) => {
+app.use(async (ctx: Context, next: () => Promise<any>) => {
   console.log(`${ctx.req.method} ${ctx.req.url}`);
   return next();
 });

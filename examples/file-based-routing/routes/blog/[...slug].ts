@@ -1,4 +1,4 @@
-import type { Context } from '../../../src/openspeed/context.js';
+import type { Context } from '../../../../src/openspeed/context.js';
 
 // Mock blog posts data
 const blogPosts = [
@@ -13,7 +13,8 @@ const blogPosts = [
   {
     slug: 'file-based-routing-guide',
     title: 'File-Based Routing Guide',
-    content: 'Learn how to use file-based routing in OpenSpeed with dynamic routes and catch-alls...',
+    content:
+      'Learn how to use file-based routing in OpenSpeed with dynamic routes and catch-alls...',
     author: 'Bob Smith',
     publishedAt: '2024-01-20T14:30:00Z',
     tags: ['routing', 'file-based', 'guide'],
@@ -34,7 +35,7 @@ export async function GET(ctx: Context) {
   if (!slug) {
     // If no slug provided, return all blog posts
     return ctx.json({
-      posts: blogPosts.map(post => ({
+      posts: blogPosts.map((post) => ({
         slug: post.slug,
         title: post.title,
         author: post.author,
@@ -51,10 +52,10 @@ export async function GET(ctx: Context) {
 
   if (slugParts.length === 1) {
     // Single slug: /blog/getting-started-with-openspeed
-    const post = blogPosts.find(p => p.slug === slugParts[0]);
+    const post = blogPosts.find((p) => p.slug === slugParts[0]);
 
     if (!post) {
-      return ctx.json({ error: 'Blog post not found' }, { status: 404 });
+      return ctx.json({ error: 'Blog post not found' }, 404);
     }
 
     return ctx.json({
@@ -71,9 +72,16 @@ export async function GET(ctx: Context) {
     const year = parseInt(part1);
     const month = parseInt(part2);
 
-    if (!isNaN(year) && !isNaN(month) && year >= 2020 && year <= 2030 && month >= 1 && month <= 12) {
+    if (
+      !isNaN(year) &&
+      !isNaN(month) &&
+      year >= 2020 &&
+      year <= 2030 &&
+      month >= 1 &&
+      month <= 12
+    ) {
       // Filter posts by year and month
-      const filteredPosts = blogPosts.filter(post => {
+      const filteredPosts = blogPosts.filter((post) => {
         const postDate = new Date(post.publishedAt);
         return postDate.getFullYear() === year && postDate.getMonth() + 1 === month;
       });
@@ -87,8 +95,8 @@ export async function GET(ctx: Context) {
     }
 
     // Try as category/tag
-    const filteredPosts = blogPosts.filter(post =>
-      post.tags.includes(part1) || post.tags.includes(part2)
+    const filteredPosts = blogPosts.filter(
+      (post) => post.tags.includes(part1) || post.tags.includes(part2)
     );
 
     return ctx.json({
@@ -108,15 +116,15 @@ export async function GET(ctx: Context) {
     const monthNum = parseInt(month);
 
     if (!isNaN(yearNum) && !isNaN(monthNum)) {
-      let filteredPosts = blogPosts.filter(post => {
+      let filteredPosts = blogPosts.filter((post) => {
         const postDate = new Date(post.publishedAt);
         return postDate.getFullYear() === yearNum && postDate.getMonth() + 1 === monthNum;
       });
 
       // Apply additional filters
       if (filters.length > 0) {
-        filteredPosts = filteredPosts.filter(post =>
-          filters.some(filter => post.tags.includes(filter))
+        filteredPosts = filteredPosts.filter((post) =>
+          filters.some((filter) => post.tags.includes(filter))
         );
       }
 
@@ -133,7 +141,7 @@ export async function GET(ctx: Context) {
   return ctx.json({
     message: 'Catch-all route matched',
     slug: slugParts,
-    availablePosts: blogPosts.map(p => p.slug),
+    availablePosts: blogPosts.map((p) => p.slug),
     timestamp: new Date().toISOString(),
   });
 }

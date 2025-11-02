@@ -1,11 +1,12 @@
-import type { Context } from '../../../src/openspeed/context.js';
+import type { Context } from '../../../../src/openspeed/context.js';
 
 // Layout middleware for user routes
 // This runs for all routes under /users/**
 export async function middleware(ctx: Context, next: () => Promise<any>) {
   // Add user route context
-  ctx.set('routeType', 'user');
-  ctx.set('timestamp', new Date().toISOString());
+  ctx.memory = ctx.memory || {};
+  ctx.memory.routeType = 'user';
+  ctx.memory.timestamp = new Date().toISOString();
 
   // Log user route access
   console.log(`[User Route] ${ctx.req.method} ${ctx.req.url}`);
@@ -17,20 +18,20 @@ export async function middleware(ctx: Context, next: () => Promise<any>) {
     if (result && typeof result === 'object' && !result.error) {
       result._metadata = {
         route: 'user',
-        accessedAt: ctx.get('timestamp'),
+        accessedAt: ctx.memory.timestamp,
         version: '1.0.0',
       };
     }
 
     return result;
   } catch (error) {
-    console.error(`[User Route Error] ${error.message}`);
+    console.error(`[User Route Error] ${error instanceof Error ? error.message : String(error)}`);
     return ctx.json(
       {
         error: 'Internal server error in user routes',
-        timestamp: ctx.get('timestamp'),
+        timestamp: ctx.memory.timestamp,
       },
-      { status: 500 }
+      500
     );
   }
 }

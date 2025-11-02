@@ -19,7 +19,7 @@ export async function GET(ctx: Context) {
 
   // Filter by role if specified
   if (role) {
-    filteredUsers = users.filter(user => user.role === role);
+    filteredUsers = users.filter((user) => user.role === role);
   }
 
   // Apply pagination
@@ -37,28 +37,22 @@ export async function GET(ctx: Context) {
 
 export async function POST(ctx: Context) {
   try {
-    const body = await ctx.req.json();
+    const body = ctx.getBody();
 
     // Validate required fields
     if (!body.name || !body.email) {
-      return ctx.json(
-        { error: 'Name and email are required' },
-        { status: 400 }
-      );
+      return ctx.json({ error: 'Name and email are required' }, 400);
     }
 
     // Check if email already exists
-    const existingUser = users.find(user => user.email === body.email);
+    const existingUser = users.find((user) => user.email === body.email);
     if (existingUser) {
-      return ctx.json(
-        { error: 'Email already exists' },
-        { status: 409 }
-      );
+      return ctx.json({ error: 'Email already exists' }, 409);
     }
 
     // Create new user
     const newUser = {
-      id: Math.max(...users.map(u => u.id)) + 1,
+      id: Math.max(...users.map((u) => u.id)) + 1,
       name: body.name,
       email: body.email,
       role: body.role || 'user',
@@ -66,11 +60,8 @@ export async function POST(ctx: Context) {
 
     users.push(newUser);
 
-    return ctx.json(newUser, { status: 201 });
+    return ctx.json(newUser, 201);
   } catch (error) {
-    return ctx.json(
-      { error: 'Invalid JSON body' },
-      { status: 400 }
-    );
+    return ctx.json({ error: 'Invalid JSON body' }, 400);
   }
 }

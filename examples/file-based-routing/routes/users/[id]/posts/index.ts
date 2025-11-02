@@ -1,4 +1,4 @@
-import type { Context } from '../../../../../src/openspeed/context.js';
+import type { Context } from '../../../../../../src/openspeed/context.js';
 
 // Mock posts data
 const posts = [
@@ -43,12 +43,12 @@ export async function GET(ctx: Context) {
   const { id } = ctx.params;
 
   if (!id) {
-    return ctx.json({ error: 'User ID is required' }, { status: 400 });
+    return ctx.json({ error: 'User ID is required' }, 400);
   }
 
   const userId = parseInt(id);
   if (isNaN(userId)) {
-    return ctx.json({ error: 'Invalid user ID format' }, { status: 400 });
+    return ctx.json({ error: 'Invalid user ID format' }, 400);
   }
 
   const userPosts = posts.filter((post) => post.userId === userId);
@@ -65,19 +65,19 @@ export async function POST(ctx: Context) {
   const { id } = ctx.params;
 
   if (!id) {
-    return ctx.json({ error: 'User ID is required' }, { status: 400 });
+    return ctx.json({ error: 'User ID is required' }, 400);
   }
 
   const userId = parseInt(id);
   if (isNaN(userId)) {
-    return ctx.json({ error: 'Invalid user ID format' }, { status: 400 });
+    return ctx.json({ error: 'Invalid user ID format' }, 400);
   }
 
   try {
-    const body = await ctx.req.json();
+    const body = ctx.getBody();
 
     if (!body.title || !body.content) {
-      return ctx.json({ error: 'Title and content are required' }, { status: 400 });
+      return ctx.json({ error: 'Title and content are required' }, 400);
     }
 
     const newPost = {
@@ -90,8 +90,8 @@ export async function POST(ctx: Context) {
 
     posts.push(newPost);
 
-    return ctx.json(newPost, { status: 201 });
+    return ctx.json(newPost, 201);
   } catch (error) {
-    return ctx.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return ctx.json({ error: 'Invalid JSON body' }, 400);
   }
 }

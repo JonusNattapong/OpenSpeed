@@ -13,17 +13,17 @@ export async function GET(ctx: Context) {
   const { id } = ctx.params;
 
   if (!id) {
-    return ctx.json({ error: 'User ID is required' }, { status: 400 });
+    return ctx.json({ error: 'User ID is required' }, 400);
   }
 
   const userId = parseInt(id);
   if (isNaN(userId)) {
-    return ctx.json({ error: 'Invalid user ID format' }, { status: 400 });
+    return ctx.json({ error: 'Invalid user ID format' }, 400);
   }
 
   const user = users.find((u) => u.id === userId);
   if (!user) {
-    return ctx.json({ error: 'User not found' }, { status: 404 });
+    return ctx.json({ error: 'User not found' }, 404);
   }
 
   return ctx.json({
@@ -36,21 +36,21 @@ export async function PUT(ctx: Context) {
   const { id } = ctx.params;
 
   if (!id) {
-    return ctx.json({ error: 'User ID is required' }, { status: 400 });
+    return ctx.json({ error: 'User ID is required' }, 400);
   }
 
   const userId = parseInt(id);
   if (isNaN(userId)) {
-    return ctx.json({ error: 'Invalid user ID format' }, { status: 400 });
+    return ctx.json({ error: 'Invalid user ID format' }, 400);
   }
 
   const userIndex = users.findIndex((u) => u.id === userId);
   if (userIndex === -1) {
-    return ctx.json({ error: 'User not found' }, { status: 404 });
+    return ctx.json({ error: 'User not found' }, 404);
   }
 
   try {
-    const body = await ctx.req.json();
+    const body = ctx.getBody();
 
     // Update user (only allow updating name and role)
     if (body.name !== undefined) {
@@ -66,7 +66,7 @@ export async function PUT(ctx: Context) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return ctx.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return ctx.json({ error: 'Invalid JSON body' }, 400);
   }
 }
 
@@ -74,17 +74,17 @@ export async function DELETE(ctx: Context) {
   const { id } = ctx.params;
 
   if (!id) {
-    return ctx.json({ error: 'User ID is required' }, { status: 400 });
+    return ctx.json({ error: 'User ID is required' }, 400);
   }
 
   const userId = parseInt(id);
   if (isNaN(userId)) {
-    return ctx.json({ error: 'Invalid user ID format' }, { status: 400 });
+    return ctx.json({ error: 'Invalid user ID format' }, 400);
   }
 
   const userIndex = users.findIndex((u) => u.id === userId);
   if (userIndex === -1) {
-    return ctx.json({ error: 'User not found' }, { status: 404 });
+    return ctx.json({ error: 'User not found' }, 404);
   }
 
   const deletedUser = users.splice(userIndex, 1)[0];

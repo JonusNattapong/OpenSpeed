@@ -1,15 +1,10 @@
-<file_path>
-OpenSpeed\benchmarks\shared\json.ts
-</file_path>
-
-<edit_description>
-Create shared JSON benchmark configuration
-</edit_description>
-
 export interface JsonRouteConfig {
   method: string;
   path: string;
-  response: (body?: any, query?: any) => {
+  response: (
+    body?: any,
+    query?: any
+  ) => {
     type: 'json';
     data: any;
     status?: number;
@@ -23,8 +18,8 @@ export const jsonConfig: JsonRouteConfig[] = [
     path: '/health',
     response: () => ({
       type: 'json',
-      data: { status: 'ok', framework: 'openspeed', scenario: 'json' }
-    })
+      data: { status: 'ok', framework: 'openspeed', scenario: 'json' },
+    }),
   },
   // json
   {
@@ -38,12 +33,16 @@ export const jsonConfig: JsonRouteConfig[] = [
         processed: true,
         length: JSON.stringify(body).length,
         keys: Object.keys(body),
-        nested: body.data ? {
-          arrayLength: Array.isArray(body.data) ? body.data.length : 0,
-          hasNumbers: Array.isArray(body.data) ? body.data.some((x: any) => typeof x === 'number') : false,
-        } : null,
-      }
-    })
+        nested: body.data
+          ? {
+              arrayLength: Array.isArray(body.data) ? body.data.length : 0,
+              hasNumbers: Array.isArray(body.data)
+                ? body.data.some((x: any) => typeof x === 'number')
+                : false,
+            }
+          : null,
+      },
+    }),
   },
   // json-response
   {
@@ -79,9 +78,9 @@ export const jsonConfig: JsonRouteConfig[] = [
             categories: ['A', 'B', 'C'],
             generatedAt: new Date().toISOString(),
           },
-        }
+        },
       };
-    }
+    },
   },
   // json-stream
   {
@@ -90,7 +89,7 @@ export const jsonConfig: JsonRouteConfig[] = [
     response: (body, query) => {
       const chunks = parseInt(query?.chunks || '10');
       const chunkSize = parseInt(query?.chunkSize || '100');
-      let result = [];
+      const result: Array<{ chunk: number; data: Array<{ id: number; value: number }> }> = [];
       for (let i = 0; i < chunks; i++) {
         result.push({
           chunk: i + 1,
@@ -107,9 +106,9 @@ export const jsonConfig: JsonRouteConfig[] = [
           chunkSize,
           data: result,
           totalItems: chunks * chunkSize,
-        }
+        },
       };
-    }
+    },
   },
   // json-transform
   {
@@ -120,7 +119,7 @@ export const jsonConfig: JsonRouteConfig[] = [
         return {
           type: 'json',
           data: { error: 'Expected { items: [...] }' },
-          status: 400
+          status: 400,
         };
       }
       const transformed = body.items.map((item: any, index: number) => ({
@@ -150,9 +149,9 @@ export const jsonConfig: JsonRouteConfig[] = [
             time: Date.now(),
             version: '1.0',
           },
-        }
+        },
       };
-    }
+    },
   },
   // json-validate
   {
@@ -164,9 +163,10 @@ export const jsonConfig: JsonRouteConfig[] = [
         hasRequiredFields: body && 'id' in body && 'data' in body,
         dataIsArray: body?.data && Array.isArray(body.data),
         dataLength: body?.data?.length || 0,
-        allItemsValid: body?.data?.every((item: any) =>
-          item && typeof item === 'object' && 'id' in item && 'value' in item
-        ) || false,
+        allItemsValid:
+          body?.data?.every(
+            (item: any) => item && typeof item === 'object' && 'id' in item && 'value' in item
+          ) || false,
         validationTime: Date.now(),
       };
       if (!validation.isObject || !validation.hasRequiredFields) {
@@ -177,7 +177,7 @@ export const jsonConfig: JsonRouteConfig[] = [
             errors: ['Missing required fields'],
             validation,
           },
-          status: 400
+          status: 400,
         };
       }
       return {
@@ -186,8 +186,8 @@ export const jsonConfig: JsonRouteConfig[] = [
           valid: true,
           validation,
           data: body,
-        }
+        },
       };
-    }
+    },
   },
 ];
