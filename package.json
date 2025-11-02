@@ -14,10 +14,10 @@
     "./plugins/*": "./dist/src/openspeed/plugins/*.js"
   },
   "bin": {
-    "create-openspeed-app": "./dist/src/create-openspeed-app/index.js"
+    "create-openspeed-app": "dist/src/create-openspeed-app/index.js"
   },
   "scripts": {
-    "build": "npx tsc -p tsconfig.build.json",
+    "build": "npx tsc -p tsconfig.build.json --noEmitOnError false",
     "start": "node dist/examples/hello-openspeed/index.js",
     "dev": "tsx watch examples/hello-openspeed/index.ts",
     "benchmark": "npx autocannon -c 100 -d 10 http://localhost:3000",
@@ -34,7 +34,7 @@
     "release": "pnpm version patch && pnpm build && pnpm publish",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "keywords": [
     "web",
@@ -51,7 +51,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JonusNattapong/OpenSpeed.git"
+    "url": "git+https://github.com/JonusNattapong/OpenSpeed.git"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
