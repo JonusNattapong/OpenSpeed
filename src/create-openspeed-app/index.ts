@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { input, select } from '@inquirer/prompts';
 
 interface CliOptions {
-  template: 'basic';
+  template: 'basic' | 'api';
   force: boolean;
 }
 
@@ -14,12 +15,13 @@ interface TemplateContext {
 
 const DEFAULT_OPTIONS: CliOptions = {
   template: 'basic',
-  force: false
+  force: false,
 };
 
-const TEMPLATE_FILES: Record<string, (ctx: TemplateContext) => string> = {
-  'package.json': ({ packageName }) =>
-    `{
+const TEMPLATES: Record<string, Record<string, (ctx: TemplateContext) => string>> = {
+  basic: {
+    'package.json': ({ packageName }) =>
+      `{
   "name": "${packageName}",
   "version": "0.1.0",
   "type": "module",
@@ -37,8 +39,8 @@ const TEMPLATE_FILES: Record<string, (ctx: TemplateContext) => string> = {
   }
 }
 `,
-  'tsconfig.json': () =>
-    `{
+    'tsconfig.json': () =>
+      `{
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
@@ -51,13 +53,13 @@ const TEMPLATE_FILES: Record<string, (ctx: TemplateContext) => string> = {
   "include": ["src/**/*"]
 }
 `,
-  '.gitignore': () =>
-    `node_modules
+    '.gitignore': () =>
+      `node_modules
 dist
 .DS_Store
 `,
-  'README.md': ({ projectName }) =>
-    `# ${projectName}
+    'README.md': ({ projectName }) =>
+      `# ${projectName}
 
 Generated with \`create-openspeed-app\`.
 
@@ -77,8 +79,8 @@ npm run build
 npm run start
 \`\`\`
 `,
-  'src/index.ts': () =>
-    `import { createApp, json, logger, errorHandler } from 'openspeed';
+    'src/index.ts': () =>
+      `import { createApp, json, logger, errorHandler } from 'openspeed';
 
 const app = createApp();
 
@@ -91,13 +93,178 @@ app.get('/', (ctx) => ctx.json({ message: 'Hello from OpenSpeed!' }));
 app.listen(3000).then(() => {
   console.log('OpenSpeed app running at http://localhost:3000');
 });
-`
+`,
+  },
+  api: {
+    'package.json': ({ packageName }) =>
+      `{
+  "name": "${packageName}",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "openspeed": "latest",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+`,
+    'tsconfig.json': () =>
+      `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}
+`,
+    '.gitignore': () =>
+      `node_modules
+dist
+.DS_Store
+`,
+    'README.md': ({ projectName }) =>
+      `# ${projectName} API
+
+Generated with \`create-openspeed-app\`.
+
+## Getting Started
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+API will be available at [http://localhost:3000](http://localhost:3000).
+
+## Endpoints
+
+- GET / - Health check
+- GET /api/users - List users
+- POST /api/users - Create user
+- GET /api/users/:id - Get user by ID
+
+## Build for production
+
+\`\`\`bash
+npm run build
+npm run start
+\`\`\`
+`,
+    'src/index.ts': ({ projectName }) =>
+      `import { createApp, json, logger, errorHandler, validate, cors } from 'openspeed';
+import { z } from 'zod';
+
+const app = createApp();
+
+app.use(cors());
+app.use(logger());
+app.use(json());
+app.use(errorHandler());
+
+// In-memory storage (replace with database in production)
+let users: Array<{ id: number; name: string; email: string }> = [
+  { id: 1, name: 'John Doe', email: 'john@example.com' }
+];
+let nextId = 2;
+
+// Health check
+app.get('/', (ctx) => ctx.json({ message: 'Welcome to ${projectName} API', version: '1.0.0' }));
+
+// Get all users
+app.get('/api/users', (ctx) => ctx.json(users));
+
+// Create user
+app.post('/api/users', validate({
+  body: z.object({
+    name: z.string().min(1),
+    email: z.string().email()
+  })
+}), (ctx) => {
+  const { name, email } = ctx.req.body;
+  const user = { id: nextId++, name, email };
+  users.push(user);
+  ctx.res.status = 201;
+  return ctx.json(user);
+});
+
+// Get user by ID
+app.get('/api/users/:id', validate({
+  params: z.object({ id: z.string().regex(/^\\d+$/) })
+}), (ctx) => {
+  const id = parseInt(ctx.params.id);
+  const user = users.find(u => u.id === id);
+  if (!user) {
+    ctx.res.status = 404;
+    return ctx.json({ error: 'User not found' });
+  }
+  return ctx.json(user);
+});
+
+// Update user
+app.put('/api/users/:id', validate({
+  params: z.object({ id: z.string().regex(/^\\d+$/) }),
+  body: z.object({
+    name: z.string().min(1).optional(),
+    email: z.string().email().optional()
+  })
+}), (ctx) => {
+  const id = parseInt(ctx.params.id);
+  const updates = ctx.req.body;
+  const userIndex = users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    ctx.res.status = 404;
+    return ctx.json({ error: 'User not found' });
+  }
+  users[userIndex] = { ...users[userIndex], ...updates };
+  return ctx.json(users[userIndex]);
+});
+
+// Delete user
+app.delete('/api/users/:id', validate({
+  params: z.object({ id: z.string().regex(/^\\d+$/) })
+}), (ctx) => {
+  const id = parseInt(ctx.params.id);
+  const userIndex = users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    ctx.res.status = 404;
+    return ctx.json({ error: 'User not found' });
+  }
+  const deletedUser = users.splice(userIndex, 1)[0];
+  return ctx.json({ message: 'User deleted', user: deletedUser });
+});
+
+app.listen(3000).then(() => {
+  console.log('${projectName} API running at http://localhost:3000');
+  console.log('Available endpoints:');
+  console.log('  GET  /');
+  console.log('  GET  /api/users');
+  console.log('  POST /api/users');
+  console.log('  GET  /api/users/:id');
+  console.log('  PUT  /api/users/:id');
+  console.log('  DELETE /api/users/:id');
+});
+`,
+  },
 };
 
-function parseArgs(argv: string[]): { target: string; options: CliOptions } {
+async function parseArgs(argv: string[]): Promise<{ target: string; options: CliOptions }> {
   const args = [...argv];
   const options: CliOptions = { ...DEFAULT_OPTIONS };
   const positional: string[] = [];
+  let templateProvided = false;
 
   while (args.length) {
     const arg = args.shift()!;
@@ -107,6 +274,7 @@ function parseArgs(argv: string[]): { target: string; options: CliOptions } {
         const value = args.shift();
         if (!value) throw new Error('Missing value for --template');
         options.template = value as CliOptions['template'];
+        templateProvided = true;
         break;
       }
       case '--force':
@@ -123,28 +291,59 @@ function parseArgs(argv: string[]): { target: string; options: CliOptions } {
     }
   }
 
-  const target = positional[0] || 'openspeed-app';
+  let target = positional[0];
+  if (!target) {
+    target = await input({
+      message: 'What is your project named?',
+      default: 'openspeed-app',
+      validate: (value) => value.length > 0 || 'Project name cannot be empty',
+    });
+  }
+
+  if (!templateProvided) {
+    options.template = (await select({
+      message: 'Which template would you like to use?',
+      choices: [
+        { name: 'Basic - Simple OpenSpeed app', value: 'basic' },
+        { name: 'API - REST API with CRUD operations', value: 'api' },
+      ],
+    })) as CliOptions['template'];
+  }
+
   return { target, options };
 }
 
 function printHelp() {
   console.log(`Usage: create-openspeed-app [dir] [options]
 
+Create a new OpenSpeed project.
+
+Arguments:
+  [dir]                   The name of the application, as well as the name of the directory to create
+
 Options:
   -t, --template <name>  Template to use (default: basic)
+                         Available: basic, api
   -f, --force            Overwrite target directory if not empty
   -h, --help             Show this help message
+
+Examples:
+  $ create-openspeed-app my-app
+  $ create-openspeed-app my-api --template api
+  $ create-openspeed-app --help
 `);
 }
 
 function sanitizePackageName(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/^[^a-z]+/i, '')
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '') || 'openspeed-app';
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/^[^a-z]+/i, '')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '') || 'openspeed-app'
+  );
 }
 
 function ensureDirectory(dir: string) {
@@ -157,8 +356,9 @@ function isEmpty(dir: string) {
   return !existsSync(dir) || readdirSync(dir).length === 0;
 }
 
-function writeProjectFiles(targetDir: string, ctx: TemplateContext) {
-  for (const [relativePath, templateFn] of Object.entries(TEMPLATE_FILES)) {
+function writeProjectFiles(targetDir: string, ctx: TemplateContext, template: string) {
+  const templateFiles = TEMPLATES[template];
+  for (const [relativePath, templateFn] of Object.entries(templateFiles)) {
     const filePath = path.join(targetDir, relativePath);
     ensureDirectory(path.dirname(filePath));
     writeFileSync(filePath, templateFn(ctx), 'utf8');
@@ -177,19 +377,23 @@ function logNextSteps(targetDir: string, projectName: string) {
   }
 }
 
-function main() {
+async function main() {
   try {
-    const { target, options } = parseArgs(process.argv.slice(2));
+    const { target, options } = await parseArgs(process.argv.slice(2));
     const targetDir = path.resolve(process.cwd(), target);
     const projectName = path.basename(targetDir);
 
-    if (options.template !== 'basic') {
-      console.error(`Error: Unknown template "${options.template}". Available templates: basic`);
+    if (!TEMPLATES[options.template]) {
+      console.error(
+        `Error: Unknown template "${options.template}". Available templates: ${Object.keys(TEMPLATES).join(', ')}`
+      );
       process.exit(1);
     }
 
     if (!options.force && !isEmpty(targetDir)) {
-      console.error(`Error: Directory "${projectName}" already exists and is not empty. Use --force to overwrite.`);
+      console.error(
+        `Error: Directory "${projectName}" already exists and is not empty. Use --force to overwrite.`
+      );
       process.exit(1);
     }
 
@@ -197,10 +401,10 @@ function main() {
 
     const ctx: TemplateContext = {
       projectName,
-      packageName: sanitizePackageName(projectName)
+      packageName: sanitizePackageName(projectName),
     };
 
-    writeProjectFiles(targetDir, ctx);
+    writeProjectFiles(targetDir, ctx, options.template);
     logNextSteps(targetDir, projectName);
   } catch (err: any) {
     console.error(`Error: ${err.message || err}`);
@@ -208,4 +412,7 @@ function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error(`Unexpected error: ${err.message || err}`);
+  process.exit(1);
+});
