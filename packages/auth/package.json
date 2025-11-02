@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3"
+    "bcryptjs": "^2.4.3",
+    "ioredis": "^5.4.1"
   }
 }

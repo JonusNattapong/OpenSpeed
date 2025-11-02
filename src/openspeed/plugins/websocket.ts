@@ -1,7 +1,9 @@
 import type { Context } from '../context.js';
+import { WebSocket } from 'ws';
+import type { OpenSpeedApp } from '../index.js';
 
 export interface WebSocketData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface WebSocketHandler {
@@ -56,13 +58,13 @@ export function websocket(path: string, handler: WebSocketHandler, options: WebS
   const connectionsPerIP = new Map<string, number>();
   const messageCounts = new Map<WebSocket, { count: number; resetTime: number }>();
 
-  return (app: any) => {
+  return (app: OpenSpeedApp) => {
     // Store WebSocket routes separately
-    if (!app._websocketRoutes) {
-      app._websocketRoutes = [];
+    if (!(app as any)._websocketRoutes) {
+      (app as any)._websocketRoutes = [];
     }
 
-    app._websocketRoutes.push({
+    (app as any)._websocketRoutes.push({
       path,
       handler,
       options,
@@ -76,7 +78,6 @@ export function websocket(path: string, handler: WebSocketHandler, options: WebS
       // Security checks before upgrade
       const clientIP = getClientIP(ctx);
       const origin = ctx.req.headers.origin as string;
-      const userAgent = ctx.req.headers['user-agent'] as string;
 
       // Check origin
       if (options.allowedOrigins && options.allowedOrigins.length > 0) {
@@ -313,10 +314,10 @@ export function createSecureWebSocketHandler(
   messageCounts: Map<WebSocket, { count: number; resetTime: number }>
 ): WebSocketHandler {
   return {
-    open: (ws: WebSocket) => {
+    open: (ws: WebSocket, clientInfo: WebSocketClientInfo) => {
       // This would be called with client info in the actual implementation
       if (originalHandler.open) {
-        originalHandler.open(ws);
+        originalHandler.open(ws, clientInfo);
       }
     },
 
@@ -378,12 +379,4 @@ export function createSecureWebSocketHandler(
   };
 }
 
-// Clean up expired rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [ws, counts] of messageCounts.entries()) {
-    if (counts.resetTime < now) {
-      messageCounts.delete(ws);
-    }
-  }
-}, 60000); // Clean up every minute
+// Cleanup is handled inside the function

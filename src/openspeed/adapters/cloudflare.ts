@@ -1,9 +1,13 @@
+import type { OpenSpeedApp } from '../index.js';
+
 export default {
-  async fetch(request: Request, env: any, ctx: any): Promise<Response> {
+  async fetch(request: Request, _env: unknown, _ctx: unknown): Promise<Response> {
+    void _env;
+    void _ctx;
     try {
       // Import the app here or pass it somehow
       // For now, assuming app is available globally or injected
-      const app = (globalThis as any).app;
+      const app = (globalThis as { app?: OpenSpeedApp }).app;
       if (!app) {
         return new Response('App not initialized', { status: 500 });
       }
@@ -23,16 +27,16 @@ export default {
         return new Response(null, { status: 204 });
       }
 
-      return new Response(out.body, {
+      return new Response(typeof out.body === 'string' ? out.body : JSON.stringify(out.body), {
         status: out.status || 200,
-        headers: out.headers as Record<string, string>
+        headers: out.headers as Record<string, string>,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       return new Response('Internal Server Error', {
         status: 500,
-        headers: { 'content-type': 'text/plain' }
+        headers: { 'content-type': 'text/plain' },
       });
     }
-  }
+  },
 };

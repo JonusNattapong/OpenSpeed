@@ -1,4 +1,6 @@
-export default function createVercelHandler(app: any) {
+import type { OpenSpeedApp } from '../index.js';
+
+export default function createVercelHandler(app: OpenSpeedApp) {
   return async function handler(request: Request): Promise<Response> {
     try {
       const url = request.url;
@@ -16,15 +18,15 @@ export default function createVercelHandler(app: any) {
         return new Response(null, { status: 204 });
       }
 
-      return new Response(out.body, {
+      return new Response(typeof out.body === 'string' ? out.body : JSON.stringify(out.body), {
         status: out.status || 200,
-        headers: out.headers as Record<string, string>
+        headers: out.headers as Record<string, string>,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       return new Response('Internal Server Error', {
         status: 500,
-        headers: { 'content-type': 'text/plain' }
+        headers: { 'content-type': 'text/plain' },
       });
     }
   };

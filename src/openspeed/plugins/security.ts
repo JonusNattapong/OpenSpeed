@@ -326,7 +326,7 @@ export function setCSRFCookie(ctx: Context, token: string, cookieName: string = 
 export const securityPresets = {
   // Basic security for development
   development: {
-    contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    contentSecurityPolicy: "default-src 'self' 'unsafe-inline'", // Removed 'unsafe-eval' for security
     hsts: false,
     logSecurityEvents: true,
   },

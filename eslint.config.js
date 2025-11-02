@@ -27,6 +27,12 @@ export default [
         require: 'readonly',
         module: 'readonly',
         exports: 'readonly',
+        // Web API globals
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
       },
     },
     plugins: {
@@ -43,9 +49,43 @@ export default [
       'no-unused-vars': 'off', // Let TypeScript handle this
     },
   },
+  // Bun runtime globals
+  {
+    files: ['src/openspeed/adapters/bun.ts'],
+    languageOptions: {
+      globals: {
+        Bun: 'readonly',
+      },
+    },
+  },
+  // Deno runtime globals
+  {
+    files: ['src/openspeed/adapters/deno.ts'],
+    languageOptions: {
+      globals: {
+        Deno: 'readonly',
+      },
+    },
+  },
+  // Cloudflare Workers globals
+  {
+    files: ['src/openspeed/adapters/cloudflare.ts'],
+    languageOptions: {
+      globals: {
+        addEventListener: 'readonly',
+      },
+    },
+  },
   // More lenient rules for examples and benchmarks
   {
     files: ['examples/**/*.{ts,js}', 'benchmarks/**/*.{ts,js}'],
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: false, // Disable JSX parsing for examples
+        },
+      },
+    },
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

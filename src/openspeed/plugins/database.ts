@@ -1,15 +1,16 @@
-import { MongoClient, Db, MongoClientOptions } from 'mongodb';
-import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { Pool as PgPool, PoolConfig } from 'pg';
+import { MongoClient, Db } from 'mongodb';
+import { createPool, Pool } from 'mysql2/promise';
+import { Pool as PgPool } from 'pg';
 import Redis from 'ioredis';
-import { createCipheriv, createDecipheriv, randomBytes, createHash, timingSafeEqual } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { URL } from 'url';
 import type { Context } from '../context.js';
 
-type Middleware = (ctx: Context, next: () => Promise<any>) => any;
+type Middleware = (ctx: Context, next: () => Promise<unknown>) => unknown;
 
 interface DatabaseConfig {
   type: 'mongodb' | 'mysql' | 'postgresql' | 'redis';
-  connection: string | any;
+  connection: string | Record<string, unknown>;
   pool?: {
     min?: number;
     max?: number;
@@ -27,8 +28,8 @@ interface DatabaseConfig {
 
 interface DatabaseConnection {
   type: string;
-  client: any;
-  pool?: any;
+  client: unknown;
+  pool?: unknown;
   multiTenant: boolean;
   encryptionKey?: string;
   queryLogging?: boolean;
@@ -75,7 +76,7 @@ function encryptField(value: string, key: string): string {
   const cipher = createCipheriv(DB_SECURITY_CONFIG.encryption.algorithm, key, iv);
   let encrypted = cipher.update(value, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag();
+  const authTag = (cipher as any).getAuthTag();
 
   return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
 }
@@ -89,13 +90,13 @@ function decryptField(encryptedValue: string, key: string): string {
     const authTag = Buffer.from(authTagHex, 'hex');
 
     const decipher = createDecipheriv(DB_SECURITY_CONFIG.encryption.algorithm, key, iv);
-    decipher.setAuthTag(authTag);
+    (decipher as any).setAuthTag(authTag);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 
     return decrypted;
-  } catch (error) {
-    console.error('[DB] Decryption failed:', error);
+  } catch {
+    console.error('[DB] Decryption failed');
     throw new Error('Failed to decrypt data');
   }
 }
@@ -109,10 +110,10 @@ function validateDatabaseInput(data: any, operation: string): void {
   // Check for dangerous patterns
   const dangerousPatterns = [
     /(\bUNION\b|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bCREATE\b|\bALTER\b)/i,
-    /('|(\\x27)|(\\x2D\\x2D)|(\\#)|(\\x23)|(\%27)|(\%23)|(\%2D\\x2D))/i,
+    /('|(\\x27)|(\\x2D\\x2D)|(\\#)|(\\x23)|(%27)|(%23)|(%2D\\x2D))/i,
   ];
 
-  function checkValue(value: any): void {
+  function checkValue(value: unknown): void {
     if (typeof value === 'string') {
       for (const pattern of dangerousPatterns) {
         if (pattern.test(value)) {
@@ -187,7 +188,7 @@ export function database(name: string, config: DatabaseConfig): Middleware {
       ctx.req.headers['x-real-ip']?.toString() ||
       ctx.req.headers['cf-connecting-ip']?.toString() ||
       'unknown';
-    const userId = (ctx as any).user?.userId || (ctx as any).user?.id;
+    const userId = (ctx as { user?: unknown }).user?.userId || (ctx as { user?: unknown }).user?.id;
 
     // Multi-tenant support
     if (config.multiTenant) {
@@ -207,9 +208,9 @@ export function database(name: string, config: DatabaseConfig): Middleware {
 
       // Get tenant-specific database
       const tenantDb = await getTenantDatabase(connection, tenantId, config.type);
-      (ctx as any).db = tenantDb;
+      (ctx as { db?: unknown }).db = tenantDb;
     } else {
-      (ctx as any).db = connection.client;
+      (ctx as { db?: unknown }).db = connection.client;
     }
 
     // Performance monitoring and security
@@ -232,7 +233,7 @@ export function database(name: string, config: DatabaseConfig): Middleware {
           userId,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
 
       // Log failed operation
@@ -242,7 +243,7 @@ export function database(name: string, config: DatabaseConfig): Middleware {
           success: false,
           clientIP,
           userId,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
 
@@ -294,7 +295,7 @@ async function initializeConnection(name: string, config: DatabaseConfig): Promi
  * MongoDB connection with pooling
  */
 async function initializeMongoDB(config: DatabaseConfig): Promise<DatabaseConnection> {
-  const options: any = {
+  const options: Record<string, unknown> = {
     maxPoolSize: config.pool?.max || 10,
     minPoolSize: config.pool?.min || 2,
   };
@@ -322,7 +323,7 @@ async function initializeMongoDB(config: DatabaseConfig): Promise<DatabaseConnec
  * MySQL connection with pooling
  */
 async function initializeMySQL(config: DatabaseConfig): Promise<DatabaseConnection> {
-  const poolOptions: any = {
+  const poolOptions: Record<string, unknown> = {
     connectionLimit: config.pool?.max || 10,
     waitForConnections: true,
     queueLimit: 0,
@@ -348,7 +349,7 @@ async function initializeMySQL(config: DatabaseConfig): Promise<DatabaseConnecti
  * PostgreSQL connection with pooling
  */
 async function initializePostgreSQL(config: DatabaseConfig): Promise<DatabaseConnection> {
-  const poolConfig: any = {
+  const poolConfig: Record<string, unknown> = {
     max: config.pool?.max || 10,
     min: config.pool?.min || 2,
     idleTimeoutMillis: config.pool?.idleTimeoutMillis || 30000,
@@ -375,7 +376,7 @@ async function initializePostgreSQL(config: DatabaseConfig): Promise<DatabaseCon
  * Redis connection with clustering support
  */
 async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnection> {
-  const options: any = {
+  const options: Record<string, unknown> = {
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
   };
@@ -384,7 +385,7 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
     Object.assign(options, config.connection);
   }
 
-  const RedisClient = Redis as any;
+  const RedisClient = Redis as unknown;
   const client =
     typeof config.connection === 'string'
       ? new RedisClient(config.connection)
@@ -403,9 +404,9 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
  */
 function extractTenantId(ctx: Context, tenantKey: string): string | null {
   // Check header
-  const headers = ctx.req.headers as any;
-  const headerValue = headers.get ? headers.get(tenantKey) : headers[tenantKey];
-  if (headerValue) return headerValue;
+  const headers = ctx.req.headers;
+  const headerValue = headers[tenantKey];
+  if (headerValue) return Array.isArray(headerValue) ? headerValue[0] : headerValue;
 
   // Check query param
   const url = new URL(ctx.req.url);
@@ -422,25 +423,25 @@ async function getTenantDatabase(
   connection: DatabaseConnection,
   tenantId: string,
   type: string
-): Promise<any> {
+): Promise<unknown> {
   switch (type) {
     case 'mongodb':
       // Each tenant gets their own database
-      return connection.pool.db(`tenant_${tenantId}`);
+      return (connection.pool as unknown).db(`tenant_${tenantId}`);
 
     case 'mysql':
     case 'postgresql':
       // Use schema/database per tenant
       // This is a simplified implementation
       return {
-        ...connection.client,
+        ...(connection.client as unknown),
         __tenantId: tenantId,
       };
 
     case 'redis':
       // Use key prefix per tenant
       return {
-        ...connection.client,
+        ...(connection.client as unknown),
         __tenantPrefix: `tenant:${tenantId}:`,
       };
 
@@ -452,16 +453,16 @@ async function getTenantDatabase(
 /**
  * Type-safe query builder for MongoDB
  */
-export interface IMongoQueryBuilder<T = any> {
+export interface IMongoQueryBuilder<T = unknown> {
   find(filter?: Partial<T>): Promise<T[]>;
   findOne(filter: Partial<T>): Promise<T | null>;
-  insertOne(doc: any): Promise<any>;
-  updateOne(filter: Partial<T>, update: Partial<T>): Promise<any>;
-  deleteOne(filter: Partial<T>): Promise<any>;
-  aggregate(pipeline: any[]): Promise<any[]>;
+  insertOne(doc: unknown): Promise<unknown>;
+  updateOne(filter: Partial<T>, update: Partial<T>): Promise<unknown>;
+  deleteOne(filter: Partial<T>): Promise<unknown>;
+  aggregate(pipeline: unknown[]): Promise<unknown[]>;
 }
 
-export class MongoQueryBuilder<T = any> implements IMongoQueryBuilder<T> {
+export class MongoQueryBuilder<T = unknown> implements IMongoQueryBuilder<T> {
   constructor(
     private db: Db,
     private collection: string
@@ -470,46 +471,59 @@ export class MongoQueryBuilder<T = any> implements IMongoQueryBuilder<T> {
   async find(filter: Partial<T> = {}): Promise<T[]> {
     return this.db
       .collection(this.collection)
-      .find(filter as any)
+      .find(filter as Record<string, unknown>)
       .toArray() as Promise<T[]>;
   }
 
   async findOne(filter: Partial<T>): Promise<T | null> {
-    return this.db.collection(this.collection).findOne(filter as any) as Promise<T | null>;
+    return this.db
+      .collection(this.collection)
+      .findOne(filter as Record<string, unknown>) as Promise<T | null>;
   }
 
-  async insertOne(doc: any): Promise<any> {
-    return this.db.collection(this.collection).insertOne(doc);
+  async insertOne(doc: unknown): Promise<unknown> {
+    return this.db.collection(this.collection).insertOne(doc as Record<string, unknown>);
   }
 
-  async updateOne(filter: Partial<T>, update: Partial<T>): Promise<any> {
-    return this.db.collection(this.collection).updateOne(filter as any, { $set: update });
+  async insertMany(docs: unknown[]): Promise<unknown> {
+    return this.db
+      .collection(this.collection)
+      .insertMany(docs.map((doc) => doc as Record<string, unknown>));
   }
 
-  async deleteOne(filter: Partial<T>): Promise<any> {
-    return this.db.collection(this.collection).deleteOne(filter as any);
+  async updateOne(filter: Partial<T>, update: Partial<T>): Promise<unknown> {
+    return this.db
+      .collection(this.collection)
+      .updateOne(filter as Record<string, unknown>, { $set: update });
   }
 
-  async aggregate(pipeline: any[]): Promise<any[]> {
-    return this.db.collection(this.collection).aggregate(pipeline).toArray();
+  async deleteOne(filter: Partial<T>): Promise<unknown> {
+    return this.db.collection(this.collection).deleteOne(filter as Record<string, unknown>);
+  }
+
+  async aggregate(pipeline: unknown[]): Promise<unknown[]> {
+    return this.db
+      .collection(this.collection)
+      .aggregate(pipeline as unknown[])
+      .toArray();
   }
 }
 
 /**
  * Type-safe query builder for SQL databases
  */
-export interface ISQLQueryBuilder<T = any> {
+export interface ISQLQueryBuilder<T = unknown> {
   find(where?: Partial<T>): Promise<T[]>;
   findOne(where: Partial<T>): Promise<T | null>;
-  insert(data: Partial<T>): Promise<any>;
-  update(where: Partial<T>, data: Partial<T>): Promise<any>;
-  delete(where: Partial<T>): Promise<any>;
-  raw(query: string, values?: any[]): Promise<any>;
+  insert(data: Partial<T>): Promise<unknown>;
+  update(where: Partial<T>, data: Partial<T>): Promise<unknown>;
+  delete(where: Partial<T>): Promise<unknown>;
+  raw(query: string, values?: unknown[]): Promise<unknown>;
 }
 
-export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
+export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
   constructor(
-    private pool: Pool | PgPool,
+    private pool: unknown,
     private table: string,
     private connectionName?: string,
     private encryptionKey?: string
@@ -525,8 +539,11 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
 
       const query = `SELECT * FROM ${this.table}${conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''}`;
 
-      const result = await (this.pool as any).query(query, values);
-      const data = result.rows || result[0];
+      const result = await (
+        this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
+      ).query(query, values);
+      const data =
+        (result as { rows?: unknown[]; [key: string]: unknown })?.rows || (result as unknown[])[0];
 
       // Decrypt sensitive fields
       if (data && Array.isArray(data)) {
@@ -542,14 +559,14 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
         });
       }
 
-      return data;
-    } catch (error: any) {
+      return data as T[];
+    } catch (error: unknown) {
       if (this.connectionName) {
         logQuery(this.connectionName, 'SELECT', {
           table: this.table,
           duration: Date.now() - startTime,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
       throw error;
@@ -561,7 +578,7 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
     return results[0] || null;
   }
 
-  async insert(data: Partial<T>): Promise<any> {
+  async insert(data: Partial<T>): Promise<unknown> {
     validateDatabaseInput(data, 'insert');
 
     const startTime = Date.now();
@@ -576,8 +593,11 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
 
       const query = `INSERT INTO ${this.table} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
 
-      const result = await (this.pool as any).query(query, values);
-      const insertedData = result.rows?.[0] || result[0]?.[0];
+      const result = await (
+        this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
+      ).query(query, values);
+      const resultWithRows = result as { rows?: unknown[]; [key: string]: unknown };
+      const insertedData = resultWithRows?.rows?.[0] || null;
 
       // Decrypt for return value
       if (insertedData) {
@@ -594,20 +614,20 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
       }
 
       return insertedData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (this.connectionName) {
         logQuery(this.connectionName, 'INSERT', {
           table: this.table,
           duration: Date.now() - startTime,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
       throw error;
     }
   }
 
-  async update(where: Partial<T>, data: Partial<T>): Promise<any> {
+  async update(where: Partial<T>, data: Partial<T>): Promise<unknown> {
     validateDatabaseInput(where, 'update where');
     validateDatabaseInput(data, 'update data');
 
@@ -627,8 +647,11 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
       const query = `UPDATE ${this.table} SET ${setClause} WHERE ${whereClause} RETURNING *`;
       const values = [...Object.values(processedData), ...Object.values(where)];
 
-      const result = await (this.pool as any).query(query, values);
-      const updatedData = result.rows?.[0] || result[0]?.[0];
+      const result = await (
+        this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
+      ).query(query, values);
+      const resultWithRows = result as { rows?: unknown[]; [key: string]: unknown };
+      const updatedData = resultWithRows?.rows?.[0] || null;
 
       // Decrypt for return value
       if (updatedData) {
@@ -645,20 +668,20 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
       }
 
       return updatedData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (this.connectionName) {
         logQuery(this.connectionName, 'UPDATE', {
           table: this.table,
           duration: Date.now() - startTime,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
       throw error;
     }
   }
 
-  async delete(where: Partial<T>): Promise<any> {
+  async delete(where: Partial<T>): Promise<unknown> {
     validateDatabaseInput(where, 'delete');
 
     const startTime = Date.now();
@@ -668,8 +691,11 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
 
       const query = `DELETE FROM ${this.table} WHERE ${conditions.join(' AND ')} RETURNING *`;
 
-      const result = await (this.pool as any).query(query, values);
-      const deletedData = result.rows?.[0] || result[0]?.[0];
+      const result = await (
+        this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
+      ).query(query, values);
+      const resultWithRows = result as { rows?: unknown[]; [key: string]: unknown };
+      const deletedData = resultWithRows?.rows?.[0] || null;
 
       if (this.connectionName) {
         logQuery(this.connectionName, 'DELETE', {
@@ -681,26 +707,28 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
       }
 
       return deletedData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (this.connectionName) {
         logQuery(this.connectionName, 'DELETE', {
           table: this.table,
           duration: Date.now() - startTime,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
       throw error;
     }
   }
 
-  async raw(query: string, values: any[] = []): Promise<any> {
+  async raw(query: string, values: unknown[] = []): Promise<unknown> {
     // WARNING: Raw queries bypass security measures
     console.warn('[DB SECURITY WARNING] Raw query executed:', query);
 
     const startTime = Date.now();
     try {
-      const result = await (this.pool as any).query(query, values);
+      const result = await (
+        this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
+      ).query(query, values);
 
       if (this.connectionName) {
         logQuery(this.connectionName, 'RAW_QUERY', {
@@ -710,38 +738,52 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
         });
       }
 
-      return result.rows || result[0];
-    } catch (error: any) {
+      return (
+        (result as { rows?: unknown; [key: string]: unknown })?.rows || (result as unknown[])[0]
+      );
+    } catch (error: unknown) {
       if (this.connectionName) {
         logQuery(this.connectionName, 'RAW_QUERY', {
           query,
           duration: Date.now() - startTime,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
       throw error;
     }
   }
 
-  private encryptSensitiveFields(data: any): void {
+  private encryptSensitiveFields(data: unknown): void {
     if (!this.encryptionKey) return;
 
     for (const field of DB_SECURITY_CONFIG.sensitiveFields) {
-      if (data[field] && typeof data[field] === 'string') {
-        data[field] = encryptField(data[field], this.encryptionKey);
+      if (
+        (data as Record<string, unknown>)[field] &&
+        typeof (data as Record<string, unknown>)[field] === 'string'
+      ) {
+        (data as Record<string, unknown>)[field] = encryptField(
+          (data as Record<string, unknown>)[field] as string,
+          this.encryptionKey
+        );
       }
     }
   }
 
-  private decryptSensitiveFields(data: any): void {
+  private decryptSensitiveFields(data: unknown): void {
     if (!this.encryptionKey) return;
 
     for (const field of DB_SECURITY_CONFIG.sensitiveFields) {
-      if (data[field] && typeof data[field] === 'string') {
+      if (
+        (data as Record<string, unknown>)[field] &&
+        typeof (data as Record<string, unknown>)[field] === 'string'
+      ) {
         try {
-          data[field] = decryptField(data[field], this.encryptionKey);
-        } catch (error) {
+          (data as Record<string, unknown>)[field] = decryptField(
+            (data as Record<string, unknown>)[field] as string,
+            this.encryptionKey
+          );
+        } catch {
           // If decryption fails, keep original value
           console.warn(`[DB] Failed to decrypt field ${field}`);
         }
@@ -754,8 +796,8 @@ export class SQLQueryBuilder<T = any> implements ISQLQueryBuilder<T> {
  * Redis cache adapter
  */
 export interface IRedisCache {
-  get<T = any>(key: string): Promise<T | null>;
-  set(key: string, value: any, ttl?: number): Promise<void>;
+  get<T = unknown>(key: string): Promise<T | null>;
+  set(key: string, value: unknown, ttl?: number): Promise<void>;
   delete(key: string): Promise<void>;
   exists(key: string): Promise<boolean>;
   increment(key: string): Promise<number>;
@@ -765,45 +807,55 @@ export interface IRedisCache {
 }
 
 export class RedisCache implements IRedisCache {
-  constructor(private client: any) {}
+  constructor(private client: unknown) {}
 
-  async get<T = any>(key: string): Promise<T | null> {
-    const value = await this.client.get(key);
+  async get<T = unknown>(key: string): Promise<T | null> {
+    const value = await (this.client as { get: (k: string) => Promise<string | null> }).get(key);
     return value ? JSON.parse(value) : null;
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
     const serialized = JSON.stringify(value);
     if (ttl) {
-      await this.client.setex(key, ttl, serialized);
+      await (this.client as { setex: (k: string, t: number, v: string) => Promise<unknown> }).setex(
+        key,
+        ttl,
+        serialized
+      );
     } else {
-      await this.client.set(key, serialized);
+      await (this.client as { set: (k: string, v: string) => Promise<unknown> }).set(
+        key,
+        serialized
+      );
     }
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.del(key);
+    await (this.client as { del: (k: string) => Promise<unknown> }).del(key);
   }
 
   async exists(key: string): Promise<boolean> {
-    const result = await this.client.exists(key);
+    const result = await (this.client as { exists: (k: string) => Promise<number> }).exists(key);
     return result === 1;
   }
 
   async increment(key: string): Promise<number> {
-    return this.client.incr(key);
+    return await (this.client as { incr: (k: string) => Promise<number> }).incr(key);
   }
 
   async expire(key: string, seconds: number): Promise<void> {
-    await this.client.expire(key, seconds);
+    await (this.client as { expire: (k: string, s: number) => Promise<unknown> }).expire(
+      key,
+      seconds
+    );
   }
 
   async keys(pattern: string): Promise<string[]> {
-    return this.client.keys(pattern);
+    return await (this.client as { keys: (p: string) => Promise<string[]> }).keys(pattern);
   }
 
   async flushAll(): Promise<void> {
-    await this.client.flushall();
+    await (this.client as { flushall: () => Promise<unknown> }).flushall();
   }
 }
 
@@ -815,19 +867,19 @@ export async function closeAllConnections(): Promise<void> {
     try {
       switch (connection.type) {
         case 'mongodb':
-          await connection.pool?.close();
+          await (connection.pool as { close: () => Promise<void> })?.close();
           break;
         case 'mysql':
         case 'postgresql':
-          await connection.pool?.end();
+          await (connection.pool as { end: () => Promise<void> })?.end();
           break;
         case 'redis':
-          await connection.client?.quit();
+          await (connection.client as { quit: () => Promise<void> })?.quit();
           break;
       }
       console.log(`[DB] Closed connection: ${name}`);
-    } catch (error) {
-      console.error(`[DB] Error closing connection ${name}:`, error);
+    } catch {
+      console.error(`[DB] Error closing connection ${name}:`, 'Error occurred');
     }
   }
   connections.clear();
@@ -863,14 +915,17 @@ export async function healthCheck(connectionName: string): Promise<{
   try {
     switch (connection.type) {
       case 'mongodb':
-        await connection.client.db().admin().ping();
+        await (connection.client as { db: () => { admin: () => { ping: () => Promise<void> } } })
+          .db()
+          .admin()
+          .ping();
         break;
       case 'mysql':
       case 'postgresql':
-        await connection.pool.query('SELECT 1');
+        await (connection.pool as { query: (q: string) => Promise<unknown> }).query('SELECT 1');
         break;
       case 'redis':
-        await connection.client.ping();
+        await (connection.client as { ping: () => Promise<unknown> }).ping();
         break;
     }
 
@@ -878,7 +933,8 @@ export async function healthCheck(connectionName: string): Promise<{
     return {
       status: 'healthy',
       latency,
-      connections: connection.pool?.totalCount || connection.pool?.totalConnections || 1,
+      connections:
+        (connection.pool as any)?.totalCount || (connection.pool as any)?.totalConnections || 1,
     };
   } catch (error: any) {
     return {

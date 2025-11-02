@@ -1,11 +1,18 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import type { OpenSpeedApp } from '../index.js';
 
-export function createAWSLambdaHandler(app: any) {
-  return async function handler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
+export function createAWSLambdaHandler(app: OpenSpeedApp) {
+  return async function handler(
+    event: APIGatewayProxyEvent,
+    _context: Context
+  ): Promise<APIGatewayProxyResult> {
+    void _context;
     try {
       const method = event.httpMethod;
       const path = event.path;
-      const queryString = event.queryStringParameters ? new URLSearchParams(event.queryStringParameters as any).toString() : '';
+      const queryString = event.queryStringParameters
+        ? new URLSearchParams(event.queryStringParameters as Record<string, string>).toString()
+        : '';
       const url = queryString ? `${path}?${queryString}` : path;
 
       const headers: Record<string, string | string[] | undefined> = {};
@@ -24,21 +31,21 @@ export function createAWSLambdaHandler(app: any) {
         return {
           statusCode: 204,
           body: '',
-          headers: {}
+          headers: {},
         };
       }
 
       return {
         statusCode: out.status || 200,
-        body: out.body || '',
-        headers: out.headers as Record<string, string>
+        body: typeof out.body === 'string' ? out.body : JSON.stringify(out.body),
+        headers: out.headers as Record<string, string>,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       return {
         statusCode: 500,
         body: 'Internal Server Error',
-        headers: { 'content-type': 'text/plain' }
+        headers: { 'content-type': 'text/plain' },
       };
     }
   };

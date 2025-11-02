@@ -82,7 +82,7 @@ class PlaygroundManager {
       sessionTimeout: 3600000, // 1 hour
       allowedOrigins: ['*'],
       enableMetrics: true,
-      ...config
+      ...config,
     };
 
     this.aiClient = new AIAssistant();
@@ -113,7 +113,7 @@ class PlaygroundManager {
     this.wss = new WebSocketServer({
       server,
       maxPayload: 1024 * 1024, // 1MB
-      perMessageDeflate: true
+      perMessageDeflate: true,
     });
 
     this.wss.on('connection', (ws: WebSocket, req) => {
@@ -121,7 +121,9 @@ class PlaygroundManager {
     });
 
     server.listen(this.config.port, this.config.host, () => {
-      console.log(`🌐 Playground server listening on http://${this.config.host}:${this.config.port}`);
+      console.log(
+        `🌐 Playground server listening on http://${this.config.host}:${this.config.port}`
+      );
     });
   }
 
@@ -145,7 +147,7 @@ class PlaygroundManager {
     const collaborator: Collaborator = {
       id: clientId,
       name: `User ${session.collaborators.size + 1}`,
-      color: this.getRandomColor()
+      color: this.getRandomColor(),
     };
 
     session.collaborators.set(clientId, collaborator);
@@ -154,19 +156,25 @@ class PlaygroundManager {
     console.log(`👤 Client ${clientId} joined session ${sessionId}`);
 
     // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'welcome',
-      sessionId,
-      clientId,
-      collaborator,
-      session: this.getSessionData(session)
-    }));
+    ws.send(
+      JSON.stringify({
+        type: 'welcome',
+        sessionId,
+        clientId,
+        collaborator,
+        session: this.getSessionData(session),
+      })
+    );
 
     // Broadcast new collaborator
-    this.broadcastToSession(sessionId, {
-      type: 'collaborator-joined',
-      collaborator
-    }, ws);
+    this.broadcastToSession(
+      sessionId,
+      {
+        type: 'collaborator-joined',
+        collaborator,
+      },
+      ws
+    );
 
     ws.on('message', (data: any) => {
       try {
@@ -174,10 +182,12 @@ class PlaygroundManager {
         this.handleMessage(ws, sessionId, clientId, message);
       } catch (error) {
         console.warn('⚠️ Invalid message from client:', error);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Invalid message format'
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            message: 'Invalid message format',
+          })
+        );
       }
     });
 
@@ -223,7 +233,11 @@ class PlaygroundManager {
     }
   }
 
-  private async handleSendRequest(sessionId: string, clientId: string, requestData: any): Promise<void> {
+  private async handleSendRequest(
+    sessionId: string,
+    clientId: string,
+    requestData: any
+  ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
@@ -235,7 +249,7 @@ class PlaygroundManager {
       body: requestData.body,
       timestamp: Date.now(),
       author: clientId,
-      tags: requestData.tags || []
+      tags: requestData.tags || [],
     };
 
     session.requests.push(request);
@@ -243,7 +257,7 @@ class PlaygroundManager {
     // Broadcast request to all clients
     this.broadcastToSession(sessionId, {
       type: 'request-sent',
-      request
+      request,
     });
 
     try {
@@ -261,7 +275,7 @@ class PlaygroundManager {
         body: response.body,
         duration,
         timestamp: Date.now(),
-        size: JSON.stringify(response.body || '').length
+        size: JSON.stringify(response.body || '').length,
       };
 
       session.responses.push(responseData);
@@ -269,12 +283,11 @@ class PlaygroundManager {
       // Broadcast response
       this.broadcastToSession(sessionId, {
         type: 'response-received',
-        response: responseData
+        response: responseData,
       });
 
       // Update metrics
       this.updateMetrics(sessionId, request, responseData);
-
     } catch (error) {
       console.warn(`⚠️ Request failed:`, error);
 
@@ -287,14 +300,14 @@ class PlaygroundManager {
         body: { error: error instanceof Error ? error.message : 'Unknown error' },
         duration: 0,
         timestamp: Date.now(),
-        size: 0
+        size: 0,
       };
 
       session.responses.push(errorResponse);
 
       this.broadcastToSession(sessionId, {
         type: 'response-received',
-        response: errorResponse
+        response: errorResponse,
       });
     }
   }
@@ -326,31 +339,33 @@ class PlaygroundManager {
         body: {
           users: [
             { id: 1, name: 'John Doe', email: 'john@example.com' },
-            { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-          ]
-        }
+            { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+          ],
+        },
       },
       'POST /users': {
         status: 201,
         statusText: 'Created',
         headers: { 'Content-Type': 'application/json' },
-        body: { id: 3, ...request.body, createdAt: new Date().toISOString() }
+        body: { id: 3, ...request.body, createdAt: new Date().toISOString() },
       },
       'GET /health': {
         status: 200,
         statusText: 'OK',
         headers: { 'Content-Type': 'application/json' },
-        body: { status: 'healthy', timestamp: new Date().toISOString() }
-      }
+        body: { status: 'healthy', timestamp: new Date().toISOString() },
+      },
     };
 
     const key = `${request.method} ${new URL(request.url).pathname}`;
-    return responses[key] || {
-      status: 404,
-      statusText: 'Not Found',
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Endpoint not found' }
-    };
+    return (
+      responses[key] || {
+        status: 404,
+        statusText: 'Not Found',
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Endpoint not found' },
+      }
+    );
   }
 
   private async proxyToLocalServer(request: PlaygroundRequest): Promise<any> {
@@ -360,7 +375,7 @@ class PlaygroundManager {
       status: 200,
       statusText: 'OK',
       headers: { 'Content-Type': 'application/json' },
-      body: { message: 'Proxied to local server', originalUrl: request.url }
+      body: { message: 'Proxied to local server', originalUrl: request.url },
     };
   }
 
@@ -375,7 +390,7 @@ class PlaygroundManager {
       this.broadcastToSession(sessionId, {
         type: 'cursor-update',
         clientId,
-        cursor
+        cursor,
       });
     }
   }
@@ -391,7 +406,7 @@ class PlaygroundManager {
       this.broadcastToSession(sessionId, {
         type: 'selection-update',
         clientId,
-        selection
+        selection,
       });
     }
   }
@@ -405,7 +420,7 @@ class PlaygroundManager {
       this.sendToClient(sessionId, clientId, {
         type: 'ai-response',
         query,
-        response
+        response,
       });
     } catch (error) {
       console.warn('⚠️ AI query failed:', error);
@@ -413,12 +428,16 @@ class PlaygroundManager {
       this.sendToClient(sessionId, clientId, {
         type: 'ai-error',
         query,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
 
-  private async handleGenerateRequest(sessionId: string, clientId: string, prompt: string): Promise<void> {
+  private async handleGenerateRequest(
+    sessionId: string,
+    clientId: string,
+    prompt: string
+  ): Promise<void> {
     if (!this.config.enableAI) return;
 
     try {
@@ -427,7 +446,7 @@ class PlaygroundManager {
       this.sendToClient(sessionId, clientId, {
         type: 'request-generated',
         prompt,
-        request
+        request,
       });
     } catch (error) {
       console.warn('⚠️ Request generation failed:', error);
@@ -435,7 +454,7 @@ class PlaygroundManager {
       this.sendToClient(sessionId, clientId, {
         type: 'generation-error',
         prompt,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -452,7 +471,7 @@ class PlaygroundManager {
     // Broadcast collaborator left
     this.broadcastToSession(sessionId, {
       type: 'collaborator-left',
-      clientId
+      clientId,
     });
 
     // Clean up empty sessions
@@ -470,7 +489,7 @@ class PlaygroundManager {
       responses: [],
       collaborators: new Map(),
       createdAt: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     };
 
     this.sessions.set(sessionId, session);
@@ -510,7 +529,7 @@ class PlaygroundManager {
       requests: session.requests.slice(-50), // Last 50 requests
       responses: session.responses.slice(-50), // Last 50 responses
       collaborators: Array.from(session.collaborators.values()),
-      createdAt: session.createdAt
+      createdAt: session.createdAt,
     };
   }
 
@@ -540,7 +559,7 @@ class PlaygroundManager {
           responseCount: session.responses.length,
           collaboratorCount: session.collaborators.size,
           averageResponseTime: this.calculateAverageResponseTime(session),
-          uptime: Date.now() - session.createdAt
+          uptime: Date.now() - session.createdAt,
         };
 
         this.metrics.set(sessionId, metrics);
@@ -555,7 +574,11 @@ class PlaygroundManager {
     return Math.round(total / session.responses.length);
   }
 
-  private updateMetrics(sessionId: string, request: PlaygroundRequest, response: PlaygroundResponse): void {
+  private updateMetrics(
+    sessionId: string,
+    request: PlaygroundRequest,
+    response: PlaygroundResponse
+  ): void {
     // Update session metrics
     const metrics = this.metrics.get(sessionId) || {};
     metrics.lastRequestAt = Date.now();
@@ -581,7 +604,9 @@ class PlaygroundManager {
   }
 
   private isOriginAllowed(origin: string): boolean {
-    return this.config.allowedOrigins!.includes('*') || this.config.allowedOrigins!.includes(origin);
+    return (
+      this.config.allowedOrigins!.includes('*') || this.config.allowedOrigins!.includes(origin)
+    );
   }
 
   private getPlaygroundHTML(): string {
@@ -741,36 +766,41 @@ class PlaygroundManager {
         function addRequest(request) {
             const div = document.createElement('div');
             div.className = 'response';
-            div.innerHTML = \`<strong>\${request.method} \${request.url}</strong><br>Sent at \${new Date(request.timestamp).toLocaleTimeString()}\`;
+            div.textContent = request.method + ' ' + request.url + ' - Sent at ' + new Date(request.timestamp).toLocaleTimeString();
             document.getElementById('responses').appendChild(div);
         }
 
         function addResponse(response) {
             const div = document.createElement('div');
-            div.className = \`response status \${response.status >= 200 && response.status < 300 ? 'success' : 'error'}\`;
-            div.innerHTML = \`
-                <div class="status">Status: \${response.status} \${response.statusText}</div>
-                <div>Duration: \${response.duration}ms | Size: \${response.size} bytes</div>
-                <pre>\${JSON.stringify(response.body, null, 2)}</pre>
-            \`;
+            div.className = 'response status ' + (response.status >= 200 && response.status < 300 ? 'success' : 'error');
+            div.textContent = 'Status: ' + response.status + ' ' + response.statusText + '\n' +
+                'Duration: ' + response.duration + 'ms | Size: ' + response.size + ' bytes\n' +
+                JSON.stringify(response.body, null, 2);
             document.getElementById('responses').appendChild(div);
             document.getElementById('responses').scrollTop = document.getElementById('responses').scrollHeight;
         }
 
         function updateCollaborators(collaborators) {
             const container = document.getElementById('collaborators');
-            container.innerHTML = '<h3>Collaborators</h3>';
+            container.textContent = 'Collaborators';
+            const h3 = document.createElement('h3');
+            h3.textContent = 'Collaborators';
+            container.appendChild(h3);
             collaborators.forEach(collab => {
                 const div = document.createElement('div');
                 div.className = 'collaborator';
-                div.innerHTML = \`<div class="collaborator-color" style="background: \${collab.color}"></div>\${collab.name}\`;
+                div.textContent = collab.name;
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'collaborator-color';
+                colorDiv.style.background = collab.color;
+                div.insertBefore(colorDiv, div.firstChild);
                 container.appendChild(div);
             });
         }
 
         function showAIResponse(response) {
             const div = document.getElementById('ai-response');
-            div.innerHTML = \`<strong>AI:</strong> \${response}\`;
+            div.textContent = 'AI: ' + response;
         }
 
         connect();
@@ -817,8 +847,11 @@ class PlaygroundManager {
     return {
       sessions: this.sessions.size,
       totalClients: Array.from(this.sessions.values()).reduce((sum, s) => sum + s.clients.size, 0),
-      totalRequests: Array.from(this.sessions.values()).reduce((sum, s) => sum + s.requests.length, 0),
-      metrics: Object.fromEntries(this.metrics)
+      totalRequests: Array.from(this.sessions.values()).reduce(
+        (sum, s) => sum + s.requests.length,
+        0
+      ),
+      metrics: Object.fromEntries(this.metrics),
     };
   }
 }
@@ -827,15 +860,21 @@ class AIAssistant {
   async query(question: string): Promise<string> {
     // Simulate AI response - in real implementation, this would call an AI service
     const responses: Record<string, string> = {
-      'how to test an api': 'To test an API, send requests with different methods (GET, POST, etc.) and verify the responses match your expectations.',
-      'what is rest': 'REST (Representational State Transfer) is an architectural style for designing networked applications.',
-      'authentication': 'Common authentication methods include API keys, OAuth, JWT tokens, and Basic Auth.',
-      'error handling': 'Always check HTTP status codes and handle errors gracefully in your applications.'
+      'how to test an api':
+        'To test an API, send requests with different methods (GET, POST, etc.) and verify the responses match your expectations.',
+      'what is rest':
+        'REST (Representational State Transfer) is an architectural style for designing networked applications.',
+      authentication:
+        'Common authentication methods include API keys, OAuth, JWT tokens, and Basic Auth.',
+      'error handling':
+        'Always check HTTP status codes and handle errors gracefully in your applications.',
     };
 
     const lowerQuestion = question.toLowerCase();
-    return responses[lowerQuestion] ||
-           `I understand you're asking about "${question}". For API testing, focus on endpoints, request/response formats, and error scenarios.`;
+    return (
+      responses[lowerQuestion] ||
+      `I understand you're asking about "${question}". For API testing, focus on endpoints, request/response formats, and error scenarios.`
+    );
   }
 
   async generateRequest(prompt: string): Promise<PlaygroundRequest> {
@@ -845,11 +884,11 @@ class AIAssistant {
         id: 'ai-generated-' + Date.now(),
         method: 'GET',
         url: 'https://api.example.com/users',
-        headers: { 'Authorization': 'Bearer your-token' },
+        headers: { Authorization: 'Bearer your-token' },
         timestamp: Date.now(),
         author: 'ai-assistant',
         aiGenerated: true,
-        tags: ['users', 'ai-generated']
+        tags: ['users', 'ai-generated'],
       };
     }
 
@@ -857,11 +896,11 @@ class AIAssistant {
       id: 'ai-generated-' + Date.now(),
       method: 'GET',
       url: 'https://api.example.com/health',
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
       timestamp: Date.now(),
       author: 'ai-assistant',
       aiGenerated: true,
-      tags: ['health', 'ai-generated']
+      tags: ['health', 'ai-generated'],
     };
   }
 }
@@ -879,7 +918,7 @@ export function playgroundPlugin(config: PlaygroundConfig = {}): Plugin {
         ctx.playground = {
           stats: () => manager.getStats(),
           createSession: () => manager.createNewSession(),
-          getSession: (id: string) => manager.getSessionById(id)
+          getSession: (id: string) => manager.getSessionById(id),
         };
         await next();
       });
@@ -908,6 +947,6 @@ export function playgroundPlugin(config: PlaygroundConfig = {}): Plugin {
         await manager.stop();
         process.exit(0);
       });
-    }
+    },
   };
 }

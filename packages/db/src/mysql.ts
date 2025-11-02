@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+import * as mysql from 'mysql2/promise';
 
 export class MySQLAdapter {
   private pool: mysql.Pool;
@@ -43,7 +43,9 @@ export class MySQLAdapter {
 
   async insert(table: string, data: any): Promise<any> {
     const columns = Object.keys(data).join(', ');
-    const placeholders = Object.keys(data).map(() => '?').join(', ');
+    const placeholders = Object.keys(data)
+      .map(() => '?')
+      .join(', ');
     const values = Object.values(data);
 
     const sql = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
@@ -51,7 +53,9 @@ export class MySQLAdapter {
   }
 
   async update(table: string, data: any, conditions: any = {}): Promise<any> {
-    const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
+    const setClause = Object.keys(data)
+      .map((key) => `${key} = ?`)
+      .join(', ');
     const whereClause = this.buildWhereClause(conditions);
     const values = [...Object.values(data), ...Object.values(conditions)];
 
@@ -69,7 +73,7 @@ export class MySQLAdapter {
 
   private buildWhereClause(conditions: any): string {
     if (Object.keys(conditions).length === 0) return '';
-    const clauses = Object.keys(conditions).map(key => `${key} = ?`);
+    const clauses = Object.keys(conditions).map((key) => `${key} = ?`);
     return ` WHERE ${clauses.join(' AND ')}`;
   }
 }

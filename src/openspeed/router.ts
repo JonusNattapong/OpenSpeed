@@ -1,4 +1,4 @@
-export type Handler<Req = any, Res = any> = (ctx: any) => Promise<any> | any;
+export type Handler<Req = unknown, Res = unknown> = (ctx: unknown) => Promise<unknown> | unknown;
 
 interface RouteMatch {
   handler: Handler;
@@ -161,7 +161,7 @@ export default class Router {
     const result: RouteMatch = {
       handler,
       params: params ?? {},
-      middlewares: matchedMiddlewares
+      middlewares: matchedMiddlewares,
     };
 
     if (this.cacheEnabled) {
@@ -191,7 +191,7 @@ export default class Router {
   getCacheStats() {
     return {
       size: this.routeCache.size,
-      enabled: this.cacheEnabled
+      enabled: this.cacheEnabled,
     };
   }
 

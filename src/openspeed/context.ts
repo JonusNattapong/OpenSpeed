@@ -2,9 +2,9 @@ export interface RequestLike {
   method: string;
   url: string;
   headers: Record<string, string | string[] | undefined>;
-  body?: any;
+  body?: unknown;
   query?: Record<string, string>;
-  user?: any; // For authentication middleware
+  user?: unknown; // For authentication middleware
   files?: Record<string, FileUpload[]>; // For file uploads
   file?: FileUpload; // For single file uploads
 }
@@ -14,7 +14,7 @@ export interface FileUpload {
   mimetype: string;
   size: number;
   buffer?: Buffer;
-  stream?: any;
+  stream?: unknown;
   path?: string;
 }
 
@@ -99,39 +99,39 @@ export class CookieJar {
 
 export interface ResponseLike {
   status?: number;
-  headers?: Record<string,string>;
-  body?: any;
+  headers?: Record<string, string>;
+  body?: unknown;
 }
 
 export class Context {
   req: RequestLike;
   res: ResponseLike = { status: 200, headers: {}, body: undefined };
-  params: Record<string,string> = {};
+  params: Record<string, string> = {};
   cookies?: CookieJar;
-  email?: any;
-  storage?: any;
-  twilio?: any;
-  stripe?: any;
-  memory?: any;
-  loadBalancer?: any;
-  circuitBreaker?: any;
-  tracing?: any;
-  metrics?: any;
-  dashboard?: any;
-  anomaly?: any;
-  hotReload?: any;
-  playground?: any;
-  codegen?: any;
-  
+  email?: unknown;
+  storage?: unknown;
+  twilio?: unknown;
+  stripe?: unknown;
+  memory?: unknown;
+  loadBalancer?: unknown;
+  circuitBreaker?: unknown;
+  tracing?: unknown;
+  metrics?: unknown;
+  dashboard?: unknown;
+  anomaly?: unknown;
+  hotReload?: unknown;
+  playground?: unknown;
+  codegen?: unknown;
+
   // ML Optimizer properties
-  resourceAllocation?: any;
+  resourceAllocation?: unknown;
   queryCount?: number;
   cacheHit?: boolean;
-  queryExecutions?: any[];
+  queryExecutions?: unknown[];
   predictionConfidence?: number;
   optimizationApplied?: string;
 
-  constructor(req: RequestLike, params: Record<string,string> = {}) {
+  constructor(req: RequestLike, params: Record<string, string> = {}) {
     this.req = req;
     this.params = params;
   }
@@ -144,7 +144,7 @@ export class Context {
     return this.res;
   }
 
-  json(data: any, status = 200): ResponseLike {
+  json(data: unknown, status = 200): ResponseLike {
     this.res.status = status;
     this.res.headers = { ...this.res.headers, 'content-type': 'application/json' };
     this.res.body = JSON.stringify(data);
@@ -160,7 +160,7 @@ export class Context {
 
   redirect(url: string, status = 302): ResponseLike {
     this.res.status = status;
-    this.res.headers = { ...this.res.headers, 'Location': url };
+    this.res.headers = { ...this.res.headers, Location: url };
     return this.res;
   }
 
@@ -187,16 +187,16 @@ export class Context {
     return this.params[name];
   }
 
-  getBody(): any {
+  getBody(): unknown {
     return this.req.body;
   }
 
-  getUser(): any {
+  getUser(): unknown {
     return this.req.user;
   }
 
   // Cookie helpers
-  setCookie(name: string, value: string, options?: any): this {
+  setCookie(name: string, value: string, options?: CookieOptions): this {
     if (this.cookies) {
       this.cookies.set(name, value, options);
     }

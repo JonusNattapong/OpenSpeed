@@ -1,3 +1,13 @@
+/**
+ * @deprecated This auth plugin uses weak password hashing (HMAC-SHA256 with hardcoded salt).
+ * For production use, please use the secure auth package from `packages/auth` which implements
+ * proper bcrypt hashing, key rotation, and comprehensive security features.
+ *
+ * Migration guide:
+ * 1. Install bcryptjs: npm install bcryptjs
+ * 2. Replace import: import { hashPassword, verifyPassword, generateAccessToken, ... } from 'packages/auth/src/index.js'
+ * 3. Update your auth configuration to use environment variables for secrets
+ */
 import { createHmac } from 'crypto';
 import type { Context } from '../context.js';
 

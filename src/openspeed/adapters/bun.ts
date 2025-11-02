@@ -4,7 +4,6 @@ export function createBunServer(app: any) {
       Bun.serve({
         port,
         async fetch(req: Request) {
-          const url = new URL(req.url);
           const method = req.method;
           const headers: Record<string, string | string[] | undefined> = {};
           for (const [k, v] of req.headers) {
@@ -18,11 +17,11 @@ export function createBunServer(app: any) {
 
           return new Response(out.body, {
             status: out.status || 200,
-            headers: out.headers as Record<string, string>
+            headers: out.headers as Record<string, string>,
           });
-        }
+        },
       });
       console.log(`OpenSpeed listening on http://localhost:${port}`);
-    }
+    },
   };
 }

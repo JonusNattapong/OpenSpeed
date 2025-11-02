@@ -5,17 +5,37 @@ import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 
-type Middleware = (ctx: Context, next: () => Promise<any>) => any;
-type RouteHandler = (ctx: Context) => Promise<any> | any;
+type Middleware = (ctx: Context, next: () => Promise<unknown>) => Promise<unknown>;
+type RouteHandler = (ctx: Context) => Promise<unknown>;
 
 export interface Plugin {
   name: string;
-  setup: (app: any) => void;
+  setup: (app: OpenSpeedApp) => void;
+}
+
+export interface OpenSpeedApp {
+  use(fn: Middleware): OpenSpeedApp;
+  decorate(key: string, value: unknown): OpenSpeedApp;
+  plugin(nameOrPlugin: string | Plugin, pluginFn?: (app: OpenSpeedApp) => void): OpenSpeedApp;
+  routes(): Array<{ method: string; path: string; middlewares: string[] }>;
+  printRoutes(): OpenSpeedApp;
+  loadRoutes(routesDir: string, options?: { prefix?: string }): Promise<OpenSpeedApp>;
+  get(path: string, ...args: Middleware[]): OpenSpeedApp;
+  post(path: string, ...args: Middleware[]): OpenSpeedApp;
+  put(path: string, ...args: Middleware[]): OpenSpeedApp;
+  delete(path: string, ...args: Middleware[]): OpenSpeedApp;
+  patch(path: string, ...args: Middleware[]): OpenSpeedApp;
+  options(path: string, ...args: Middleware[]): OpenSpeedApp;
+  handle(
+    req: RequestLike
+  ): Promise<{ status: number; headers: Record<string, string>; body: unknown }>;
+  listen(port?: number): Promise<unknown>;
+  [key: string]: unknown; // Allow decorated properties
 }
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'options'] as const;
 
-function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<any> | any) {
+function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unknown> | unknown) {
   if (stack.length === 0) {
     return Promise.resolve(terminal());
   }
@@ -25,7 +45,7 @@ function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<any
   for (let i = stack.length - 1; i >= 0; i--) {
     const middleware = stack[i];
     const currentNext = next;
-    next = () => Promise.resolve(middleware(ctx, currentNext));
+    next = () => middleware(ctx, currentNext);
   }
 
   return next();
@@ -57,7 +77,7 @@ function pathnameFromUrl(url: string) {
   return pathname.startsWith('/') ? pathname : `/${pathname}`;
 }
 
-export function createApp() {
+export function createApp(): OpenSpeedApp {
   const router = new Router();
   const globalMiddlewares: Middleware[] = [];
 
@@ -66,11 +86,11 @@ export function createApp() {
       globalMiddlewares.push(fn);
       return app;
     },
-    decorate(key: string, value: any) {
+    decorate(key: string, value: unknown) {
       app[key] = value;
       return app;
     },
-    plugin(nameOrPlugin: string | Plugin, pluginFn?: (app: any) => void) {
+    plugin(nameOrPlugin: string | Plugin, pluginFn?: (app: OpenSpeedApp) => void) {
       if (typeof nameOrPlugin === 'object' && nameOrPlugin.setup) {
         // Plugin object with setup method
         nameOrPlugin.setup(app);
@@ -139,7 +159,7 @@ export function createApp() {
 
         // dynamic import
         const url = pathToFileURL(full).href;
-        let mod: any;
+        let mod: Record<string, unknown>;
         try {
           mod = await import(url);
         } catch (err) {
@@ -168,7 +188,7 @@ export function createApp() {
   };
 
   for (const method of HTTP_METHODS) {
-    app[method] = (path: string, ...args: any[]) => {
+    app[method] = (path: string, ...args: Middleware[]) => {
       if (args.length === 0) {
         throw new Error(`Route handler required for ${method.toUpperCase()} ${path}`);
       }
@@ -189,7 +209,7 @@ export function createApp() {
     }
 
     const ctx = new Context(req, match.params);
-    const executeRoute = () => Promise.resolve(match.handler(ctx));
+    const executeRoute = () => match.handler(ctx);
     const result = await runStack(ctx, globalMiddlewares, executeRoute);
 
     return result ?? ctx.res;
