@@ -1,14 +1,30 @@
 /**
  * Authentication middleware for OpenSpeed
  * 
- * SECURITY WARNING: This plugin has been updated to remove hardcoded secrets.
- * For production use, it's recommended to use the secure auth package from `packages/auth` 
- * which implements proper bcrypt hashing, key rotation, and comprehensive security features.
+ * ⚠️ CRITICAL SECURITY WARNING ⚠️
+ * 
+ * This plugin uses HMAC-SHA256 for password hashing, which is NOT suitable for production use.
+ * Password hashing requires algorithms specifically designed for this purpose like bcrypt, 
+ * argon2, or scrypt which include salting and are intentionally slow to resist brute-force attacks.
+ * 
+ * For production use, you MUST use the secure auth package from `packages/auth` which implements:
+ * - Proper bcrypt password hashing (cost factor 12)
+ * - Automatic key rotation
+ * - Rate limiting and account lockout
+ * - Timing-safe comparisons
+ * - Comprehensive security features
  *
- * If using this plugin directly:
+ * If you must use this plugin directly (NOT RECOMMENDED):
  * - ALWAYS set JWT secrets via environment variables (JWT_SECRET, JWT_REFRESH_SECRET)
- * - Use bcrypt or similar for password hashing (see packages/auth for reference)
+ * - ALWAYS set PASSWORD_HASH_SALT via environment variable
+ * - Use strong, cryptographically random secrets (minimum 32 characters)
  * - Never commit secrets to source code
+ * - Consider migrating to bcrypt/argon2 as soon as possible
+ * 
+ * Migration guide:
+ * 1. Install bcryptjs: npm install bcryptjs
+ * 2. Import from packages/auth: import { hashPassword, verifyPassword, ... } from '../../../packages/auth/src/index.js'
+ * 3. Update your auth configuration to use environment variables
  */
 import { createHmac, timingSafeEqual } from 'crypto';
 import type { Context } from '../context.js';
