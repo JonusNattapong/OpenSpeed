@@ -191,11 +191,26 @@ function escapeHtml(str: string): string {
 
 /**
  * Raw HTML (dangerous - use with caution)
+ * @param html - HTML string to render without escaping
+ * @param options - Security options
+ * @param options.trusted - Set to true only if HTML is from a trusted source
  */
-export function raw(html: string): JSXElement {
+export function raw(html: string, options?: { trusted?: boolean }): JSXElement {
+  if (!options?.trusted && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '[SECURITY WARNING] Using raw() without trusted flag is dangerous and may lead to XSS attacks.\n' +
+      'Set { trusted: true } only if HTML is from a trusted source.\n' +
+      'Consider using a sanitizer library like DOMPurify for user-generated HTML.'
+    );
+  }
+
   return {
     type: 'raw',
-    props: { __html: html },
+    props: { 
+      __html: html,
+      __trusted: options?.trusted || false,
+      __source: options?.trusted ? 'trusted' : 'untrusted'
+    },
     children: [],
   };
 }

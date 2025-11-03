@@ -28,6 +28,26 @@ export { playgroundPlugin } from './playground.js';
 export { codeGenPlugin } from './codegen.js';
 export * from './errorHandler.js';
 
+// Security enhancements
+export { csrf, csrfToken, csrfInput, CSRFProtection } from './csrfProtection.js';
+export { validateSQL, sql, getSQLValidator, SQLQueryValidator } from './sqlValidator.js';
+
+// Development tools
+export { devTools, getDevTools, addRouteToDevTools, printDevInfo, DevTools } from './devTools.js';
+export { 
+  routeVisualizer, 
+  getRouteVisualizer, 
+  addRouteToVisualizer, 
+  printRoutes,
+  RouteVisualizer 
+} from './routeVisualizer.js';
+export {
+  performanceMonitor,
+  getPerformanceMonitor,
+  printPerformanceReport,
+  PerformanceMonitor
+} from './performanceMonitor.js';
+
 // New features (inspired by Hono & Elysia)
 export {
   jsxPlugin,

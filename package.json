@@ -69,6 +69,10 @@
     "release:major": "npm version major && npm run release",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
+    "security:scan": "tsx scripts/security-scan.ts",
+    "security:scan:json": "tsx scripts/security-scan.ts --json --output security-report.json",
+    "security:fix": "tsx scripts/security-fix.ts",
+    "security:fix:dry": "tsx scripts/security-fix.ts --dry-run",
     "prepare": "husky"
   },
   "keywords": [

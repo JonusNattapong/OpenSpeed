@@ -56,6 +56,20 @@ Openspeed provides a modern, type-safe API with runtime-agnostic support for Nod
 - **🔍 Request Inspector**: Detailed request/response logging with timing and memory usage
 - **🚨 Error Enhancement**: Developer-friendly error pages with actionable debugging information
 
+### 🔒 Security Features
+- **🛡️ CSRF Protection**: Token-based CSRF prevention with origin validation and constant-time comparison
+- **💉 SQL Injection Prevention**: Parameterized query validator with forbidden pattern detection
+- **🔐 XSS Protection**: Automatic HTML escaping with secure JSX rendering
+- **🔑 Secure Authentication**: Bcrypt password hashing with configurable rounds (12+ recommended)
+- **🍪 Secure Cookies**: HTTP-only, secure, and SameSite cookie configuration
+- **📋 Input Validation**: Schema-based validation with Zod, Valibot, ArkType
+- **🚦 Rate Limiting**: Brute force protection and DDoS mitigation
+- **📁 File Upload Security**: MIME validation, size limits, and optional malware scanning
+- **📊 Security Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- **🔍 Security Scanner**: Automated vulnerability detection for common issues
+- **🔧 Auto-Fixer**: Automated remediation for weak crypto, insecure cookies, and more
+- **✅ Security Testing**: Comprehensive test suite covering OWASP Top 10
+
 ## 📦 Installation
 
 Install Openspeed using your preferred package manager:
@@ -385,6 +399,128 @@ app.get('/users', (ctx) => ctx.json([]));
 
 app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
 ```
+
+### Security Plugins
+
+Comprehensive security features for production applications:
+
+#### CSRF Protection
+
+Prevent Cross-Site Request Forgery attacks:
+
+```typescript
+import { csrf, csrfToken, csrfInput } from 'openspeed/plugins';
+
+app.use(csrf({
+  secret: process.env.CSRF_SECRET,
+  cookieName: '_csrf',
+  headerName: 'x-csrf-token',
+  enforceForMethods: ['POST', 'PUT', 'DELETE', 'PATCH']
+}));
+
+// In your form
+app.get('/form', (ctx) => {
+  const token = csrfToken(ctx);
+  return ctx.html(`
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="${token}" />
+      <button type="submit">Submit</button>
+    </form>
+  `);
+});
+```
+
+#### SQL Injection Prevention
+
+Validate SQL queries and parameters:
+
+```typescript
+import { validateSQL, sql } from 'openspeed/plugins';
+
+// ❌ Vulnerable
+const query = `SELECT * FROM users WHERE id = ${userId}`;
+
+// ✅ Safe
+const { query, params } = sql(
+  'SELECT * FROM users WHERE id = ?',
+  [userId]
+);
+
+// Or validate existing queries
+validateSQL(query, params); // Throws if unsafe patterns detected
+```
+
+#### Input Validation
+
+Schema-based validation with Zod:
+
+```typescript
+import { validate } from 'openspeed/plugins';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(12),
+  age: z.number().int().min(13)
+});
+
+app.post('/register',
+  validate({ body: userSchema }),
+  async (ctx) => {
+    const data = ctx.req.body; // Typed and validated
+    return ctx.json({ success: true });
+  }
+);
+```
+
+#### Security Headers
+
+Comprehensive security headers:
+
+```typescript
+import { security } from 'openspeed/plugins';
+
+app.use(security({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'nonce-{random}'"],
+      styleSrc: ["'self'", "'unsafe-inline'"]
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true
+  },
+  noSniff: true,
+  frameOptions: 'DENY'
+}));
+```
+
+For more security features and best practices, see the [Security Guide](./docs/security/SECURITY_GUIDE.md).
+
+## 🔒 Security Tools
+
+Openspeed includes automated security tools:
+
+```bash
+# Scan for vulnerabilities
+npm run security:scan
+
+# Export detailed JSON report
+npm run security:scan:json
+
+# Auto-fix common security issues
+npm run security:fix
+
+# Preview fixes without applying
+npm run security:fix:dry
+
+# Check dependencies
+npm audit
+```
+
+Read our [Security Policy](./SECURITY.md) for vulnerability reporting.
 
 ## 🌐 Runtime Support
 
