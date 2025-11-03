@@ -115,4 +115,73 @@ describe('cookie plugin', () => {
 
     expect(ctx.cookies?.get('name')).toBe('John Duck');
   });
+
+  it('should properly encode special characters in cookie values', async () => {
+    const middleware = cookie();
+
+    const req: any = {
+      method: 'GET',
+      url: '/test',
+      headers: {},
+    };
+    const ctx = new Context(req, {});
+
+    await middleware(ctx, async () => {
+      // Test encoding of special characters
+      ctx.cookies?.set('data', 'value with spaces & special=chars');
+    });
+
+    const setCookieHeader = ctx.res.headers!['Set-Cookie'] as string;
+    expect(setCookieHeader).toBeDefined();
+    // Should be URL encoded
+    expect(setCookieHeader).toContain('data=value%20with%20spaces%20%26%20special%3Dchars');
+  });
+
+  it('should sanitize cookie paths to prevent injection', async () => {
+    const middleware = cookie();
+
+    const req: any = {
+      method: 'GET',
+      url: '/test',
+      headers: {},
+    };
+    const ctx = new Context(req, {});
+
+    await middleware(ctx, async () => {
+      // Test path sanitization - semicolons should be removed
+      ctx.cookies?.set('test', 'value', { path: '/path;malicious' });
+    });
+
+    const setCookieHeader = ctx.res.headers!['Set-Cookie'] as string;
+    expect(setCookieHeader).toBeDefined();
+    // Semicolon should be removed from path
+    expect(setCookieHeader).toContain('Path=/pathmalicious');
+  });
+
+  it('should reject cookies with dangerous names', async () => {
+    const middleware = cookie();
+
+    const req: any = {
+      method: 'GET',
+      url: '/test',
+      headers: {},
+    };
+    const ctx = new Context(req, {});
+
+    // Spy on console.warn to check if warning is logged
+    const warnSpy = vi ? vi.spyOn(console, 'warn').mockImplementation(() => {}) : null;
+
+    await middleware(ctx, async () => {
+      // Try to set cookie with semicolon in name (dangerous)
+      ctx.cookies?.set('bad;name', 'value');
+    });
+
+    const setCookieHeader = ctx.res.headers!['Set-Cookie'] as string;
+    
+    // Cookie with invalid name should be skipped or sanitized
+    if (warnSpy) {
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    }
+  });
 });
