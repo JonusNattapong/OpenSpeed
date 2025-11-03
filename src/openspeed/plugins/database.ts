@@ -720,8 +720,30 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
   }
 
   async raw(query: string, values: unknown[] = []): Promise<unknown> {
-    // WARNING: Raw queries bypass security measures
-    console.warn('[DB SECURITY WARNING] Raw query executed:', query);
+    // SECURITY WARNING: Raw queries can bypass security measures and lead to SQL injection
+    // Only use this method when absolutely necessary and ensure all inputs are validated/sanitized
+    console.warn('[DB SECURITY WARNING] Raw query executed - ensure inputs are validated:', query);
+    
+    // SECURITY: Validate that query uses parameterized placeholders if values are provided
+    if (values.length > 0) {
+      const placeholderPattern = /\$\d+/g;
+      const placeholders = query.match(placeholderPattern) || [];
+      
+      if (placeholders.length !== values.length) {
+        throw new Error(
+          `SECURITY ERROR: Parameter count mismatch. Query has ${placeholders.length} placeholders but ${values.length} values provided. ` +
+          'Always use parameterized queries to prevent SQL injection.'
+        );
+      }
+    }
+    
+    // SECURITY: Detect potentially dangerous unparameterized queries
+    if (values.length === 0 && /'\s*\+\s*|"\s*\+\s*|\bconcat\s*\(/i.test(query)) {
+      throw new Error(
+        'SECURITY ERROR: String concatenation detected in raw query without parameters. ' +
+        'This is a SQL injection risk. Use parameterized queries instead.'
+      );
+    }
 
     const startTime = Date.now();
     try {

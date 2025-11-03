@@ -92,6 +92,12 @@ function renderElement(element: JSXChild, depth: number, pretty: boolean): strin
   // Handle JSX elements
   const jsxElement = element as JSXElement;
 
+  // SECURITY: Handle raw HTML (bypasses escaping - XSS risk!)
+  if (jsxElement.type === 'raw' && jsxElement.props.__html) {
+    console.warn('[SECURITY WARNING] Using raw HTML - ensure content is trusted and sanitized!');
+    return jsxElement.props.__html;
+  }
+
   // Handle fragments
   if (jsxElement.type === 'fragment' || jsxElement.type === Fragment) {
     return jsxElement.children
@@ -191,6 +197,31 @@ function escapeHtml(str: string): string {
 
 /**
  * Raw HTML (dangerous - use with caution)
+ * 
+ * ⚠️ SECURITY WARNING: This function bypasses HTML escaping and can introduce XSS vulnerabilities!
+ * 
+ * Only use this with:
+ * - Content from trusted sources
+ * - Content that has been properly sanitized
+ * - HTML you have full control over
+ * 
+ * DO NOT use with:
+ * - User-generated content
+ * - Data from external APIs
+ * - Any untrusted input
+ * 
+ * Example safe usage:
+ * ```tsx
+ * const trustedHtml = raw('<div>Static trusted content</div>');
+ * ```
+ * 
+ * Example UNSAFE usage (DO NOT DO THIS):
+ * ```tsx
+ * const userInput = getUserInput(); // ❌ DANGEROUS!
+ * const unsafe = raw(userInput);
+ * ```
+ * 
+ * Consider using a sanitization library like DOMPurify before using raw().
  */
 export function raw(html: string): JSXElement {
   return {

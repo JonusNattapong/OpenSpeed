@@ -116,9 +116,28 @@ function verifyJWT(token: string, secret: string): any {
   return decodedPayload;
 }
 
-// Simple password hashing (in production, use bcrypt or argon2)
+// SECURITY FIX: Use environment variable for salt, with strong validation
+// In production, use bcrypt or argon2 from packages/auth instead
 function hashPassword(password: string): string {
-  return createHmac('sha256', 'openspeed-salt').update(password).digest('hex');
+  const salt = process.env.PASSWORD_SALT;
+  
+  if (!salt) {
+    throw new Error(
+      'SECURITY ERROR: PASSWORD_SALT environment variable is required. ' +
+      'This auth plugin is deprecated - use packages/auth with bcrypt for production.'
+    );
+  }
+  
+  if (salt.length < 32) {
+    throw new Error(
+      'SECURITY ERROR: PASSWORD_SALT must be at least 32 characters long. ' +
+      'Use a strong random string generated with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  
+  // Note: HMAC-SHA256 is NOT recommended for password hashing
+  // This is only for backward compatibility - migrate to bcrypt/argon2
+  return createHmac('sha256', salt).update(password).digest('hex');
 }
 
 export function requireAuth() {

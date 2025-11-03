@@ -56,7 +56,17 @@ export class CookieJar {
     const cookieStrings: string[] = [];
 
     for (const [name, { value, options }] of this.cookies) {
-      let cookieStr = `${name}=${value}`;
+      // SECURITY FIX: Properly encode cookie name and value to prevent injection
+      const encodedName = encodeURIComponent(name);
+      const encodedValue = encodeURIComponent(value);
+      
+      // Validate cookie name and value don't contain dangerous characters
+      if (name.includes(';') || name.includes(',') || name.includes('=')) {
+        console.warn(`[COOKIE SECURITY] Invalid cookie name: ${name}`);
+        continue;
+      }
+      
+      let cookieStr = `${encodedName}=${encodedValue}`;
 
       if (options.maxAge !== undefined) {
         cookieStr += `; Max-Age=${options.maxAge}`;
@@ -67,11 +77,15 @@ export class CookieJar {
       }
 
       if (options.path) {
-        cookieStr += `; Path=${options.path}`;
+        // Sanitize path to prevent injection
+        const sanitizedPath = options.path.replace(/[;\s]/g, '');
+        cookieStr += `; Path=${sanitizedPath}`;
       }
 
       if (options.domain) {
-        cookieStr += `; Domain=${options.domain}`;
+        // Sanitize domain to prevent injection
+        const sanitizedDomain = options.domain.replace(/[;\s]/g, '');
+        cookieStr += `; Domain=${sanitizedDomain}`;
       }
 
       if (options.secure) {
