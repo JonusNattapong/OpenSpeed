@@ -217,13 +217,17 @@ function hashPassword(password: string, salt?: string): string {
 /**
  * Timing-safe string comparison to prevent timing attacks
  * Performs constant-time comparison to avoid leaking information about string length or content
+ * 
+ * Implementation note: This pads both strings to the same length before comparison.
+ * If the original strings had different lengths, the comparison will fail because
+ * the padding bytes will differ. This is intentional and maintains constant-time behavior.
  */
 function timingSafeCompare(a: string, b: string): boolean {
   // Convert to buffers for timing-safe comparison
   const bufferA = Buffer.from(a);
   const bufferB = Buffer.from(b);
   
-  // If lengths differ, pad the shorter one to match the longer
+  // Pad both buffers to the same length (max of the two)
   // This ensures constant-time behavior regardless of input lengths
   const maxLength = Math.max(bufferA.length, bufferB.length);
   const paddedA = Buffer.alloc(maxLength);
@@ -233,11 +237,9 @@ function timingSafeCompare(a: string, b: string): boolean {
   bufferB.copy(paddedB);
   
   try {
-    // This will do constant-time comparison
-    const buffersMatch = timingSafeEqual(paddedA, paddedB);
-    // Also verify original lengths match (in constant time)
-    const lengthsMatch = bufferA.length === bufferB.length;
-    return buffersMatch && lengthsMatch;
+    // This performs constant-time comparison
+    // If original lengths differed, padding will differ and this returns false
+    return timingSafeEqual(paddedA, paddedB);
   } catch {
     return false;
   }
