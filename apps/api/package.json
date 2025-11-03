@@ -13,7 +13,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "openspeed-framework": "workspace:*",
+    "openspeed": "workspace:*",
     "@openspeed/db": "workspace:*",
     "@openspeed/types": "workspace:*",
     "@openspeed/auth": "workspace:*",

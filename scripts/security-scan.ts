@@ -75,7 +75,7 @@ class SecurityScanner {
 
     // Weak crypto
     weakCrypto: {
-      pattern: /Math\.random\(\)|createHash\(['"]md5['"]|createHash\(['"]sha1['"])/gi,
+      pattern: /Math\.random\(\)|createHash\(['"]md5['"]|createHash\(['"]sha1['"]\)/gi,
       severity: 'high' as const,
       type: 'Weak Cryptography',
       cwe: 'CWE-327',
@@ -451,7 +451,7 @@ class SecurityScanner {
 }
 
 // CLI Usage
-if (require.main === module) {
+const runCLI = () => {
   const args = process.argv.slice(2);
   const dir = args[0] || process.cwd();
   const outputJson = args.includes('--json');
@@ -469,6 +469,9 @@ if (require.main === module) {
     console.error('❌ Security scan error:', error);
     process.exit(1);
   });
-}
+};
+
+// Run CLI if this is the main module
+runCLI();
 
 export { SecurityScanner };
