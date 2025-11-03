@@ -166,6 +166,8 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
         if (code) errorObj.code = code;
         if (includeDetails && details) errorObj.details = details;
         if (suggestions && errorSuggestions.length > 0 && developmentMode) errorObj.suggestions = errorSuggestions;
+        // Stack is exposed when explicitly enabled via exposeStack option
+        // Security warning is shown in production (see lines 118-122)
         if (exposeStack && error.stack) errorObj.stack = error.stack;
         
         const errorResponse = {
@@ -193,6 +195,8 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
           status,
           code,
           suggestions: suggestions && developmentMode ? errorSuggestions : undefined,
+          // Stack is exposed when explicitly enabled via exposeStack option
+          // Security warning is shown in production (see lines 118-122)
           stack: exposeStack ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });

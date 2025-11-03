@@ -1,3 +1,4 @@
+import { randomBytes, timingSafeEqual as cryptoTimingSafeEqual } from 'crypto';
 import type { Context } from '../context.js';
 
 export interface SecurityOptions {
@@ -314,11 +315,10 @@ function timingSafeEquals(a: string, b: string): boolean {
     return false;
   }
 
-  const crypto = require('crypto');
   try {
     const bufferA = Buffer.from(a);
     const bufferB = Buffer.from(b);
-    return crypto.timingSafeEqual(bufferA, bufferB);
+    return cryptoTimingSafeEqual(bufferA, bufferB);
   } catch {
     return false;
   }
@@ -329,9 +329,8 @@ function timingSafeEquals(a: string, b: string): boolean {
  * Uses crypto.randomBytes for secure token generation
  */
 export function generateCSRFToken(_secret?: string): string {
-  const crypto = require('crypto');
   // Use cryptographically secure random bytes
-  return crypto.randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 }
 
 /**
