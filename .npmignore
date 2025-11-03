@@ -1,61 +1,64 @@
-# Source files
+# Source files (only ship dist/)
 src/
+packages/
+apps/
 examples/
-benchmarks/
 tests/
+benchmarks/
 
 # Config files
+tsconfig.json
+tsconfig.build.json
+.prettierrc
+.eslintrc.js
+vitest.config.ts
+
+# Development
+.git/
 .github/
-.husky/
-*.config.*
-tsconfig*.json
-vitest.config.*
-eslint*
-prettier*
-.eslintignore
-.prettierignore
-.gitignore
-.gitattributes
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Development files
-*.md
-!README.md
-!CHANGELOG.md
-!LICENSE
-ROADMAP.md
-REFACTORING_SUMMARY.md
-NEW_FEATURES_SUMMARY.md
-BENCHMARK_GUIDE.md
-logo.png
-docker-compose.yml
-loadtest.k6.js
-test-all-benchmarks.js
-test-benchmarks.js
+# Tests and scripts
+scripts/security-scan.ts
+scripts/security-fix.ts
+scripts/pre-publish.js
+*.test.ts
+*.spec.ts
 
-# Lock files
-package-lock.json
-pnpm-lock.yaml
-pnpm-workspace.yaml
-yarn.lock
+# Documentation (keep README, CHANGELOG, LICENSE)
+docs/
+WHY_OPENSPEED.md
+CONTRIBUTING.md
+SECURITY_IMPROVEMENTS_SUMMARY.md
+FINAL_SECURITY_REPORT.md
 
-# OS files
+# Build artifacts
+*.tsbuildinfo
+.turbo/
+coverage/
+
+# Environment
+.env*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-npm-debug.log*
-logs/
+# Docker
+docker-compose.yml
+Dockerfile
 
-# Coverage
-coverage/
+# Load testing
+loadtest.k6.js
 
-# Node modules
-node_modules/
-
-# Build artifacts (keep dist)
-!dist/
-
-# Development directories
-test-static/
-docs/
+# Misc
+.husky/
+.editorconfig

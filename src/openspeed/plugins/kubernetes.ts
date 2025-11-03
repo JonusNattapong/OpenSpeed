@@ -33,7 +33,7 @@ interface ScalingDecision {
 
 /**
  * Kubernetes Operator Plugin for Auto-scaling
- * 
+ *
  * Features:
  * - Horizontal Pod Autoscaling (HPA)
  * - Custom metrics-based scaling
@@ -170,9 +170,9 @@ async function getPodMetrics(
 
     return pods.map((pod: any) => ({
       name: pod.name,
-      cpu: pod.cpu || Math.random() * 100,
-      memory: pod.memory || Math.random() * 100,
-      requests: pod.requests || Math.floor(Math.random() * 1000),
+      cpu: pod.cpu || 0, // Default to 0 if metrics not available
+      memory: pod.memory || 0, // Default to 0 if metrics not available
+      requests: pod.requests || 0, // Default to 0 if metrics not available
       timestamp: new Date(),
     }));
   } catch (error) {
@@ -237,7 +237,10 @@ async function makeScalingDecision(
   }
 
   // Apply min/max constraints
-  desiredReplicas = Math.max(config.minReplicas || 1, Math.min(config.maxReplicas || 10, desiredReplicas));
+  desiredReplicas = Math.max(
+    config.minReplicas || 1,
+    Math.min(config.maxReplicas || 10, desiredReplicas)
+  );
 
   return {
     currentReplicas,

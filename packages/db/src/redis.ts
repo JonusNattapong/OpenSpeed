@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import crypto from 'crypto';
 
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -17,7 +18,18 @@ export class RedisCache {
   private instanceId: string;
   private pubSubChannel: string;
 
-  constructor(options: { host?: string; port?: number; password?: string; ttl?: number; keyPrefix?: string; distributed?: boolean; instanceId?: string; pubSubChannel?: string } = {}) {
+  constructor(
+    options: {
+      host?: string;
+      port?: number;
+      password?: string;
+      ttl?: number;
+      keyPrefix?: string;
+      distributed?: boolean;
+      instanceId?: string;
+      pubSubChannel?: string;
+    } = {}
+  ) {
     this.redis = new (Redis as any)({
       host: options.host || 'localhost',
       port: options.port || 6379,
@@ -26,7 +38,9 @@ export class RedisCache {
     this.defaultTTL = options.ttl || 3600; // 1 hour default
     this.keyPrefix = options.keyPrefix || 'openspeed:';
     this.distributed = options.distributed || false;
-    this.instanceId = options.instanceId || `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.instanceId =
+      options.instanceId ||
+      `instance_${Date.now()}_${crypto.randomBytes(9).toString('base64url').slice(0, 12)}`;
     this.pubSubChannel = options.pubSubChannel || 'cache_invalidation';
 
     if (this.distributed) {
@@ -101,7 +115,12 @@ export class RedisCache {
   }
 
   // Write-through pattern
-  async setAndPersist(key: string, value: any, persister: (value: any) => Promise<void>, options?: CacheOptions): Promise<void> {
+  async setAndPersist(
+    key: string,
+    value: any,
+    persister: (value: any) => Promise<void>,
+    options?: CacheOptions
+  ): Promise<void> {
     await persister(value);
     await this.set(key, value, options?.ttl);
   }
@@ -116,9 +135,9 @@ export class RedisCache {
 
   // Advanced operations
   async getMultiple(keys: string[]): Promise<any[]> {
-    const redisKeys = keys.map(key => this.getKey(key));
+    const redisKeys = keys.map((key) => this.getKey(key));
     const values = await this.redis.mget(...redisKeys);
-    return values.map((value: any) => value ? JSON.parse(value) : null);
+    return values.map((value: any) => (value ? JSON.parse(value) : null));
   }
 
   async setMultiple(entries: { key: string; value: any; ttl?: number }[]): Promise<void> {
@@ -154,11 +173,14 @@ export class RedisCache {
 
   private publishInvalidation(key: string): void {
     if (this.pubSubRedis) {
-      this.pubSubRedis.publish(this.pubSubChannel, JSON.stringify({
-        instanceId: this.instanceId,
-        key,
-        timestamp: Date.now()
-      }));
+      this.pubSubRedis.publish(
+        this.pubSubChannel,
+        JSON.stringify({
+          instanceId: this.instanceId,
+          key,
+          timestamp: Date.now(),
+        })
+      );
     }
   }
 }

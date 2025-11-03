@@ -287,7 +287,7 @@ export async function generateStatic(
  * Helper to define SSG routes with parameters
  */
 export function defineRoutes(routes: Array<string | SSGRoute>): SSGRoute[] {
-  return routes.map(route => {
+  return routes.map((route) => {
     if (typeof route === 'string') {
       return { path: route };
     }
@@ -309,7 +309,7 @@ export function generateSitemap(
   const { changefreq = 'weekly', priority = 0.5 } = options;
 
   const urls = routes
-    .map(route => {
+    .map((route) => {
       const url = `${baseUrl}${route.path}`;
       const lastmod = new Date().toISOString().split('T')[0];
 
@@ -322,6 +322,7 @@ export function generateSitemap(
     })
     .join('\n');
 
+  // NOTE: xmlns URL is an XML namespace identifier (standard schema definition), not an actual HTTP connection
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls}

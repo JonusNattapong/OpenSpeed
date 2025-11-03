@@ -74,14 +74,14 @@ program
 
 // Interactive setup
 async function createInteractiveProject(projectName) {
-  console.log('🚀 Welcome to OpenSpeed! Let\'s create your project...\n');
+  console.log("🚀 Welcome to OpenSpeed! Let's create your project...\n");
 
   // Get project name
   if (!projectName) {
     projectName = await input({
-      message: 'What\'s your project name?',
+      message: "What's your project name?",
       default: 'my-openspeed-app',
-      validate: (value) => value.length > 0 || 'Project name is required'
+      validate: (value) => value.length > 0 || 'Project name is required',
     });
   }
 
@@ -94,25 +94,41 @@ async function createInteractiveProject(projectName) {
       { name: '⚡ Real-time App (WebSocket)', value: 'realtime' },
       { name: '📱 Full-stack App (API + Frontend)', value: 'fullstack' },
       { name: '🎯 Microservice', value: 'microservice' },
-      { name: '📊 Data API (Database focused)', value: 'data' }
-    ]
+      { name: '📊 Data API (Database focused)', value: 'data' },
+    ],
   });
 
   // Choose features
   const features = await checkbox({
     message: 'Select features to include:',
     choices: [
-      { name: '🔐 Authentication (JWT)', value: 'auth', checked: projectType === 'web' || projectType === 'fullstack' },
-      { name: '🗄️ Database (MongoDB/PostgreSQL)', value: 'database', checked: projectType === 'api' || projectType === 'data' },
-      { name: '📁 File Upload', value: 'upload', checked: projectType === 'web' || projectType === 'fullstack' },
+      {
+        name: '🔐 Authentication (JWT)',
+        value: 'auth',
+        checked: projectType === 'web' || projectType === 'fullstack',
+      },
+      {
+        name: '🗄️ Database (MongoDB/PostgreSQL)',
+        value: 'database',
+        checked: projectType === 'api' || projectType === 'data',
+      },
+      {
+        name: '📁 File Upload',
+        value: 'upload',
+        checked: projectType === 'web' || projectType === 'fullstack',
+      },
       { name: '🔒 Security (CORS, CSRF, Rate limiting)', value: 'security', checked: true },
-      { name: '📊 Monitoring & Logging', value: 'monitoring', checked: projectType === 'api' || projectType === 'microservice' },
+      {
+        name: '📊 Monitoring & Logging',
+        value: 'monitoring',
+        checked: projectType === 'api' || projectType === 'microservice',
+      },
       { name: '📧 Email Service', value: 'email', checked: false },
       { name: '💳 Payment Integration', value: 'payment', checked: false },
       { name: '🧪 Testing Setup', value: 'testing', checked: true },
       { name: '🐳 Docker Support', value: 'docker', checked: false },
-      { name: '☸️ Kubernetes Config', value: 'kubernetes', checked: false }
-    ]
+      { name: '☸️ Kubernetes Config', value: 'kubernetes', checked: false },
+    ],
   });
 
   // Choose runtime
@@ -121,9 +137,9 @@ async function createInteractiveProject(projectName) {
     choices: [
       { name: '🚀 Bun (Fastest development)', value: 'bun' },
       { name: '📦 Node.js (Most compatible)', value: 'node' },
-      { name: '🦕 Deno (Secure by default)', value: 'deno' }
+      { name: '🦕 Deno (Secure by default)', value: 'deno' },
     ],
-    default: 'bun'
+    default: 'bun',
   });
 
   // Package manager
@@ -132,15 +148,15 @@ async function createInteractiveProject(projectName) {
     choices: [
       { name: '📦 npm', value: 'npm' },
       { name: '⚡ pnpm (Recommended)', value: 'pnpm' },
-      { name: '🧶 yarn', value: 'yarn' }
+      { name: '🧶 yarn', value: 'yarn' },
     ],
-    default: 'pnpm'
+    default: 'pnpm',
   });
 
   // Git initialization
   const useGit = await confirm({
     message: 'Initialize Git repository?',
-    default: true
+    default: true,
   });
 
   // Create project
@@ -154,7 +170,7 @@ async function createInteractiveProject(projectName) {
     features,
     runtime,
     packageManager,
-    useGit
+    useGit,
   });
 
   console.log('\n✅ Project created successfully!');
@@ -168,10 +184,22 @@ async function createInteractiveProject(projectName) {
 // Template-based creation
 async function createFromTemplate(template, name) {
   const templates = {
-    api: { desc: 'REST API with authentication', features: ['auth', 'database', 'security', 'testing'] },
-    web: { desc: 'Full-stack web app with JSX', features: ['auth', 'database', 'upload', 'security', 'testing'] },
-    realtime: { desc: 'Real-time app with WebSocket', features: ['auth', 'database', 'websocket', 'security', 'testing'] },
-    fullstack: { desc: 'Complete full-stack application', features: ['auth', 'database', 'upload', 'websocket', 'security', 'monitoring', 'testing'] }
+    api: {
+      desc: 'REST API with authentication',
+      features: ['auth', 'database', 'security', 'testing'],
+    },
+    web: {
+      desc: 'Full-stack web app with JSX',
+      features: ['auth', 'database', 'upload', 'security', 'testing'],
+    },
+    realtime: {
+      desc: 'Real-time app with WebSocket',
+      features: ['auth', 'database', 'websocket', 'security', 'testing'],
+    },
+    fullstack: {
+      desc: 'Complete full-stack application',
+      features: ['auth', 'database', 'upload', 'websocket', 'security', 'monitoring', 'testing'],
+    },
   };
 
   if (!templates[template]) {
@@ -189,7 +217,7 @@ async function createFromTemplate(template, name) {
     features: templateConfig.features,
     runtime: 'bun',
     packageManager: 'pnpm',
-    useGit: true
+    useGit: true,
   });
 }
 
@@ -240,7 +268,7 @@ async function startDevServer(options) {
   // Start the development server
   const child = spawn('tsx', ['watch', 'src/index.ts'], {
     stdio: 'inherit',
-    env: { ...process.env, PORT: options.port, HOST: options.host }
+    env: { ...process.env, PORT: options.port, HOST: options.host },
   });
 
   child.on('error', (error) => {
@@ -290,10 +318,10 @@ async function createProject(config) {
       build: 'tsc',
       start: 'node dist/index.js',
       test: 'vitest run',
-      'test:watch': 'vitest'
+      'test:watch': 'vitest',
     },
     dependencies: getDependencies(features, runtime),
-    devDependencies: getDevDependencies(features, runtime)
+    devDependencies: getDevDependencies(features, runtime),
   };
 
   await fs.writeFile('package.json', JSON.stringify(pkg, null, 2));
@@ -307,10 +335,10 @@ async function createProject(config) {
       esModuleInterop: true,
       outDir: 'dist',
       skipLibCheck: true,
-      forceConsistentCasingInFileNames: true
+      forceConsistentCasingInFileNames: true,
     },
     include: ['src/**/*'],
-    exclude: ['node_modules', 'dist']
+    exclude: ['node_modules', 'dist'],
   };
 
   await fs.writeFile('tsconfig.json', JSON.stringify(tsconfig, null, 2));
@@ -363,15 +391,18 @@ async function createProject(config) {
 // Helper functions
 function getDevScript(runtime) {
   switch (runtime) {
-    case 'bun': return 'bun --hot src/index.ts';
-    case 'deno': return 'deno run --watch --allow-net --allow-env src/index.ts';
-    default: return 'tsx watch src/index.ts';
+    case 'bun':
+      return 'bun --hot src/index.ts';
+    case 'deno':
+      return 'deno run --watch --allow-net --allow-env src/index.ts';
+    default:
+      return 'tsx watch src/index.ts';
   }
 }
 
 function getDependencies(features, runtime) {
   const deps = {
-    'openspeed': '^0.7.1'
+    openspeed: '^0.7.1',
   };
 
   if (features.includes('auth')) deps['@openspeed/auth'] = '^0.1.0';
@@ -388,9 +419,9 @@ function getDependencies(features, runtime) {
 
 function getDevDependencies(features, runtime) {
   const deps = {
-    'typescript': '^5.0.0',
-    'tsx': '^4.0.0',
-    'vitest': '^1.0.0'
+    typescript: '^5.0.0',
+    tsx: '^4.0.0',
+    vitest: '^1.0.0',
   };
 
   if (runtime === 'bun') deps['bun-types'] = '^1.0.0';
@@ -490,12 +521,23 @@ authRoutes.post('/login', async (ctx) => {
   const { email, password } = await ctx.req.json();
 
   // TODO: Implement authentication logic
-  const token = 'fake-jwt-token';
+  // ⚠️ SECURITY WARNING: This is a placeholder for CLI scaffolding only!
+  // In production, replace with proper JWT generation:
+  // 1. Install jsonwebtoken: npm install jsonwebtoken
+  // 2. Set JWT_SECRET in environment variables
+  // 3. Use: import jwt from 'jsonwebtoken';
+  //         const token = jwt.sign({ email, userId }, process.env.JWT_SECRET, { expiresIn: '24h' });
+  // 4. Verify password with bcrypt before issuing token
+
+  // Placeholder token generation (DO NOT use in production)
+  const crypto = require('crypto');
+  const placeholderToken = `dev_token_${crypto.randomBytes(32).toString('hex')}`;
 
   return ctx.json({
     success: true,
-    token,
-    user: { email }
+    token: placeholderToken,
+    user: { email },
+    warning: 'Using development placeholder token - implement proper JWT authentication before production'
   });
 });
 
@@ -554,7 +596,7 @@ A ${type} application built with OpenSpeed.
 
 ## Features
 
-${features.map(f => `- ${f}`).join('\n')}
+${features.map((f) => `- ${f}`).join('\n')}
 
 ## Getting Started
 

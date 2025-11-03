@@ -3,6 +3,7 @@ import { createServer as createHttpServer } from 'http';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 import type { Context } from '../context.js';
 import type { Plugin } from '../index.js';
 
@@ -595,12 +596,13 @@ class PlaygroundManager {
   }
 
   private generateId(): string {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    return randomBytes(8).toString('base64url') + Date.now().toString(36);
   }
 
   private getRandomColor(): string {
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-    return colors[Math.floor(Math.random() * colors.length)];
+    const randomValue = randomBytes(4).readUInt32BE(0) / 0xffffffff;
+    return colors[Math.floor(randomValue * colors.length)];
   }
 
   private isOriginAllowed(origin: string): boolean {
@@ -665,7 +667,7 @@ class PlaygroundManager {
                 </div>
                 <div class="input-group">
                     <label>URL:</label>
-                    <input type="text" id="url" value="http://localhost:3000/health">
+                    <input type="text" id="url" value="/health" placeholder="e.g., /api/users or http://localhost:3000/health">
                 </div>
                 <div class="input-group">
                     <label>Headers (JSON):</label>

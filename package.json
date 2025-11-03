@@ -1,14 +1,18 @@
 {
   "name": "openspeed",
-  "version": "0.8.0",
+  "version": "0.8.2",
   "description": "High-performance web framework with JSX, SSG, RPC, streaming, and type safety. Inspired by Hono and Elysia but 2-3x faster.",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
   "files": [
     "dist",
+    "src/cli",
+    "src/create-openspeed-app",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY_SETUP.md",
+    ".env.example"
   ],
   "exports": {
     ".": {
@@ -42,8 +46,8 @@
     "./plugins/*": "./dist/src/openspeed/plugins/*.js"
   },
   "bin": {
-    "openspeed": "dist/src/cli/interactive.js",
-    "create-openspeed-app": "dist/src/create-openspeed-app/index.js"
+    "openspeed": "src/cli/interactive.js",
+    "create-openspeed-app": "src/create-openspeed-app/index.js"
   },
   "scripts": {
     "build": "npx tsc -p tsconfig.build.json --noEmitOnError false",
@@ -60,8 +64,8 @@
     "format:check": "prettier --check src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc src",
-    "prepublishOnly": "npm run build && node scripts/pre-publish.js",
-    "publish:check": "node scripts/pre-publish.js",
+    "prepublishOnly": "npm run build",
+    "publish:check": "npm pack --dry-run",
     "publish:dry": "npm publish --dry-run",
     "release": "npm run build && npm publish",
     "release:patch": "npm version patch && npm run release",

@@ -28,7 +28,9 @@ function startServer(framework, scenario) {
   console.log(`Starting ${framework} ${scenario} server on port ${port}`);
 
   const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  return exec(`${npxCmd} tsx ${appPath} ${port}`, { stdio: ['ignore', 'ignore', 'ignore'] });
+  // Use spawn instead of exec to prevent command injection
+  const { spawn } = require('child_process');
+  return spawn(npxCmd, ['tsx', appPath, port], { stdio: ['ignore', 'ignore', 'ignore'] });
 }
 
 // Wait for server to be ready
@@ -40,7 +42,7 @@ async function waitForServer(port, timeout = 15000) {
       console.log(`Server on port ${port} is ready`);
       return;
     } catch (e) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
   throw new Error(`Server on port ${port} didn't start within ${timeout}ms`);
@@ -51,7 +53,7 @@ function makeRequest(port, path) {
   return new Promise((resolve, reject) => {
     const req = http.get(`http://localhost:${port}${path}`, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', (chunk) => (data += chunk));
       res.on('end', () => resolve(data));
     });
     req.on('error', reject);
@@ -150,7 +152,6 @@ async function runAllTests() {
         stopServer(server);
 
         console.log(`✅ ${scenario} completed\n`);
-
       } catch (error) {
         console.log(`❌ ${scenario} failed: ${error.message}\n`);
         results[framework][scenario] = null;
@@ -170,7 +171,12 @@ function generateReport() {
   // Summary table
   console.log('\n🎯 PERFORMANCE SUMMARY (Average Latency in ms)');
   console.log('-'.repeat(80));
-  console.log('Scenario'.padEnd(12), 'OpenSpeed'.padEnd(12), 'Hono'.padEnd(12), 'Elysia'.padEnd(12));
+  console.log(
+    'Scenario'.padEnd(12),
+    'OpenSpeed'.padEnd(12),
+    'Hono'.padEnd(12),
+    'Elysia'.padEnd(12)
+  );
   console.log('-'.repeat(80));
 
   for (const scenario of scenarios) {
@@ -180,7 +186,7 @@ function generateReport() {
 
     const getAvg = (data) => {
       if (!data) return 'N/A';
-      const totals = Object.values(data).map(r => r.avg);
+      const totals = Object.values(data).map((r) => r.avg);
       return (totals.reduce((a, b) => a + b) / totals.length).toFixed(1);
     };
 
@@ -229,7 +235,8 @@ function generateReport() {
     for (const framework of frameworks) {
       const data = results[framework][scenario];
       if (data) {
-        const avg = Object.values(data).reduce((sum, r) => sum + r.avg, 0) / Object.keys(data).length;
+        const avg =
+          Object.values(data).reduce((sum, r) => sum + r.avg, 0) / Object.keys(data).length;
         if (avg < bestAvg) {
           bestAvg = avg;
           bestFramework = framework;
@@ -243,7 +250,13 @@ function generateReport() {
 
   console.log('\n✅ Benchmark suite completed!');
   console.log(`Total scenarios tested: ${scenarios.length * frameworks.length}`);
-  console.log(`Successful tests: ${Object.values(results).flatMap(f => Object.values(f)).filter(r => r !== null).length}`);
+  console.log(
+    `Successful tests: ${
+      Object.values(results)
+        .flatMap((f) => Object.values(f))
+        .filter((r) => r !== null).length
+    }`
+  );
 }
 
 // Run the tests

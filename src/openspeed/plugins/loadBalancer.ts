@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import type { Context } from '../context.js';
 
 export interface BackendInstance {
@@ -26,10 +27,10 @@ export class LoadBalancer {
   private intervalId: NodeJS.Timeout | null = null;
 
   constructor(options: LoadBalancerOptions) {
-    this.backends = options.backends.map(backend => ({
+    this.backends = options.backends.map((backend) => ({
       ...backend,
       connections: 0,
-      responseTime: 0
+      responseTime: 0,
     }));
     this.strategy = options.strategy || 'round-robin';
     this.healthCheckInterval = options.healthCheckInterval || 30000;
@@ -49,7 +50,7 @@ export class LoadBalancer {
   }
 
   async getBackend(): Promise<BackendInstance | null> {
-    const healthyBackends = this.backends.filter(b => b.healthy);
+    const healthyBackends = this.backends.filter((b) => b.healthy);
 
     if (healthyBackends.length === 0) {
       return null;
@@ -83,7 +84,9 @@ export class LoadBalancer {
 
   private getWeightedRoundRobinBackend(backends: BackendInstance[]): BackendInstance {
     const totalWeight = backends.reduce((sum, b) => sum + (b.weight || 1), 0);
-    let random = Math.random() * totalWeight;
+    // Use crypto.randomBytes for secure random selection
+    const randomValue = randomBytes(4).readUInt32BE(0) / 0xffffffff;
+    let random = randomValue * totalWeight;
 
     for (const backend of backends) {
       random -= backend.weight || 1;
@@ -135,15 +138,15 @@ export class LoadBalancer {
 
   getStats() {
     return {
-      backends: this.backends.map(b => ({
+      backends: this.backends.map((b) => ({
         url: b.url,
         healthy: b.healthy,
         connections: b.connections,
         responseTime: b.responseTime,
-        weight: b.weight
+        weight: b.weight,
       })),
       strategy: this.strategy,
-      totalConnections: this.backends.reduce((sum, b) => sum + b.connections, 0)
+      totalConnections: this.backends.reduce((sum, b) => sum + b.connections, 0),
     };
   }
 }
@@ -159,7 +162,7 @@ export function loadBalancerPlugin(options: LoadBalancerOptions) {
       getStats: () => loadBalancer.getStats(),
       updateStats: (backend: BackendInstance, responseTime: number, success: boolean) => {
         loadBalancer.updateBackendStats(backend, responseTime, success);
-      }
+      },
     };
 
     await next();

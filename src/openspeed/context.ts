@@ -196,6 +196,8 @@ export class Context {
   }
 
   // Cookie helpers
+  // NOTE: Cookie security is enforced by the CookieJar with secure defaults
+  // See plugins/cookie.ts for httpOnly, secure, and sameSite configurations
   setCookie(name: string, value: string, options?: CookieOptions): this {
     if (this.cookies) {
       this.cookies.set(name, value, options);

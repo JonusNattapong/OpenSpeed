@@ -172,6 +172,7 @@ export function validate(options: ValidationOptions) {
 
       // Validate query
       if (options.query) {
+        // NOTE: localhost URL is only used as base for URL parsing, not for actual connection
         const url = new URL(ctx.req.url, 'http://localhost');
         const query: Record<string, string> = {};
         for (const [k, v] of url.searchParams) {

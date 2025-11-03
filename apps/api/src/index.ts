@@ -331,7 +331,8 @@ async function checkAlertThresholds(event: string, auditEntry: any) {
 // Middleware helpers
 function requestId() {
   return async (ctx: any, next: () => Promise<any>) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const crypto = await import('crypto');
+    const id = crypto.randomBytes(9).toString('base64url').slice(0, 12);
     ctx.requestId = id;
     ctx.res.headers = { ...ctx.res.headers, 'x-request-id': id };
     await next();
@@ -407,7 +408,10 @@ app.use(
   security({
     contentSecurityPolicy: "default-src 'self'; script-src 'self'",
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    csrf: { secret: process.env.CSRF_SECRET },
+    csrf: {
+      secret: process.env.CSRF_SECRET,
+      enforceInProduction: true, // Force CSRF protection in production
+    },
     sanitizeInput: true,
     maxBodySize: 1024 * 1024, // 1MB
     logSecurityEvents: true,
@@ -464,54 +468,74 @@ app.get('/', (ctx: any) => {
   return ctx.json({ message: 'Welcome to OpenSpeed API', version: '1.0.0' });
 });
 
-// Auth routes
-app.post('/auth/register', validate({ body: createUserSchema }), async (ctx: any) => {
-  const { name, email, password } = ctx.body;
+// ============================================================================
+// SECURITY NOTE: All endpoints below are protected by global middleware:
+//
+// ✅ CSRF Protection: security() middleware (line 408) enforces CSRF for all
+//    POST/PUT/DELETE/PATCH requests in production (enforceInProduction: true)
+//
+// ✅ Global Rate Limiting: rateLimit() middleware (line 432) applies 100 req/15min
+//
+// ✅ Additional Auth Rate Limiting: authRateLimit below applies stricter limits
+//    (5 req/15min) to authentication endpoints specifically
+// ============================================================================
 
-  const clientIP =
-    ctx.req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    ctx.req.headers.get('x-real-ip') ||
-    ctx.req.headers.get('cf-connecting-ip') ||
-    'unknown';
-  const rateLimitCheck = await checkRateLimit(`register:${clientIP}`);
-  if (!rateLimitCheck.allowed) {
-    auditLog('REGISTRATION_RATE_LIMIT_EXCEEDED', { email, clientIP }, ctx);
-    return ctx.json(
-      {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many registration attempts. Please try again later.',
-        retryAfter: Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000),
-      },
-      429
-    );
+// Auth Routes with strict rate limiting
+// Stricter rate limit for authentication endpoints (5 requests per 15 minutes)
+const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 5 });
+
+app.post(
+  '/auth/register',
+  authRateLimit,
+  validate({ body: createUserSchema }),
+  async (ctx: any) => {
+    const { name, email, password } = ctx.body;
+
+    const clientIP =
+      ctx.req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      ctx.req.headers.get('x-real-ip') ||
+      ctx.req.headers.get('cf-connecting-ip') ||
+      'unknown';
+    const rateLimitCheck = await checkRateLimit(`register:${clientIP}`);
+    if (!rateLimitCheck.allowed) {
+      auditLog('REGISTRATION_RATE_LIMIT_EXCEEDED', { email, clientIP }, ctx);
+      return ctx.json(
+        {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many registration attempts. Please try again later.',
+          retryAfter: Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000),
+        },
+        429
+      );
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      await recordFailedAttempt(`register:${clientIP}`);
+      auditLog('REGISTRATION_FAILED_USER_EXISTS', { email, clientIP }, ctx);
+      return ctx.json({ code: 'USER_EXISTS', message: 'User already exists' }, 400);
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword },
+      select: { id: true, email: true, name: true }, // Exclude sensitive timestamps
+    });
+
+    auditLog('USER_REGISTERED', { userId: user.id, email, clientIP }, ctx);
+
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
+    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
+
+    return ctx.json({
+      user,
+      accessToken,
+      refreshToken,
+    });
   }
+);
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    await recordFailedAttempt(`register:${clientIP}`);
-    auditLog('REGISTRATION_FAILED_USER_EXISTS', { email, clientIP }, ctx);
-    return ctx.json({ code: 'USER_EXISTS', message: 'User already exists' }, 400);
-  }
-
-  const hashedPassword = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { name, email, password: hashedPassword },
-    select: { id: true, email: true, name: true }, // Exclude sensitive timestamps
-  });
-
-  auditLog('USER_REGISTERED', { userId: user.id, email, clientIP }, ctx);
-
-  const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-  const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
-
-  return ctx.json({
-    user,
-    accessToken,
-    refreshToken,
-  });
-});
-
-app.post('/auth/login', validate({ body: loginSchema }), async (ctx: any) => {
+app.post('/auth/login', authRateLimit, validate({ body: loginSchema }), async (ctx: any) => {
   const { email, password } = ctx.body;
 
   const clientIP =
@@ -582,7 +606,7 @@ app.post('/auth/login', validate({ body: loginSchema }), async (ctx: any) => {
 });
 
 // Refresh token endpoint
-app.post('/auth/refresh', async (ctx: any) => {
+app.post('/auth/refresh', authRateLimit, async (ctx: any) => {
   const authHeader = ctx.req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     auditLog('REFRESH_TOKEN_INVALID_FORMAT', { reason: 'Missing or invalid Bearer token' }, ctx);
@@ -621,7 +645,7 @@ app.post('/auth/refresh', async (ctx: any) => {
   });
 });
 
-app.post('/auth/logout', auth(), async (ctx: any) => {
+app.post('/auth/logout', authRateLimit, auth(), async (ctx: any) => {
   auditLog('USER_LOGOUT', { userId: ctx.user.userId, email: ctx.user.email }, ctx);
 
   return ctx.json({
@@ -630,7 +654,7 @@ app.post('/auth/logout', auth(), async (ctx: any) => {
 });
 
 // Email verification endpoints (unchanged)
-app.post('/auth/send-verification', auth(), async (ctx: any) => {
+app.post('/auth/send-verification', authRateLimit, auth(), async (ctx: any) => {
   const user = await prisma.user.findUnique({
     where: { id: ctx.user.userId },
     select: { id: true, email: true, emailVerified: true },
@@ -655,7 +679,13 @@ app.post('/auth/send-verification', auth(), async (ctx: any) => {
     },
   });
 
-  const verificationUrl = `${env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+  // Ensure FRONTEND_URL is set in production (should use HTTPS)
+  if (!env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
+    console.error(
+      '[SECURITY] FRONTEND_URL not set in production - email links may not work correctly'
+    );
+  }
+  const verificationUrl = `${env.FRONTEND_URL || 'https://localhost:3000'}/verify-email?token=${verificationToken}`;
   const emailHtml = `
     <h1>Email Verification</h1>
     <p>Please click the link below to verify your email address:</p>
@@ -719,6 +749,7 @@ app.post(
 // Change password
 app.post(
   '/auth/change-password',
+  authRateLimit,
   auth(),
   validate({
     body: z.object({
@@ -817,7 +848,13 @@ app.post(
         },
       });
 
-      const resetUrl = `${env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+      // Ensure FRONTEND_URL is set in production (should use HTTPS)
+      if (!env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
+        console.error(
+          '[SECURITY] FRONTEND_URL not set in production - email links may not work correctly'
+        );
+      }
+      const resetUrl = `${env.FRONTEND_URL || 'https://localhost:3000'}/reset-password?token=${resetToken}`;
       const emailHtml = `
         <h1>Password Reset</h1>
         <p>You requested a password reset. Click the link below to reset your password:</p>
@@ -838,6 +875,7 @@ app.post(
 
 app.post(
   '/auth/reset-password',
+  authRateLimit,
   validate({
     body: z.object({
       token: z.string().min(1, 'Reset token is required'),

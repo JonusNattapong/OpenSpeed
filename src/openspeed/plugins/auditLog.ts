@@ -1,6 +1,7 @@
 import { appendFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { randomBytes } from 'crypto';
 import type { Context } from '../context.js';
 
 type Middleware = (ctx: Context, next: () => Promise<any>) => any;
@@ -88,7 +89,7 @@ const COMPLIANCE_RULES: Record<string, ComplianceRule> = {
 
 /**
  * Advanced Audit Logging Plugin
- * 
+ *
  * Features:
  * - Comprehensive request/response logging
  * - Compliance support (SOC 2, GDPR, HIPAA, PCI-DSS)
@@ -368,7 +369,11 @@ function extractUserRoles(ctx: Context): string[] | undefined {
  */
 function extractTenantId(ctx: Context): string | undefined {
   const headers = ctx.req.headers as any;
-  return (ctx as any).tenantId || (headers.get ? headers.get('x-tenant-id') : headers['x-tenant-id']) || undefined;
+  return (
+    (ctx as any).tenantId ||
+    (headers.get ? headers.get('x-tenant-id') : headers['x-tenant-id']) ||
+    undefined
+  );
 }
 
 /**
@@ -378,12 +383,8 @@ function extractIP(ctx: Context): string {
   const headers = ctx.req.headers as any;
   const forwarded = headers.get ? headers.get('x-forwarded-for') : headers['x-forwarded-for'];
   const realIp = headers.get ? headers.get('x-real-ip') : headers['x-real-ip'];
-  
-  return (
-    forwarded?.split(',')[0] ||
-    realIp ||
-    'unknown'
-  );
+
+  return forwarded?.split(',')[0] || realIp || 'unknown';
 }
 
 /**
@@ -415,7 +416,13 @@ function extractMetadata(ctx: Context): Record<string, any> | undefined {
  * Sanitize sensitive data from entry
  */
 function sanitizeEntry(entry: AuditLogEntry, config: AuditConfig): void {
-  const sensitiveFields = config.sensitiveFields || ['password', 'token', 'secret', 'apiKey', 'creditCard'];
+  const sensitiveFields = config.sensitiveFields || [
+    'password',
+    'token',
+    'secret',
+    'apiKey',
+    'creditCard',
+  ];
 
   const sanitizeObject = (obj: any): void => {
     if (!obj || typeof obj !== 'object') return;
@@ -471,7 +478,7 @@ function hashString(str: string): string {
  * Generate unique ID
  */
 function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${randomBytes(9).toString('base64url').slice(0, 12)}`;
 }
 
 /**

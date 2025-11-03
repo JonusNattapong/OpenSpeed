@@ -188,7 +188,9 @@ export function database(name: string, config: DatabaseConfig): Middleware {
       ctx.req.headers['x-real-ip']?.toString() ||
       ctx.req.headers['cf-connecting-ip']?.toString() ||
       'unknown';
-    const userId = ((ctx as any).user as { userId?: string; id?: string })?.userId || ((ctx as any).user as { userId?: string; id?: string })?.id;
+    const userId =
+      ((ctx as any).user as { userId?: string; id?: string })?.userId ||
+      ((ctx as any).user as { userId?: string; id?: string })?.id;
 
     // Multi-tenant support
     if (config.multiTenant) {
@@ -386,9 +388,7 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
   }
 
   const client =
-    typeof config.connection === 'string'
-      ? new Redis(config.connection)
-      : new Redis(options);
+    typeof config.connection === 'string' ? new Redis(config.connection) : new Redis(options);
 
   return {
     type: 'redis',
@@ -526,7 +526,45 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
     private table: string,
     private connectionName?: string,
     private encryptionKey?: string
-  ) {}
+  ) {
+    // Validate table name to prevent SQL injection
+    this.validateTableName(table);
+  }
+
+  /**
+   * Validate table name to prevent SQL injection
+   */
+  private validateTableName(table: string): void {
+    // Table name should only contain alphanumeric characters, underscores, and dots (for schema.table)
+    if (!/^[a-zA-Z0-9_\.]+$/.test(table)) {
+      throw new Error(
+        `Invalid table name: "${table}". Table names must contain only alphanumeric characters, underscores, and dots.`
+      );
+    }
+
+    // Additional checks
+    if (table.length > 64) {
+      throw new Error(`Table name too long: "${table}". Maximum length is 64 characters.`);
+    }
+
+    if (table.startsWith('.') || table.endsWith('.')) {
+      throw new Error(`Invalid table name: "${table}". Cannot start or end with a dot.`);
+    }
+  }
+
+  /**
+   * Safely quote identifier (table or column name)
+   */
+  private quoteIdentifier(identifier: string): string {
+    // Validate identifier
+    if (!/^[a-zA-Z0-9_\.]+$/.test(identifier)) {
+      throw new Error(
+        `Invalid identifier: "${identifier}". Identifiers must contain only alphanumeric characters, underscores, and dots.`
+      );
+    }
+    // Use double quotes for PostgreSQL, backticks for MySQL (we'll use double quotes as default)
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
 
   async find(where: Partial<T> = {}): Promise<T[]> {
     validateDatabaseInput(where, 'find');
@@ -536,7 +574,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
       const conditions = Object.entries(where).map(([key], i) => `${key} = $${i + 1}`);
       const values = Object.values(where);
 
-      const query = `SELECT * FROM ${this.table}${conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''}`;
+      const query = `SELECT * FROM ${this.quoteIdentifier(this.table)}${conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''}`;
 
       const result = await (
         this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
@@ -590,7 +628,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
       const values = Object.values(processedData);
       const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
 
-      const query = `INSERT INTO ${this.table} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+      const query = `INSERT INTO ${this.quoteIdentifier(this.table)} (${keys.map((k) => this.quoteIdentifier(k)).join(', ')}) VALUES (${placeholders}) RETURNING *`;
 
       const result = await (
         this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }
@@ -643,7 +681,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
         .map((key, i) => `${key} = $${i + 1 + Object.keys(processedData).length}`)
         .join(' AND ');
 
-      const query = `UPDATE ${this.table} SET ${setClause} WHERE ${whereClause} RETURNING *`;
+      const query = `UPDATE ${this.quoteIdentifier(this.table)} SET ${setClause} WHERE ${whereClause} RETURNING *`;
       const values = [...Object.values(processedData), ...Object.values(where)];
 
       const result = await (
@@ -688,7 +726,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
       const conditions = Object.entries(where).map(([key], i) => `${key} = $${i + 1}`);
       const values = Object.values(where);
 
-      const query = `DELETE FROM ${this.table} WHERE ${conditions.join(' AND ')} RETURNING *`;
+      const query = `DELETE FROM ${this.quoteIdentifier(this.table)} WHERE ${conditions.join(' AND ')} RETURNING *`;
 
       const result = await (
         this.pool as { query: (q: string, v: unknown[]) => Promise<unknown> }

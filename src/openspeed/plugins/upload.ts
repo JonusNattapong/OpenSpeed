@@ -2,7 +2,7 @@ import type { Context, FileUpload } from '../context.js';
 import { writeFileSync, unlinkSync } from 'fs';
 import { extname, basename, join } from 'path';
 import { Readable } from 'stream';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import NodeClam from 'clamscan';
 
@@ -281,6 +281,15 @@ async function parseMultipartSecure(req: any, options: any): Promise<Record<stri
         throw createSecurityError('File extension not allowed', clientIP, extension);
       }
 
+      // Validate file signature (magic number)
+      if (!validateFileSignature(part.content, extension)) {
+        throw createSecurityError(
+          'File signature mismatch - file type does not match extension',
+          clientIP,
+          { filename, extension, detectedType: detectFileType(part.content) }
+        );
+      }
+
       // Malware scan
       if (scanForMalware) {
         const isMalicious = await detectMalware(part.content, clamav);
@@ -364,7 +373,10 @@ async function detectMalware(content: Buffer, clamav?: NodeClam | null): Promise
   if (clamav) {
     try {
       // Create a temporary file for scanning
-      const tempFile = join(process.cwd(), `temp_scan_${Date.now()}_${Math.random()}`);
+      const tempFile = join(
+        process.cwd(),
+        `temp_scan_${Date.now()}_${randomBytes(8).toString('hex')}`
+      );
       writeFileSync(tempFile, content);
 
       const { isInfected, viruses } = await clamav.scanFile(tempFile);
@@ -389,9 +401,10 @@ async function detectMalware(content: Buffer, clamav?: NodeClam | null): Promise
   }
 
   // Fallback: Basic malware detection (very simplified)
+  // NOTE: These are signature patterns to DETECT malicious content, not execute it
   const signatures = [
     Buffer.from('X5O!P%@AP[4\\PZX54(P^)7CC)7}'), // EICAR test virus
-    Buffer.from('<script>eval('), // Basic XSS attempt
+    Buffer.from('<script>eval('), // Basic XSS attempt (detection only)
     Buffer.from('<?php'), // PHP webshell attempt
   ];
 
@@ -404,6 +417,114 @@ async function detectMalware(content: Buffer, clamav?: NodeClam | null): Promise
   }
 
   return false;
+}
+
+/**
+ * File signature database (magic numbers)
+ */
+const FILE_SIGNATURES: Record<string, number[][]> = {
+  '.jpg': [
+    [0xff, 0xd8, 0xff, 0xe0], // JPEG JFIF
+    [0xff, 0xd8, 0xff, 0xe1], // JPEG Exif
+    [0xff, 0xd8, 0xff, 0xe2], // JPEG
+    [0xff, 0xd8, 0xff, 0xe3], // JPEG
+    [0xff, 0xd8, 0xff, 0xdb], // JPEG
+  ],
+  '.jpeg': [
+    [0xff, 0xd8, 0xff, 0xe0],
+    [0xff, 0xd8, 0xff, 0xe1],
+    [0xff, 0xd8, 0xff, 0xe2],
+  ],
+  '.png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  '.gif': [
+    [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
+    [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
+  ],
+  '.pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
+  '.zip': [
+    [0x50, 0x4b, 0x03, 0x04], // PK..
+    [0x50, 0x4b, 0x05, 0x06], // Empty archive
+    [0x50, 0x4b, 0x07, 0x08], // Spanned archive
+  ],
+  '.docx': [[0x50, 0x4b, 0x03, 0x04]], // DOCX is ZIP-based
+  '.xlsx': [[0x50, 0x4b, 0x03, 0x04]], // XLSX is ZIP-based
+  '.pptx': [[0x50, 0x4b, 0x03, 0x04]], // PPTX is ZIP-based
+  '.doc': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]], // MS Office compound file
+  '.xls': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]],
+  '.ppt': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]],
+  '.mp4': [
+    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // ftyp
+    [0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70],
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70],
+  ],
+  '.mp3': [
+    [0x49, 0x44, 0x33], // ID3
+    [0xff, 0xfb], // MP3 frame
+  ],
+  '.webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF (needs more validation)
+  '.svg': [
+    [0x3c, 0x3f, 0x78, 0x6d, 0x6c], // <?xml
+    [0x3c, 0x73, 0x76, 0x67], // <svg
+  ],
+};
+
+/**
+ * Validate file signature matches extension
+ */
+function validateFileSignature(buffer: Buffer, extension: string): boolean {
+  if (!extension || buffer.length < 8) {
+    return true; // Skip validation for unknown types or small files
+  }
+
+  const signatures = FILE_SIGNATURES[extension.toLowerCase()];
+  if (!signatures) {
+    // No signature defined for this extension, allow it
+    return true;
+  }
+
+  // Check if any signature matches
+  for (const signature of signatures) {
+    let matches = true;
+    for (let i = 0; i < signature.length; i++) {
+      if (buffer[i] !== signature[i]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) {
+      return true;
+    }
+  }
+
+  console.warn(
+    `[UPLOAD SECURITY] File signature mismatch for ${extension}: ` +
+      `Expected one of known signatures, got ${buffer.slice(0, 8).toString('hex')}`
+  );
+  return false;
+}
+
+/**
+ * Detect file type from magic number
+ */
+function detectFileType(buffer: Buffer): string {
+  if (buffer.length < 8) return 'unknown';
+
+  for (const [ext, signatures] of Object.entries(FILE_SIGNATURES)) {
+    for (const signature of signatures) {
+      let matches = true;
+      for (let i = 0; i < signature.length && i < buffer.length; i++) {
+        if (buffer[i] !== signature[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        return ext;
+      }
+    }
+  }
+
+  return 'unknown';
 }
 
 function createSecurityError(message: string, clientIP: string, details: any): Error {

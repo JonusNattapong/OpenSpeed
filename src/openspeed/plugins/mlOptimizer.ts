@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import type { Context } from '../context.js';
 
 type Middleware = (ctx: Context, next: () => Promise<any>) => any;
@@ -175,7 +176,10 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
         statusCode: ctx.res.status || 200,
         memoryUsage: endMemory.heapUsed - startMemory.heapUsed,
         cpuUsage: (endCpu.user + endCpu.system) / 1000,
-        responseSize: typeof ctx.res.body === 'string' ? ctx.res.body.length : JSON.stringify(ctx.res.body || '').length,
+        responseSize:
+          typeof ctx.res.body === 'string'
+            ? ctx.res.body.length
+            : JSON.stringify(ctx.res.body || '').length,
         queryCount: ctx.queryCount || 0,
         cacheHit: ctx.cacheHit || false,
       };
@@ -516,9 +520,11 @@ class ResourceAllocator {
 
     const actions = ['increase', 'decrease', 'maintain', 'adaptive'];
 
-    // Epsilon-greedy selection
-    if (Math.random() < epsilon) {
-      return actions[Math.floor(Math.random() * actions.length)];
+    // Epsilon-greedy selection (using crypto random for better randomness)
+    const epsilonRandom = randomBytes(4).readUInt32BE(0) / 0xffffffff;
+    if (epsilonRandom < epsilon) {
+      const actionRandom = randomBytes(4).readUInt32BE(0) / 0xffffffff;
+      return actions[Math.floor(actionRandom * actions.length)];
     }
 
     // Select best action based on Q-values

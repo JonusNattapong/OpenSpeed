@@ -211,6 +211,7 @@ app.get('/', (ctx) => ctx.json({ message: 'Welcome to ${projectName} API', versi
 app.get('/api/users', (ctx) => ctx.json(users));
 
 // Create user
+// NOTE: In production, add CSRF protection middleware: app.use(csrf())
 app.post('/api/users', validate({
   body: z.object({
     name: z.string().min(1),
@@ -238,8 +239,9 @@ app.get('/api/users/:id', validate({
 });
 
 // Update user
+// NOTE: In production, add CSRF protection middleware: app.use(csrf())
 app.put('/api/users/:id', validate({
-  params: z.object({ id: z.string().regex(/^\\d+$/) }),
+  params: z.object({ id: z.string().regex(/^\d+$/) }),
   body: z.object({
     name: z.string().min(1).optional(),
     email: z.string().email().optional()
@@ -257,8 +259,9 @@ app.put('/api/users/:id', validate({
 });
 
 // Delete user
+// NOTE: In production, add CSRF protection middleware: app.use(csrf())
 app.delete('/api/users/:id', validate({
-  params: z.object({ id: z.string().regex(/^\\d+$/) })
+  params: z.object({ id: z.string().regex(/^\d+$/) })
 }), (ctx) => {
   const id = parseInt(ctx.params.id);
   const userIndex = users.findIndex(u => u.id === id);

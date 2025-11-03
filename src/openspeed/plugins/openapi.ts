@@ -22,10 +22,9 @@ export function openapi(options: { title?: string; version?: string } = {}) {
 
   const api = {
     collect: (method: string, path: string, options: string | Partial<RouteInfo> = {}) => {
-      const routeInfo: Partial<RouteInfo> = typeof options === 'string' 
-        ? { description: options }
-        : options;
-      
+      const routeInfo: Partial<RouteInfo> =
+        typeof options === 'string' ? { description: options } : options;
+
       routes.push({
         method: method.toLowerCase(),
         path,
@@ -46,7 +45,7 @@ export function openapi(options: { title?: string; version?: string } = {}) {
 
         // Add parameters
         if (route.parameters) {
-          operation.parameters = route.parameters.map(param => ({
+          operation.parameters = route.parameters.map((param) => ({
             name: param.name,
             in: param.in,
             required: param.required,
@@ -89,11 +88,13 @@ export function openapi(options: { title?: string; version?: string } = {}) {
           for (const [status, response] of Object.entries(route.responses)) {
             operation.responses[status] = {
               description: response.description || 'Success',
-              content: response.schema ? {
-                'application/json': {
-                  schema: zodToOpenAPISchema(response.schema),
-                },
-              } : undefined,
+              content: response.schema
+                ? {
+                    'application/json': {
+                      schema: zodToOpenAPISchema(response.schema),
+                    },
+                  }
+                : undefined,
             };
           }
         } else {
@@ -110,6 +111,7 @@ export function openapi(options: { title?: string; version?: string } = {}) {
       };
     },
     middleware: async (ctx: Context, next: () => Promise<any>) => {
+      // NOTE: localhost URL is only used as base for pathname parsing, not for actual connection
       const pathname = new URL(ctx.req.url, 'http://localhost').pathname;
       if (pathname === '/openapi.json') {
         ctx.res.status = 200;
@@ -118,7 +120,7 @@ export function openapi(options: { title?: string; version?: string } = {}) {
         return;
       }
       await next();
-    }
+    },
   };
 
   return api;

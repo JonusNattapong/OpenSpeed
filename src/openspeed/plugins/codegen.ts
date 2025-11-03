@@ -172,7 +172,9 @@ class CodeGenerator {
           }
         }
         if (operation.requestBody?.content?.['application/json']) {
-          const bodyType = this.schemaToTypeScriptType(operation.requestBody.content['application/json'].schema);
+          const bodyType = this.schemaToTypeScriptType(
+            operation.requestBody.content['application/json'].schema
+          );
           code += `  body: ${bodyType};\n`;
         }
         code += '}\n\n';
@@ -180,7 +182,9 @@ class CodeGenerator {
         // Response types
         for (const [statusCode, response] of Object.entries(operation.responses)) {
           if (response.content?.['application/json']) {
-            const responseType = this.schemaToTypeScriptType(response.content['application/json'].schema);
+            const responseType = this.schemaToTypeScriptType(
+              response.content['application/json'].schema
+            );
             code += `export interface ${operationName}${statusCode}Response {\n`;
             code += `  data: ${responseType};\n`;
             code += '}\n\n';
@@ -223,7 +227,7 @@ class CodeGenerator {
     switch (schema.type) {
       case 'string':
         if (schema.enum) {
-          return schema.enum.map(v => `"${v}"`).join(' | ');
+          return schema.enum.map((v) => `"${v}"`).join(' | ');
         }
         return 'string';
 
@@ -240,9 +244,10 @@ class CodeGenerator {
 
       case 'object':
         if (schema.additionalProperties) {
-          const valueType = typeof schema.additionalProperties === 'boolean'
-            ? 'any'
-            : this.schemaToTypeScriptType(schema.additionalProperties);
+          const valueType =
+            typeof schema.additionalProperties === 'boolean'
+              ? 'any'
+              : this.schemaToTypeScriptType(schema.additionalProperties);
           return `Record<string, ${valueType}>`;
         }
         return 'Record<string, any>';
@@ -367,7 +372,7 @@ export type * from './types.js';
 
     writeFileSync(join(outputDir, 'client.js'), client);
     writeFileSync(join(outputDir, 'types.d.ts'), this.generateTypeScriptTypes());
-    writeFileSync(join(outputDir, 'index.js'), 'module.exports = require(\'./client.js\');');
+    writeFileSync(join(outputDir, 'index.js'), "module.exports = require('./client.js');");
 
     console.log(`📝 Generated JavaScript SDK in ${outputDir}`);
   }
@@ -582,7 +587,10 @@ impl ${this.spec.info.title.replace(/\s+/g, '')}Client {
         if (operation.parameters) {
           for (const param of operation.parameters) {
             if (param.in === 'path') {
-              apiPath = apiPath.replace(`{${param.name}}`, `\${params.get("${param.name}").unwrap_or(&serde_json::Value::Null)}`);
+              apiPath = apiPath.replace(
+                `{${param.name}}`,
+                `\${params.get("${param.name}").unwrap_or(&serde_json::Value::Null)}`
+              );
             }
           }
         }
@@ -662,7 +670,8 @@ import { describe, it, expect } from 'vitest';
 import { ${this.spec.info.title.replace(/\s+/g, '')}Client } from '../typescript/index.js';
 
 describe('${this.spec.info.title} API', () => {
-  const client = new ${this.spec.info.title.replace(/\s+/g, '')}Client('http://localhost:3000');
+  // NOTE: Use HTTPS in production. localhost is for development only.
+  const client = new ${this.spec.info.title.replace(/\s+/g, '')}Client(process.env.API_URL || 'https://localhost:3000');
 
 `;
 
@@ -697,20 +706,22 @@ describe('${this.spec.info.title} API', () => {
     }
 
     // Generate from path and method
-    const pathParts = path.split('/').filter(p => p && !p.startsWith('{'));
+    const pathParts = path.split('/').filter((p) => p && !p.startsWith('{'));
     const methodPrefix = method.charAt(0).toUpperCase() + method.slice(1);
-    const pathSuffix = pathParts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('');
+    const pathSuffix = pathParts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('');
 
     return methodPrefix + pathSuffix;
   }
 }
 
-export function codeGenPlugin(config: CodeGenConfig = {
-  outputDir: './generated',
-  languages: ['typescript'],
-  generateDocs: true,
-  generateTests: true
-}): Plugin {
+export function codeGenPlugin(
+  config: CodeGenConfig = {
+    outputDir: './generated',
+    languages: ['typescript'],
+    generateDocs: true,
+    generateTests: true,
+  }
+): Plugin {
   let generator: CodeGenerator | null = null;
 
   return {
@@ -728,28 +739,35 @@ export function codeGenPlugin(config: CodeGenConfig = {
               return { success: true };
             } catch (error) {
               console.error('Code generation failed:', error);
-              return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+              return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              };
             }
           },
           generateFromUrl: async (specUrl: string) => {
             try {
               const response = await fetch(specUrl);
-              const spec = await response.json() as OpenAPISpec;
+              const spec = (await response.json()) as OpenAPISpec;
               generator = new CodeGenerator(spec, config);
               await generator.generate();
               return { success: true };
             } catch (error) {
               console.error('Code generation from URL failed:', error);
-              return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+              return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              };
             }
-          }
+          },
         };
         await next();
       });
 
       // Add code generation routes
+      // NOTE: In production, add CSRF protection middleware before this route
       app.post('/api/codegen/generate', async (ctx: Context) => {
-        const body = ctx.req.body as { specPath?: string; specUrl?: string } || {};
+        const body = (ctx.req.body as { specPath?: string; specUrl?: string }) || {};
 
         if (body.specPath) {
           ctx.res.body = await (ctx.codegen as any).generateFromSpec(body.specPath);
@@ -767,9 +785,9 @@ export function codeGenPlugin(config: CodeGenConfig = {
           outputDir: config.outputDir,
           languages: config.languages,
           generateDocs: config.generateDocs,
-          generateTests: config.generateTests
+          generateTests: config.generateTests,
         };
       });
-    }
+    },
   };
 }

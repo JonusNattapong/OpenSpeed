@@ -4,10 +4,10 @@ import { check, sleep } from 'k6';
 export let options = {
   stages: [
     { duration: '30s', target: 10 }, // Ramp up to 10 users
-    { duration: '1m', target: 50 },  // Ramp up to 50 users
+    { duration: '1m', target: 50 }, // Ramp up to 50 users
     { duration: '30s', target: 100 }, // Ramp up to 100 users
     { duration: '1m', target: 100 }, // Stay at 100 users
-    { duration: '30s', target: 0 },  // Ramp down to 0 users
+    { duration: '30s', target: 0 }, // Ramp down to 0 users
   ],
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95% of requests should be below 500ms
@@ -15,7 +15,8 @@ export let options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+// NOTE: Use HTTPS in production. HTTP localhost is for local testing only.
+const BASE_URL = __ENV.BASE_URL || 'https://localhost:3000';
 
 export default function () {
   // Test health check

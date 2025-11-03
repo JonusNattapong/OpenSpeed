@@ -25,7 +25,7 @@ class AITutorialMentor {
       difficulty: 'Beginner',
       duration: '30 minutes',
       topics: ['routing', 'middleware', 'responses', 'plugins'],
-      prerequisites: []
+      prerequisites: [],
     });
 
     this.tutorials.set('api-design', {
@@ -34,7 +34,7 @@ class AITutorialMentor {
       difficulty: 'Intermediate',
       duration: '45 minutes',
       topics: ['rest', 'http-methods', 'status-codes', 'validation'],
-      prerequisites: ['basics']
+      prerequisites: ['basics'],
     });
 
     this.tutorials.set('authentication', {
@@ -43,7 +43,7 @@ class AITutorialMentor {
       difficulty: 'Advanced',
       duration: '60 minutes',
       topics: ['jwt', 'bcrypt', 'middleware', 'security'],
-      prerequisites: ['basics', 'api-design']
+      prerequisites: ['basics', 'api-design'],
     });
 
     this.tutorials.set('realtime', {
@@ -52,7 +52,7 @@ class AITutorialMentor {
       difficulty: 'Advanced',
       duration: '75 minutes',
       topics: ['websockets', 'events', 'pub-sub', 'scaling'],
-      prerequisites: ['basics']
+      prerequisites: ['basics'],
     });
 
     this.tutorials.set('database', {
@@ -61,7 +61,7 @@ class AITutorialMentor {
       difficulty: 'Intermediate',
       duration: '50 minutes',
       topics: ['prisma', 'migrations', 'queries', 'relationships'],
-      prerequisites: ['basics']
+      prerequisites: ['basics'],
     });
 
     this.tutorials.set('deployment', {
@@ -70,7 +70,7 @@ class AITutorialMentor {
       difficulty: 'Advanced',
       duration: '40 minutes',
       topics: ['docker', 'kubernetes', 'ci-cd', 'monitoring'],
-      prerequisites: ['basics', 'api-design']
+      prerequisites: ['basics', 'api-design'],
     });
   }
 
@@ -83,7 +83,7 @@ class AITutorialMentor {
       strengths: this.identifyStrengths(userResponses),
       weaknesses: this.identifyWeaknesses(userResponses),
       recommendations: this.generateRecommendations(userResponses),
-      learningPath: this.suggestLearningPath(userResponses)
+      learningPath: this.suggestLearningPath(userResponses),
     };
 
     return analysis;
@@ -93,7 +93,7 @@ class AITutorialMentor {
     const scores = {
       beginner: 0,
       intermediate: 0,
-      advanced: 0
+      advanced: 0,
     };
 
     // Analyze responses to determine skill level
@@ -111,13 +111,13 @@ class AITutorialMentor {
 
   identifyStrengths(responses) {
     const strengths = [];
-    if (responses.some(r => r.includes('javascript') || r.includes('typescript'))) {
+    if (responses.some((r) => r.includes('javascript') || r.includes('typescript'))) {
       strengths.push('JavaScript/TypeScript');
     }
-    if (responses.some(r => r.includes('api') || r.includes('rest'))) {
+    if (responses.some((r) => r.includes('api') || r.includes('rest'))) {
       strengths.push('API Development');
     }
-    if (responses.some(r => r.includes('database'))) {
+    if (responses.some((r) => r.includes('database'))) {
       strengths.push('Database Design');
     }
     return strengths;
@@ -125,13 +125,13 @@ class AITutorialMentor {
 
   identifyWeaknesses(responses) {
     const weaknesses = [];
-    if (!responses.some(r => r.includes('authentication'))) {
+    if (!responses.some((r) => r.includes('authentication'))) {
       weaknesses.push('Security & Authentication');
     }
-    if (!responses.some(r => r.includes('real-time') || r.includes('websocket'))) {
+    if (!responses.some((r) => r.includes('real-time') || r.includes('websocket'))) {
       weaknesses.push('Real-Time Features');
     }
-    if (!responses.some(r => r.includes('deployment'))) {
+    if (!responses.some((r) => r.includes('deployment'))) {
       weaknesses.push('Production Deployment');
     }
     return weaknesses;
@@ -150,7 +150,9 @@ class AITutorialMentor {
     }
 
     if (analysis.weaknesses.includes('Real-Time Features')) {
-      recommendations.push('Learn WebSocket implementation in the "Real-Time Applications" tutorial');
+      recommendations.push(
+        'Learn WebSocket implementation in the "Real-Time Applications" tutorial'
+      );
     }
 
     return recommendations;
@@ -160,7 +162,7 @@ class AITutorialMentor {
     const paths = {
       beginner: ['basics', 'api-design', 'database', 'authentication'],
       intermediate: ['api-design', 'database', 'authentication', 'realtime'],
-      advanced: ['authentication', 'realtime', 'deployment']
+      advanced: ['authentication', 'realtime', 'deployment'],
     };
 
     return paths[analysis.level] || paths.beginner;
@@ -184,7 +186,7 @@ class AITutorialMentor {
       currentStep: 0,
       completedSteps: [],
       startedAt: new Date(),
-      aiHints: []
+      aiHints: [],
     });
 
     return tutorial;
@@ -210,8 +212,8 @@ class AITutorialMentor {
       progress: {
         current: progress.currentStep + 1,
         total: steps.length,
-        percentage: Math.round(((progress.currentStep + 1) / steps.length) * 100)
-      }
+        percentage: Math.round(((progress.currentStep + 1) / steps.length) * 100),
+      },
     };
   }
 
@@ -251,7 +253,7 @@ class AITutorialMentor {
       feedback: correct
         ? `✅ Excellent! ${step.successMessage}`
         : `❌ Not quite right. Hint: ${step.hint}`,
-      explanation: step.explanation
+      explanation: step.explanation,
     };
   }
 
@@ -260,7 +262,7 @@ class AITutorialMentor {
     return {
       type: 'insight',
       message: `Great job understanding ${step.concept}! This pattern is commonly used in ${step.realWorldExample}.`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -274,44 +276,48 @@ class AITutorialMentor {
             id: 'routing-basics',
             title: 'Understanding Routing',
             concept: 'HTTP Routing',
-            content: 'Routes define how your application responds to different URLs. In OpenSpeed, you use methods like app.get(), app.post(), etc.',
+            content:
+              'Routes define how your application responds to different URLs. In OpenSpeed, you use methods like app.get(), app.post(), etc.',
             task: 'Create a route that responds with "Hello World" when someone visits the home page.',
             expectedKeyword: 'app.get',
             hint: 'Use app.get() method with a path and handler function',
-            successMessage: 'Perfect! You\'ve created your first route.',
-            explanation: 'The app.get() method creates a route handler for GET requests to the specified path.',
-            realWorldExample: 'user authentication endpoints'
+            successMessage: "Perfect! You've created your first route.",
+            explanation:
+              'The app.get() method creates a route handler for GET requests to the specified path.',
+            realWorldExample: 'user authentication endpoints',
           },
           {
             id: 'middleware-intro',
             title: 'Middleware Fundamentals',
             concept: 'Middleware Pattern',
-            content: 'Middleware functions have access to the request and response objects, and can modify them or end the request cycle.',
+            content:
+              'Middleware functions have access to the request and response objects, and can modify them or end the request cycle.',
             task: 'Add a logging middleware that logs each request method and URL.',
             expectedKeyword: 'console.log',
             hint: 'Use app.use() to add middleware that logs ctx.req.method and ctx.req.url',
             successMessage: 'Excellent! Middleware helps with logging, authentication, and more.',
-            explanation: 'Middleware runs for every request and can perform tasks like logging, authentication, or data transformation.',
-            realWorldExample: 'request logging and error handling'
+            explanation:
+              'Middleware runs for every request and can perform tasks like logging, authentication, or data transformation.',
+            realWorldExample: 'request logging and error handling',
           }
         );
         break;
 
       case 'API Design Patterns':
-        steps.push(
-          {
-            id: 'rest-principles',
-            title: 'REST API Principles',
-            concept: 'RESTful Design',
-            content: 'REST APIs use HTTP methods appropriately: GET for reading, POST for creating, PUT for updating, DELETE for removing.',
-            task: 'Design RESTful routes for a blog with posts and comments.',
-            expectedKeyword: 'posts',
-            hint: 'Use /posts for listing posts, /posts/:id for individual posts',
-            successMessage: 'Great! RESTful design makes APIs predictable and easy to use.',
-            explanation: 'REST uses resource-based URLs and HTTP methods to perform operations on those resources.',
-            realWorldExample: 'social media APIs and e-commerce platforms'
-          }
-        );
+        steps.push({
+          id: 'rest-principles',
+          title: 'REST API Principles',
+          concept: 'RESTful Design',
+          content:
+            'REST APIs use HTTP methods appropriately: GET for reading, POST for creating, PUT for updating, DELETE for removing.',
+          task: 'Design RESTful routes for a blog with posts and comments.',
+          expectedKeyword: 'posts',
+          hint: 'Use /posts for listing posts, /posts/:id for individual posts',
+          successMessage: 'Great! RESTful design makes APIs predictable and easy to use.',
+          explanation:
+            'REST uses resource-based URLs and HTTP methods to perform operations on those resources.',
+          realWorldExample: 'social media APIs and e-commerce platforms',
+        });
         break;
     }
 
@@ -328,10 +334,11 @@ class AITutorialMentor {
       'Consider what data you need to send or receive.',
       'Look at similar examples in the documentation.',
       'Break down the problem into smaller steps.',
-      'Check if there are any existing patterns you can follow.'
+      'Check if there are any existing patterns you can follow.',
     ];
 
-    return hints[Math.floor(Math.random() * hints.length)];
+    // Non-security context: using timestamp-based selection for hint variety
+    return hints[Date.now() % hints.length];
   }
 
   getProgress(userId = 'default') {
@@ -374,7 +381,9 @@ export function tutorialCommand() {
         if (options.progress) {
           const progress = mentor.getProgress();
           if (!progress) {
-            console.log('📊 No tutorial progress found. Start a tutorial with `openspeed tutorial <name>`');
+            console.log(
+              '📊 No tutorial progress found. Start a tutorial with `openspeed tutorial <name>`'
+            );
           } else {
             console.log('📊 Learning Progress:');
             console.log(`Tutorial: ${progress.tutorialId}`);
@@ -394,7 +403,7 @@ export function tutorialCommand() {
             'What is your experience with API development?',
             'Have you worked with databases before?',
             'Do you understand authentication concepts?',
-            'Have you built real-time applications?'
+            'Have you built real-time applications?',
           ];
 
           const responses = [];
@@ -411,7 +420,7 @@ export function tutorialCommand() {
           console.log(`Areas for Growth: ${analysis.weaknesses.join(', ')}`);
 
           console.log('\n🎯 Recommendations:');
-          analysis.recommendations.forEach(rec => console.log(`• ${rec}`));
+          analysis.recommendations.forEach((rec) => console.log(`• ${rec}`));
 
           console.log('\n📚 Suggested Learning Path:');
           analysis.learningPath.forEach((tutorialId, index) => {
@@ -428,12 +437,12 @@ export function tutorialCommand() {
           const choices = Array.from(mentor.tutorials.entries()).map(([id, tut]) => ({
             name: `${tut.title} (${tut.difficulty}) - ${tut.duration}`,
             value: id,
-            description: tut.description
+            description: tut.description,
           }));
 
           tutorialId = await select({
             message: 'Which tutorial would you like to start?',
-            choices
+            choices,
           });
         }
 
@@ -449,14 +458,16 @@ export function tutorialCommand() {
             break;
           }
 
-          console.log(`\n📖 Step ${nextStep.progress.current}/${nextStep.progress.total} (${nextStep.progress.percentage}%)`);
+          console.log(
+            `\n📖 Step ${nextStep.progress.current}/${nextStep.progress.total} (${nextStep.progress.percentage}%)`
+          );
           console.log(`🎯 ${nextStep.step.title}`);
           console.log(`\n${nextStep.step.content}`);
           console.log(`\n💡 Task: ${nextStep.step.task}`);
 
           const needHint = await confirm({
             message: 'Need a hint?',
-            default: false
+            default: false,
           });
 
           if (needHint) {
@@ -466,7 +477,7 @@ export function tutorialCommand() {
 
           const answer = await editor({
             message: 'Write your solution:',
-            default: '// Your code here'
+            default: '// Your code here',
           });
 
           const result = await mentor.submitAnswer('default', answer, nextStep.step.id);
@@ -479,7 +490,7 @@ export function tutorialCommand() {
           if (!result.correct) {
             const tryAgain = await confirm({
               message: 'Try again?',
-              default: true
+              default: true,
             });
 
             if (!tryAgain) {
@@ -489,7 +500,7 @@ export function tutorialCommand() {
           } else {
             const continueTutorial = await confirm({
               message: 'Continue to next step?',
-              default: true
+              default: true,
             });
 
             if (!continueTutorial) {
@@ -498,7 +509,6 @@ export function tutorialCommand() {
             }
           }
         }
-
       } catch (error) {
         console.error('❌ Tutorial error:', error.message);
         process.exit(1);

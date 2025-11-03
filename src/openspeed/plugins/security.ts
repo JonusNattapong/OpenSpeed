@@ -17,11 +17,14 @@ export interface SecurityOptions {
   maxBodySize?: number;
 
   // CSRF protection
-  csrf?: {
-    secret?: string;
-    cookieName?: string;
-    headerName?: string;
-  };
+  csrf?:
+    | {
+        secret?: string;
+        cookieName?: string;
+        headerName?: string;
+        enforceInProduction?: boolean; // Force CSRF in production
+      }
+    | boolean;
 
   // Security logging
   logSecurityEvents?: boolean;
@@ -56,6 +59,40 @@ export function security(options: SecurityOptions = {}) {
     logSecurityEvents = true,
     customChecks = [],
   } = options;
+
+  // Warn if CSRF is not enabled in production
+  if (process.env.NODE_ENV === 'production' && !csrf) {
+    console.error('\n' + '='.repeat(80));
+    console.error('⚠️  SECURITY WARNING: CSRF PROTECTION NOT ENABLED');
+    console.error('='.repeat(80));
+    console.error('You are running in PRODUCTION without CSRF protection!');
+    console.error('');
+    console.error('🔴 RISKS:');
+    console.error('  - Cross-Site Request Forgery attacks');
+    console.error('  - Unauthorized state-changing operations');
+    console.error('  - Session hijacking');
+    console.error('');
+    console.error('✅ RECOMMENDED FIX:');
+    console.error('  app.use(security({');
+    console.error("    csrf: { secret: process.env.CSRF_SECRET || 'your-secret-here' }");
+    console.error('  }));');
+    console.error('');
+    console.error('Or use the csrfProtection plugin for more advanced features.');
+    console.error('='.repeat(80) + '\n');
+
+    // Only throw if enforceInProduction is not explicitly set to false
+    let shouldEnforce = true;
+    if (typeof csrf === 'object' && csrf !== null) {
+      shouldEnforce = csrf.enforceInProduction !== false;
+    }
+
+    if (shouldEnforce) {
+      throw new Error(
+        'SECURITY ERROR: CSRF protection is REQUIRED in production. ' +
+          'Set csrf options or set csrf.enforceInProduction to false to disable this check.'
+      );
+    }
+  }
 
   // Security event logger
   const logSecurityEvent = (event: SecurityEvent) => {
@@ -267,8 +304,19 @@ async function validateCSRF(
   ctx: Context,
   options: NonNullable<SecurityOptions['csrf']>
 ): Promise<{ valid: boolean; details?: any }> {
+  // Type guard: only process if options is an object
+  if (typeof options === 'boolean') {
+    return { valid: true };
+  }
+
   const {
-    secret = 'default-csrf-secret',
+    secret = process.env.CSRF_SECRET ||
+      (() => {
+        console.warn(
+          '[SECURITY WARNING] Using default CSRF secret. Set CSRF_SECRET environment variable.'
+        );
+        return 'default-csrf-secret-change-me';
+      })(),
     cookieName = 'csrf-token',
     headerName = 'x-csrf-token',
   } = options;
@@ -302,8 +350,12 @@ async function validateCSRF(
 /**
  * Generate CSRF token (utility function)
  */
-export function generateCSRFToken(secret: string = 'default-csrf-secret'): string {
-  // Simple token generation (in production, use crypto.randomUUID())
+export function generateCSRFToken(secret?: string): string {
+  const effectiveSecret = secret || process.env.CSRF_SECRET;
+  if (!effectiveSecret && process.env.NODE_ENV === 'production') {
+    throw new Error('CSRF_SECRET environment variable must be set in production');
+  }
+  // Use crypto.randomBytes for secure token generation
   const crypto = require('crypto');
   return crypto.randomBytes(32).toString('hex');
 }
@@ -329,6 +381,7 @@ export const securityPresets = {
     contentSecurityPolicy: "default-src 'self' 'unsafe-inline'", // Removed 'unsafe-eval' for security
     hsts: false,
     logSecurityEvents: true,
+    csrf: { enforceInProduction: false }, // Don't require CSRF in development
   },
 
   // Strict security for production
@@ -336,7 +389,10 @@ export const securityPresets = {
     contentSecurityPolicy:
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    csrf: { secret: process.env.CSRF_SECRET },
+    csrf: {
+      secret: process.env.CSRF_SECRET || '',
+      enforceInProduction: true,
+    },
     logSecurityEvents: true,
   },
 
@@ -344,7 +400,10 @@ export const securityPresets = {
   api: {
     contentSecurityPolicy: false, // APIs don't need CSP
     hsts: { maxAge: 31536000, includeSubDomains: true },
-    csrf: { secret: process.env.CSRF_SECRET },
+    csrf: {
+      secret: process.env.CSRF_SECRET || '',
+      enforceInProduction: true,
+    },
     sanitizeInput: true,
     maxBodySize: 1024 * 1024, // 1MB
   },
