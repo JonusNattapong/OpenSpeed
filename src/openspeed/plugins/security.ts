@@ -267,7 +267,8 @@ async function validateCSRF(
   ctx: Context,
   options: NonNullable<SecurityOptions['csrf']>
 ): Promise<{ valid: boolean; details?: any }> {
-  // SECURITY FIX: Enforce environment variable for CSRF secret
+  // SECURITY: Validate CSRF secret requirement
+  // The secret is used for validation context, not for generating tokens
   const secret = options.secret || process.env.CSRF_SECRET;
   
   if (!secret) {
@@ -283,6 +284,7 @@ async function validateCSRF(
     );
   }
   
+  // Extract cookie and header names from options
   const {
     cookieName = 'csrf-token',
     headerName = 'x-csrf-token',

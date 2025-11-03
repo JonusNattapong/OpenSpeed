@@ -33,8 +33,9 @@ export class CookieJar {
   private cookies = new Map<string, { value: string; options: CookieOptions }>();
 
   // RFC 6265 - Cookie name restrictions
-  // Cookie names cannot contain: control characters (0x00-0x1F, 0x7F), 
-  // whitespace, or separators: ( ) < > @ , ; : \ " / [ ] ? = { }
+  // - Control chars: 0x00-0x1F (including null, tab, newline), 0x7F (DEL)
+  // - Whitespace: space, tab, newline, etc.
+  // - RFC 6265 separators: ( ) < > @ , ; : \ " / [ ] ? = { }
   private static readonly INVALID_COOKIE_NAME_CHARS = /[\x00-\x1F\x7F()<>@,;:\\"/\[\]?={}\s]/;
 
   set(name: string, value: string, options: CookieOptions = {}) {

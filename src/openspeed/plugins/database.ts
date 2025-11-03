@@ -521,6 +521,11 @@ export interface ISQLQueryBuilder<T = unknown> {
 }
 
 export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
+  // SECURITY: Pattern to detect JavaScript string concatenation in SQL queries
+  // Matches patterns like: "... '" + var + "..." or '...' + "..." 
+  // which indicate SQL injection vulnerability
+  private static readonly JS_CONCAT_PATTERN = /['"]\s*\+\s*[^'"]|[^'"]\s*\+\s*['"]/;
+  
   constructor(
     private pool: unknown,
     private table: string,
@@ -738,15 +743,20 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
     }
     
     // SECURITY: Detect JavaScript string concatenation that might indicate SQL injection
-    // This checks for patterns like: "SELECT * FROM users WHERE id = '" + userId + "'"
-    // which is a common SQL injection vulnerability in JavaScript code.
-    // Note: This intentionally only checks for JS concatenation (+ operator with quotes),
-    // not SQL CONCAT() function which is legitimate with proper parameterization.
-    // False positives are unlikely since raw SQL queries shouldn't contain JS string literals.
+    // 
+    // Examples of what this catches:
+    //   ❌ BAD: `SELECT * FROM users WHERE id = '${userId}'`
+    //   ❌ BAD: "SELECT * FROM users WHERE name = '" + userName + "'"
+    //   ✅ GOOD: `SELECT * FROM users WHERE id = $1`, [userId]
+    //   ✅ GOOD: "SELECT CONCAT(first_name, ' ', last_name) FROM users" (SQL function, not JS)
+    // 
+    // Edge cases:
+    // - If you need to pass a query with literal + characters in strings,
+    //   use a parameterized value or ensure proper escaping
+    // - For dynamic table/column names, use a whitelist validation approach
     if (values.length === 0) {
       // Check for string literal followed by + operator (JavaScript concatenation)
-      const hasJSConcatenation = /['"]\s*\+\s*[^'"]|[^'"]\s*\+\s*['"]/.test(query);
-      if (hasJSConcatenation) {
+      if (SQLQueryBuilder.JS_CONCAT_PATTERN.test(query)) {
         throw new Error(
           'SECURITY ERROR: JavaScript string concatenation detected in raw query without parameters. ' +
           'This pattern indicates SQL injection risk. Use parameterized queries instead: ' +
