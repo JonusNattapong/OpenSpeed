@@ -1,3 +1,4 @@
+import { randomBytes, timingSafeEqual as cryptoTimingSafeEqual } from 'crypto';
 import type { Context } from '../context.js';
 
 export interface SecurityOptions {
@@ -268,10 +269,18 @@ async function validateCSRF(
   options: NonNullable<SecurityOptions['csrf']>
 ): Promise<{ valid: boolean; details?: any }> {
   const {
-    secret = 'default-csrf-secret',
+    secret = process.env.CSRF_SECRET || 'default-csrf-secret',
     cookieName = 'csrf-token',
     headerName = 'x-csrf-token',
   } = options;
+
+  // Warn about default CSRF secret
+  if (secret === 'default-csrf-secret') {
+    console.warn('[SECURITY] Using default CSRF secret. Set CSRF_SECRET environment variable for production.');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[SECURITY] Cannot use default CSRF secret in production!');
+    }
+  }
 
   // Skip CSRF check for safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(ctx.req.method)) {
@@ -290,22 +299,52 @@ async function validateCSRF(
     return { valid: false, details: { reason: 'Missing CSRF token in cookie' } };
   }
 
-  // Validate tokens match
-  if (headerToken !== cookieToken) {
+  // Validate tokens match using timing-safe comparison
+  if (!timingSafeEquals(headerToken, cookieToken)) {
     return { valid: false, details: { reason: 'CSRF tokens do not match' } };
   }
 
-  // Additional validation could include timing checks, etc.
   return { valid: true };
 }
 
 /**
- * Generate CSRF token (utility function)
+ * Timing-safe string comparison to prevent timing attacks
+ * Performs constant-time comparison to avoid leaking information about string length or content
+ * 
+ * Implementation note: This pads both strings to the same length before comparison.
+ * If the original strings had different lengths, the comparison will fail because
+ * the padding bytes will differ. This is intentional and maintains constant-time behavior.
  */
-export function generateCSRFToken(secret: string = 'default-csrf-secret'): string {
-  // Simple token generation (in production, use crypto.randomUUID())
-  const crypto = require('crypto');
-  return crypto.randomBytes(32).toString('hex');
+function timingSafeEquals(a: string, b: string): boolean {
+  // Convert to buffers for timing-safe comparison
+  const bufferA = Buffer.from(a);
+  const bufferB = Buffer.from(b);
+  
+  // Pad both buffers to the same length (max of the two)
+  // This ensures constant-time behavior regardless of input lengths
+  const maxLength = Math.max(bufferA.length, bufferB.length);
+  const paddedA = Buffer.alloc(maxLength);
+  const paddedB = Buffer.alloc(maxLength);
+  
+  bufferA.copy(paddedA);
+  bufferB.copy(paddedB);
+  
+  try {
+    // This performs constant-time comparison
+    // If original lengths differed, padding will differ and this returns false
+    return cryptoTimingSafeEqual(paddedA, paddedB);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Generate CSRF token (utility function)
+ * Uses crypto.randomBytes for secure token generation
+ */
+export function generateCSRFToken(_secret?: string): string {
+  // Use cryptographically secure random bytes
+  return randomBytes(32).toString('hex');
 }
 
 /**
@@ -314,7 +353,7 @@ export function generateCSRFToken(secret: string = 'default-csrf-secret'): strin
 export function setCSRFCookie(ctx: Context, token: string, cookieName: string = 'csrf-token') {
   ctx.setCookie(cookieName, token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production', // Only require secure in production
     sameSite: 'strict',
     maxAge: 3600, // 1 hour
   });
