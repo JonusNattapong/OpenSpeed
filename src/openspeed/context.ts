@@ -56,17 +56,18 @@ export class CookieJar {
     const cookieStrings: string[] = [];
 
     for (const [name, { value, options }] of this.cookies) {
-      // SECURITY FIX: Properly encode cookie name and value to prevent injection
-      const encodedName = encodeURIComponent(name);
-      const encodedValue = encodeURIComponent(value);
-      
-      // Validate cookie name and value don't contain dangerous characters
-      if (name.includes(';') || name.includes(',') || name.includes('=')) {
-        console.warn(`[COOKIE SECURITY] Invalid cookie name: ${name}`);
+      // SECURITY FIX: Validate cookie name per RFC 6265 (no encoding needed for names)
+      // Cookie names cannot contain: control chars, whitespace, separators: ()<>@,;:\"/[]?={} 
+      const invalidNameChars = /[\x00-\x1F\x7F()<>@,;:\\"/\[\]?={}\s]/;
+      if (invalidNameChars.test(name)) {
+        console.warn(`[COOKIE SECURITY] Invalid cookie name (contains illegal characters): ${name}`);
         continue;
       }
       
-      let cookieStr = `${encodedName}=${encodedValue}`;
+      // SECURITY FIX: Properly encode cookie value to prevent injection
+      const encodedValue = encodeURIComponent(value);
+      
+      let cookieStr = `${name}=${encodedValue}`;
 
       if (options.maxAge !== undefined) {
         cookieStr += `; Max-Age=${options.maxAge}`;

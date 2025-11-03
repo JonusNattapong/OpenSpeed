@@ -737,10 +737,11 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
       }
     }
     
-    // SECURITY: Detect potentially dangerous unparameterized queries
-    if (values.length === 0 && /'\s*\+\s*|"\s*\+\s*|\bconcat\s*\(/i.test(query)) {
+    // SECURITY: Detect potentially dangerous unparameterized queries with string concatenation
+    // Note: This checks for JavaScript string concatenation in the query string itself, not SQL CONCAT
+    if (values.length === 0 && /'\s*\+\s*|"\s*\+\s*/.test(query)) {
       throw new Error(
-        'SECURITY ERROR: String concatenation detected in raw query without parameters. ' +
+        'SECURITY ERROR: JavaScript string concatenation detected in raw query without parameters. ' +
         'This is a SQL injection risk. Use parameterized queries instead.'
       );
     }

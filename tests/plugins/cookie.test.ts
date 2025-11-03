@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { cookie, setCookie, getCookie, deleteCookie } from '../../src/openspeed/plugins/cookie.js';
 import Context from '../../src/openspeed/context.js';
 
@@ -127,13 +127,13 @@ describe('cookie plugin', () => {
     const ctx = new Context(req, {});
 
     await middleware(ctx, async () => {
-      // Test encoding of special characters
+      // Test encoding of special characters in VALUES (not names per RFC 6265)
       ctx.cookies?.set('data', 'value with spaces & special=chars');
     });
 
     const setCookieHeader = ctx.res.headers!['Set-Cookie'] as string;
     expect(setCookieHeader).toBeDefined();
-    // Should be URL encoded
+    // Cookie value should be URL encoded, but name should not be
     expect(setCookieHeader).toContain('data=value%20with%20spaces%20%26%20special%3Dchars');
   });
 
@@ -169,7 +169,7 @@ describe('cookie plugin', () => {
     const ctx = new Context(req, {});
 
     // Spy on console.warn to check if warning is logged
-    const warnSpy = vi ? vi.spyOn(console, 'warn').mockImplementation(() => {}) : null;
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     await middleware(ctx, async () => {
       // Try to set cookie with semicolon in name (dangerous)
@@ -178,10 +178,8 @@ describe('cookie plugin', () => {
 
     const setCookieHeader = ctx.res.headers!['Set-Cookie'] as string;
     
-    // Cookie with invalid name should be skipped or sanitized
-    if (warnSpy) {
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
-    }
+    // Cookie with invalid name should be skipped
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
