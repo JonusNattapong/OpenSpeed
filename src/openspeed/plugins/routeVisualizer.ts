@@ -22,10 +22,10 @@ interface RouteVisualizerOptions {
  */
 export class RouteVisualizer {
   private routes: RouteInfo[] = [];
-  private options: Required<RouteVisualizerOptions>;
+  private _options: Required<RouteVisualizerOptions>;
 
   constructor(options: RouteVisualizerOptions = {}) {
-    this.options = {
+    this._options = {
       enabled: process.env.NODE_ENV === 'development',
       endpoint: '/_routes',
       includeMiddleware: true,
@@ -33,6 +33,10 @@ export class RouteVisualizer {
       showInConsole: true,
       ...options
     };
+  }
+  
+  get options(): Required<RouteVisualizerOptions> {
+    return this._options;
   }
 
   /**
@@ -48,7 +52,7 @@ export class RouteVisualizer {
       line
     });
 
-    if (this.options.showInConsole) {
+    if (this._options.showInConsole) {
       console.log(`📍 ${method.toUpperCase()} ${path} → ${handler.name || 'anonymous'}`);
     }
   }
@@ -81,7 +85,7 @@ export class RouteVisualizer {
    * Generate HTML visualization
    */
   generateHTML(): string {
-    const routes = this.options.groupByFile ? this.getRoutesByFile() : { all: this.getRoutes() };
+    const routes = this._options.groupByFile ? this.getRoutesByFile() : { all: this.getRoutes() };
 
     return `
 <!DOCTYPE html>
@@ -146,13 +150,13 @@ export class RouteVisualizer {
                 <div class="stat-label">HTTP Methods</div>
             </div>
             <div class="stat">
-                <div class="stat-number">${this.options.groupByFile ? Object.keys(routes).length : 1}</div>
-                <div class="stat-label">${this.options.groupByFile ? 'Files' : 'Endpoints'}</div>
+                <div class="stat-number">${this._options.groupByFile ? Object.keys(routes).length : 1}</div>
+                <div class="stat-label">${this._options.groupByFile ? 'Files' : 'Endpoints'}</div>
             </div>
         </div>
 
         <div class="routes">
-            ${this.options.groupByFile ?
+            ${this._options.groupByFile ?
               Object.entries(routes).map(([file, fileRoutes]) => `
                 <div class="group-header">📁 ${file}</div>
                 ${fileRoutes.map(route => this.renderRoute(route)).join('')}
@@ -164,11 +168,11 @@ export class RouteVisualizer {
         </div>
     </div>
 
-    <a href="${this.options.endpoint}" class="refresh" onclick="window.location.reload()">🔄 Refresh</a>
+    <a href="${this._options.endpoint}" class="refresh" onclick="window.location.reload()">🔄 Refresh</a>
 
     <script>
         // Auto-refresh every 5 seconds in development
-        if (${this.options.enabled}) {
+        if (${this._options.enabled}) {
             setTimeout(() => window.location.reload(), 5000);
         }
     </script>
@@ -182,7 +186,7 @@ export class RouteVisualizer {
         <span class="method ${route.method}">${route.method}</span>
         <span class="path">${route.path}</span>
         <span class="handler">${route.handler}</span>
-        ${this.options.includeMiddleware && route.middleware.length > 0 ?
+        ${this._options.includeMiddleware && route.middleware.length > 0 ?
           `<span class="middleware">middleware: ${route.middleware.join(', ')}</span>` : ''}
         ${route.file && route.line ?
           `<span class="file-info">${route.file}:${route.line}</span>` : ''}
@@ -207,7 +211,7 @@ export class RouteVisualizer {
       const method = route.method.padEnd(8);
       const path = route.path.padEnd(30);
       const handler = route.handler.padEnd(20);
-      const middleware = this.options.includeMiddleware ?
+      const middleware = this._options.includeMiddleware ?
         route.middleware.join(', ') : '';
 
       output += `${method}${path}${handler}${middleware}\n`;
@@ -231,6 +235,9 @@ export function routeVisualizer(options: RouteVisualizerOptions = {}) {
   return async (ctx: Context, next: () => Promise<any>) => {
     // Handle route visualization endpoint
     if (ctx.req.url === visualizer.options.endpoint) {
+      if (!ctx.res.headers) {
+        ctx.res.headers = {};
+      }
       ctx.res.headers['content-type'] = 'text/html';
       ctx.res.body = visualizer.generateHTML();
       return;

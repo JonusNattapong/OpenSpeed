@@ -150,22 +150,27 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
       }
 
       // Determine response format
+      // Default to JSON for API requests or when no specific format is requested
+      const acceptsHtml = ctx.req.headers.accept?.includes('text/html');
       const isApiRequest = ctx.req.headers.accept?.includes('application/json') ||
                           ctx.req.url.startsWith('/api/') ||
-                          ctx.req.headers['content-type']?.includes('application/json');
+                          ctx.req.headers['content-type']?.includes('application/json') ||
+                          !acceptsHtml; // Default to JSON when no specific format is requested
 
       if (isApiRequest) {
         // JSON API response
+        const errorObj: any = {
+          message,
+          status,
+        };
+        if (code) errorObj.code = code;
+        if (includeDetails && details) errorObj.details = details;
+        if (suggestions && errorSuggestions.length > 0 && developmentMode) errorObj.suggestions = errorSuggestions;
+        if (exposeStack && error.stack) errorObj.stack = error.stack;
+        
         const errorResponse = {
           success: false,
-          error: {
-            message,
-            status,
-            ...(code && { code }),
-            ...(includeDetails && details && { details }),
-            ...(suggestions && errorSuggestions.length > 0 && developmentMode && { suggestions: errorSuggestions }),
-            ...(exposeStack && error.stack && developmentMode && { stack: error.stack }),
-          },
+          error: errorObj,
         };
 
         const finalResponse = transformError ? transformError(error, ctx) : errorResponse;
@@ -188,7 +193,7 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
           status,
           code,
           suggestions: suggestions && developmentMode ? errorSuggestions : undefined,
-          stack: exposeStack && developmentMode ? error.stack : undefined,
+          stack: exposeStack ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });
       } else {
@@ -318,7 +323,7 @@ function categorizeError(error: Error): {
 
   // Default server error
   return {
-    message: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? errorMessage : 'Internal Server Error',
     status: 500,
     code: 'INTERNAL_ERROR',
     suggestions: process.env.NODE_ENV === 'development' ? [

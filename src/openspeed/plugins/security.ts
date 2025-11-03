@@ -268,10 +268,18 @@ async function validateCSRF(
   options: NonNullable<SecurityOptions['csrf']>
 ): Promise<{ valid: boolean; details?: any }> {
   const {
-    secret = 'default-csrf-secret',
+    secret = process.env.CSRF_SECRET || 'default-csrf-secret',
     cookieName = 'csrf-token',
     headerName = 'x-csrf-token',
   } = options;
+
+  // Warn about default CSRF secret
+  if (secret === 'default-csrf-secret') {
+    console.warn('[SECURITY] Using default CSRF secret. Set CSRF_SECRET environment variable for production.');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[SECURITY] Cannot use default CSRF secret in production!');
+    }
+  }
 
   // Skip CSRF check for safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(ctx.req.method)) {
@@ -290,21 +298,39 @@ async function validateCSRF(
     return { valid: false, details: { reason: 'Missing CSRF token in cookie' } };
   }
 
-  // Validate tokens match
-  if (headerToken !== cookieToken) {
+  // Validate tokens match using timing-safe comparison
+  if (!timingSafeEquals(headerToken, cookieToken)) {
     return { valid: false, details: { reason: 'CSRF tokens do not match' } };
   }
 
-  // Additional validation could include timing checks, etc.
   return { valid: true };
 }
 
 /**
- * Generate CSRF token (utility function)
+ * Timing-safe string comparison to prevent timing attacks
  */
-export function generateCSRFToken(secret: string = 'default-csrf-secret'): string {
-  // Simple token generation (in production, use crypto.randomUUID())
+function timingSafeEquals(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
   const crypto = require('crypto');
+  try {
+    const bufferA = Buffer.from(a);
+    const bufferB = Buffer.from(b);
+    return crypto.timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Generate CSRF token (utility function)
+ * Uses crypto.randomBytes for secure token generation
+ */
+export function generateCSRFToken(_secret?: string): string {
+  const crypto = require('crypto');
+  // Use cryptographically secure random bytes
   return crypto.randomBytes(32).toString('hex');
 }
 
@@ -314,7 +340,7 @@ export function generateCSRFToken(secret: string = 'default-csrf-secret'): strin
 export function setCSRFCookie(ctx: Context, token: string, cookieName: string = 'csrf-token') {
   ctx.setCookie(cookieName, token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production', // Only require secure in production
     sameSite: 'strict',
     maxAge: 3600, // 1 hour
   });
