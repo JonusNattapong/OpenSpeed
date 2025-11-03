@@ -309,16 +309,28 @@ async function validateCSRF(
 
 /**
  * Timing-safe string comparison to prevent timing attacks
+ * Performs constant-time comparison to avoid leaking information about string length or content
  */
 function timingSafeEquals(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
+  // Convert to buffers for timing-safe comparison
+  const bufferA = Buffer.from(a);
+  const bufferB = Buffer.from(b);
+  
+  // If lengths differ, pad the shorter one to match the longer
+  // This ensures constant-time behavior regardless of input lengths
+  const maxLength = Math.max(bufferA.length, bufferB.length);
+  const paddedA = Buffer.alloc(maxLength);
+  const paddedB = Buffer.alloc(maxLength);
+  
+  bufferA.copy(paddedA);
+  bufferB.copy(paddedB);
+  
   try {
-    const bufferA = Buffer.from(a);
-    const bufferB = Buffer.from(b);
-    return cryptoTimingSafeEqual(bufferA, bufferB);
+    // This will do constant-time comparison
+    const buffersMatch = cryptoTimingSafeEqual(paddedA, paddedB);
+    // Also verify original lengths match (in constant time)
+    const lengthsMatch = bufferA.length === bufferB.length;
+    return buffersMatch && lengthsMatch;
   } catch {
     return false;
   }

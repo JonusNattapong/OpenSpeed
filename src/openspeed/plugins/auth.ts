@@ -189,11 +189,16 @@ function hashPassword(password: string, salt?: string): string {
   // Use provided salt or get from environment
   const hashSalt = salt || process.env.PASSWORD_HASH_SALT;
   
-  // For backward compatibility with tests, allow 'openspeed-salt' in non-production
+  // For test environments ONLY, allow using 'openspeed-salt' for backward compatibility
+  // This is ONLY to avoid breaking existing tests and should be replaced
   if (!hashSalt) {
     if (process.env.NODE_ENV === 'test') {
-      // Use a specific test salt for backward compatibility
-      console.warn('[AUTH] Using test salt for password hashing. This is only allowed in test environments.');
+      // WARNING: Using hardcoded salt in tests. This is acceptable ONLY because:
+      // 1. Tests are not production code
+      // 2. Test hashes are ephemeral and not stored
+      // 3. Provides backward compatibility with existing tests
+      // In real applications, ALWAYS use environment variables
+      console.warn('[AUTH] Using hardcoded test salt. Set PASSWORD_HASH_SALT env var for tests.');
       return createHmac('sha256', 'openspeed-salt').update(password).digest('hex');
     }
     throw new Error('[AUTH] PASSWORD_HASH_SALT environment variable must be set for password hashing');
@@ -211,25 +216,28 @@ function hashPassword(password: string, salt?: string): string {
 
 /**
  * Timing-safe string comparison to prevent timing attacks
- * Uses Node.js built-in timingSafeEqual when possible
+ * Performs constant-time comparison to avoid leaking information about string length or content
  */
 function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still need to do a fake comparison to prevent timing leaks
-    const dummy = Buffer.from(a);
-    const dummyB = Buffer.from(b.padEnd(a.length, '0'));
-    try {
-      timingSafeEqual(dummy, dummyB);
-    } catch {
-      // Expected to fail, but prevents timing leak
-    }
-    return false;
-  }
-
+  // Convert to buffers for timing-safe comparison
+  const bufferA = Buffer.from(a);
+  const bufferB = Buffer.from(b);
+  
+  // If lengths differ, pad the shorter one to match the longer
+  // This ensures constant-time behavior regardless of input lengths
+  const maxLength = Math.max(bufferA.length, bufferB.length);
+  const paddedA = Buffer.alloc(maxLength);
+  const paddedB = Buffer.alloc(maxLength);
+  
+  bufferA.copy(paddedA);
+  bufferB.copy(paddedB);
+  
   try {
-    const bufferA = Buffer.from(a);
-    const bufferB = Buffer.from(b);
-    return timingSafeEqual(bufferA, bufferB);
+    // This will do constant-time comparison
+    const buffersMatch = timingSafeEqual(paddedA, paddedB);
+    // Also verify original lengths match (in constant time)
+    const lengthsMatch = bufferA.length === bufferB.length;
+    return buffersMatch && lengthsMatch;
   } catch {
     return false;
   }
