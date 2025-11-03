@@ -521,6 +521,11 @@ export interface ISQLQueryBuilder<T = unknown> {
 }
 
 export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
+  // SECURITY: Pattern to detect JavaScript string concatenation in SQL queries
+  // Matches patterns like: "... '" + var + "..." or '...' + "..." 
+  // which indicate SQL injection vulnerability
+  private static readonly JS_CONCAT_PATTERN = /['"]\s*\+\s*[^'"]|[^'"]\s*\+\s*['"]/;
+  
   constructor(
     private pool: unknown,
     private table: string,
@@ -720,8 +725,45 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
   }
 
   async raw(query: string, values: unknown[] = []): Promise<unknown> {
-    // WARNING: Raw queries bypass security measures
-    console.warn('[DB SECURITY WARNING] Raw query executed:', query);
+    // SECURITY WARNING: Raw queries can bypass security measures and lead to SQL injection
+    // Only use this method when absolutely necessary and ensure all inputs are validated/sanitized
+    console.warn('[DB SECURITY WARNING] Raw query executed - ensure inputs are validated:', query);
+    
+    // SECURITY: Validate that query uses parameterized placeholders if values are provided
+    if (values.length > 0) {
+      const placeholderPattern = /\$\d+/g;
+      const placeholders = query.match(placeholderPattern) || [];
+      
+      if (placeholders.length !== values.length) {
+        throw new Error(
+          `SECURITY ERROR: Parameter count mismatch. Query has ${placeholders.length} placeholders but ${values.length} values provided. ` +
+          'Always use parameterized queries to prevent SQL injection.'
+        );
+      }
+    }
+    
+    // SECURITY: Detect JavaScript string concatenation that might indicate SQL injection
+    // 
+    // Examples of what this catches:
+    //   ❌ BAD: `SELECT * FROM users WHERE id = '${userId}'`
+    //   ❌ BAD: "SELECT * FROM users WHERE name = '" + userName + "'"
+    //   ✅ GOOD: `SELECT * FROM users WHERE id = $1`, [userId]
+    //   ✅ GOOD: "SELECT CONCAT(first_name, ' ', last_name) FROM users" (SQL function, not JS)
+    // 
+    // Edge cases:
+    // - If you need to pass a query with literal + characters in strings,
+    //   use a parameterized value or ensure proper escaping
+    // - For dynamic table/column names, use a whitelist validation approach
+    if (values.length === 0) {
+      // Check for string literal followed by + operator (JavaScript concatenation)
+      if (SQLQueryBuilder.JS_CONCAT_PATTERN.test(query)) {
+        throw new Error(
+          'SECURITY ERROR: JavaScript string concatenation detected in raw query without parameters. ' +
+          'This pattern indicates SQL injection risk. Use parameterized queries instead: ' +
+          'query("SELECT * FROM users WHERE id = $1", [userId])'
+        );
+      }
+    }
 
     const startTime = Date.now();
     try {

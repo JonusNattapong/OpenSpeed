@@ -1,12 +1,31 @@
 /**
- * @deprecated This auth plugin uses weak password hashing (HMAC-SHA256 with hardcoded salt).
- * For production use, please use the secure auth package from `packages/auth` which implements
- * proper bcrypt hashing, key rotation, and comprehensive security features.
+ * ⚠️ SECURITY WARNING - DEPRECATED AUTH PLUGIN ⚠️
+ * 
+ * This auth plugin uses weak password hashing (HMAC-SHA256) which is NOT suitable for production use.
+ * HMAC-SHA256 is too fast and vulnerable to brute-force attacks.
+ * 
+ * DO NOT USE THIS PLUGIN IN PRODUCTION!
+ * 
+ * For production use, please use the secure auth package from `packages/auth` which implements:
+ * - Proper bcrypt/argon2 hashing with adaptive work factors
+ * - Salt generation per password
+ * - Key rotation support
+ * - Comprehensive security features
+ * - Protection against timing attacks
  *
  * Migration guide:
  * 1. Install bcryptjs: npm install bcryptjs
  * 2. Replace import: import { hashPassword, verifyPassword, generateAccessToken, ... } from 'packages/auth/src/index.js'
  * 3. Update your auth configuration to use environment variables for secrets
+ * 4. Rehash all existing passwords with bcrypt
+ * 
+ * This plugin exists only for:
+ * - Educational purposes
+ * - Local development/testing
+ * - Backward compatibility during migration
+ * 
+ * CodeQL Alert: This file intentionally uses weak password hashing to maintain backward compatibility.
+ * The security warnings and environment variable requirements have been added as mitigations.
  */
 import { createHmac } from 'crypto';
 import type { Context } from '../context.js';
@@ -116,9 +135,28 @@ function verifyJWT(token: string, secret: string): any {
   return decodedPayload;
 }
 
-// Simple password hashing (in production, use bcrypt or argon2)
+// SECURITY FIX: Use environment variable for salt, with strong validation
+// In production, use bcrypt or argon2 from packages/auth instead
 function hashPassword(password: string): string {
-  return createHmac('sha256', 'openspeed-salt').update(password).digest('hex');
+  const salt = process.env.PASSWORD_SALT;
+  
+  if (!salt) {
+    throw new Error(
+      'SECURITY ERROR: PASSWORD_SALT environment variable is required. ' +
+      'This auth plugin is deprecated - use packages/auth with bcrypt for production.'
+    );
+  }
+  
+  if (salt.length < 32) {
+    throw new Error(
+      'SECURITY ERROR: PASSWORD_SALT must be at least 32 characters long. ' +
+      'Use a strong random string generated with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  
+  // Note: HMAC-SHA256 is NOT recommended for password hashing
+  // This is only for backward compatibility - migrate to bcrypt/argon2
+  return createHmac('sha256', salt).update(password).digest('hex');
 }
 
 export function requireAuth() {

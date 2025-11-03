@@ -1,12 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { auth, requireAuth } from '../../src/openspeed/plugins/auth.js';
 import Context from '../../src/openspeed/context.js';
 
 describe('auth plugin', () => {
+  // Set up environment variable for tests
+  const originalPasswordSalt = process.env.PASSWORD_SALT;
+  
+  beforeAll(() => {
+    // Use a test salt that meets minimum requirements (32+ chars)
+    process.env.PASSWORD_SALT = 'test-salt-for-unit-tests-must-be-32-chars-minimum-length';
+  });
+  
+  afterAll(() => {
+    // Restore original environment
+    if (originalPasswordSalt) {
+      process.env.PASSWORD_SALT = originalPasswordSalt;
+    } else {
+      delete process.env.PASSWORD_SALT;
+    }
+  });
+
   it('should authenticate with Basic auth', async () => {
-    // Hash the password as the auth plugin now requires hashed passwords
+    // Hash the password with the test salt
     const hashedPassword = require('crypto')
-      .createHmac('sha256', 'openspeed-salt')
+      .createHmac('sha256', process.env.PASSWORD_SALT!)
       .update('password123')
       .digest('hex');
 
@@ -37,9 +54,9 @@ describe('auth plugin', () => {
   });
 
   it('should reject invalid Basic auth', async () => {
-    // Hash the correct password
+    // Hash the correct password with test salt
     const hashedPassword = require('crypto')
-      .createHmac('sha256', 'openspeed-salt')
+      .createHmac('sha256', process.env.PASSWORD_SALT!)
       .update('password123')
       .digest('hex');
 

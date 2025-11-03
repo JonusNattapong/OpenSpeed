@@ -32,6 +32,12 @@ export interface CookieOptions {
 export class CookieJar {
   private cookies = new Map<string, { value: string; options: CookieOptions }>();
 
+  // RFC 6265 - Cookie name restrictions
+  // - Control chars: 0x00-0x1F (including null, tab, newline), 0x7F (DEL)
+  // - Whitespace: space, tab, newline, etc.
+  // - RFC 6265 separators: ( ) < > @ , ; : \ " / [ ] ? = { }
+  private static readonly INVALID_COOKIE_NAME_CHARS = /[\x00-\x1F\x7F()<>@,;:\\"/\[\]?={}\s]/;
+
   set(name: string, value: string, options: CookieOptions = {}) {
     this.cookies.set(name, { value, options });
   }
@@ -56,7 +62,16 @@ export class CookieJar {
     const cookieStrings: string[] = [];
 
     for (const [name, { value, options }] of this.cookies) {
-      let cookieStr = `${name}=${value}`;
+      // SECURITY: Validate cookie name per RFC 6265 (names are not URL encoded)
+      if (CookieJar.INVALID_COOKIE_NAME_CHARS.test(name)) {
+        console.warn(`[COOKIE SECURITY] Invalid cookie name (contains illegal characters): ${name}`);
+        continue;
+      }
+      
+      // SECURITY: Properly encode cookie value to prevent injection
+      const encodedValue = encodeURIComponent(value);
+      
+      let cookieStr = `${name}=${encodedValue}`;
 
       if (options.maxAge !== undefined) {
         cookieStr += `; Max-Age=${options.maxAge}`;
@@ -67,11 +82,15 @@ export class CookieJar {
       }
 
       if (options.path) {
-        cookieStr += `; Path=${options.path}`;
+        // Sanitize path to prevent injection
+        const sanitizedPath = options.path.replace(/[;\s]/g, '');
+        cookieStr += `; Path=${sanitizedPath}`;
       }
 
       if (options.domain) {
-        cookieStr += `; Domain=${options.domain}`;
+        // Sanitize domain to prevent injection
+        const sanitizedDomain = options.domain.replace(/[;\s]/g, '');
+        cookieStr += `; Domain=${sanitizedDomain}`;
       }
 
       if (options.secure) {

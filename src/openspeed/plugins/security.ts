@@ -267,8 +267,25 @@ async function validateCSRF(
   ctx: Context,
   options: NonNullable<SecurityOptions['csrf']>
 ): Promise<{ valid: boolean; details?: any }> {
+  // SECURITY: Validate CSRF secret requirement
+  // The secret is used for validation context, not for generating tokens
+  const secret = options.secret || process.env.CSRF_SECRET;
+  
+  if (!secret) {
+    throw new Error(
+      'SECURITY ERROR: CSRF secret is required. Set CSRF_SECRET environment variable or pass secret in options. ' +
+      'Generate a secure secret with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  
+  if (secret.length < 32) {
+    throw new Error(
+      'SECURITY ERROR: CSRF secret must be at least 32 characters long for adequate security.'
+    );
+  }
+  
+  // Extract cookie and header names from options
   const {
-    secret = 'default-csrf-secret',
     cookieName = 'csrf-token',
     headerName = 'x-csrf-token',
   } = options;
@@ -301,9 +318,12 @@ async function validateCSRF(
 
 /**
  * Generate CSRF token (utility function)
+ * SECURITY: Generates a cryptographically secure random token
+ * Note: The CSRF secret is used for validation, not token generation.
+ * Tokens are purely random and validated by comparing header vs cookie values.
  */
-export function generateCSRFToken(secret: string = 'default-csrf-secret'): string {
-  // Simple token generation (in production, use crypto.randomUUID())
+export function generateCSRFToken(): string {
+  // Generate cryptographically secure random token
   const crypto = require('crypto');
   return crypto.randomBytes(32).toString('hex');
 }
