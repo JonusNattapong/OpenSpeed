@@ -64,7 +64,6 @@
     "format:check": "prettier --check src/**/*.{ts,js,json} examples/**/*.{ts,js,json} tests/**/*.{ts,js,json}",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc src",
-    "prepublishOnly": "npm run build",
     "publish:check": "npm pack --dry-run",
     "publish:dry": "npm publish --dry-run",
     "release": "npm run build && npm publish",
