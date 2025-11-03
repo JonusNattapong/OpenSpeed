@@ -737,13 +737,22 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
       }
     }
     
-    // SECURITY: Detect potentially dangerous unparameterized queries with string concatenation
-    // Note: This checks for JavaScript string concatenation in the query string itself, not SQL CONCAT
-    if (values.length === 0 && /'\s*\+\s*|"\s*\+\s*/.test(query)) {
-      throw new Error(
-        'SECURITY ERROR: JavaScript string concatenation detected in raw query without parameters. ' +
-        'This is a SQL injection risk. Use parameterized queries instead.'
-      );
+    // SECURITY: Detect JavaScript string concatenation that might indicate SQL injection
+    // This checks for patterns like: "SELECT * FROM users WHERE id = '" + userId + "'"
+    // which is a common SQL injection vulnerability in JavaScript code.
+    // Note: This intentionally only checks for JS concatenation (+ operator with quotes),
+    // not SQL CONCAT() function which is legitimate with proper parameterization.
+    // False positives are unlikely since raw SQL queries shouldn't contain JS string literals.
+    if (values.length === 0) {
+      // Check for string literal followed by + operator (JavaScript concatenation)
+      const hasJSConcatenation = /['"]\s*\+\s*[^'"]|[^'"]\s*\+\s*['"]/.test(query);
+      if (hasJSConcatenation) {
+        throw new Error(
+          'SECURITY ERROR: JavaScript string concatenation detected in raw query without parameters. ' +
+          'This pattern indicates SQL injection risk. Use parameterized queries instead: ' +
+          'query("SELECT * FROM users WHERE id = $1", [userId])'
+        );
+      }
     }
 
     const startTime = Date.now();
