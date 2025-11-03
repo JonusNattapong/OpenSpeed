@@ -40,6 +40,8 @@ export PASSWORD_SALT="your-generated-salt-here"
 **Changes**:
 - Removed hardcoded default secret `'default-csrf-secret'`
 - Now requires `CSRF_SECRET` environment variable (minimum 32 characters)
+- CSRF tokens are generated using cryptographically secure random values
+- The secret is used for validation context, not token generation
 - Added validation and clear error messages
 
 **Setup Required**: Yes
@@ -50,6 +52,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # Set environment variable
 export CSRF_SECRET="your-generated-secret-here"
 ```
+
+**How it works**:
+- Tokens are generated randomly using `crypto.randomBytes(32)`
+- Tokens are set in both cookie and expected in header
+- Validation compares cookie token with header token
+- The CSRF_SECRET is used as context for the validation middleware
 
 ---
 
