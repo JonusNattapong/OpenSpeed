@@ -27,7 +27,7 @@ export class DevTools {
       autoReload: true,
       hotReload: false,
       playground: true,
-      ...options
+      ...options,
     };
   }
 
@@ -79,7 +79,7 @@ export class DevTools {
       fastestRequest: 0,
       requestsPerSecond: 0,
       errorRate: 0,
-      slowRequests: 0
+      slowRequests: 0,
     };
 
     return `
@@ -178,15 +178,15 @@ export class DevTools {
                             <div class="stat-label">Total Routes</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-number">${new Set(routes.map(r => r.method)).size}</div>
+                            <div class="stat-number">${new Set(routes.map((r) => r.method)).size}</div>
                             <div class="stat-label">Methods</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-number">${routes.filter(r => r.method === 'GET').length}</div>
+                            <div class="stat-number">${routes.filter((r) => r.method === 'GET').length}</div>
                             <div class="stat-label">GET Routes</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-number">${routes.filter(r => ['POST', 'PUT', 'PATCH'].includes(r.method)).length}</div>
+                            <div class="stat-number">${routes.filter((r) => ['POST', 'PUT', 'PATCH'].includes(r.method)).length}</div>
                             <div class="stat-label">Write Routes</div>
                         </div>
                     </div>
@@ -227,20 +227,28 @@ export class DevTools {
                 </div>
                 <div class="card-content">
                     <div class="routes">
-                        ${routes.slice(-10).reverse().map(route => `
+                        ${routes
+                          .slice(-10)
+                          .reverse()
+                          .map(
+                            (route) => `
                             <div class="route">
                                 <span class="method ${route.method}">${route.method}</span>
                                 <span class="path">${route.path}</span>
                                 <span class="handler">${route.handler}</span>
                             </div>
-                        `).join('')}
+                        `
+                          )
+                          .join('')}
                         ${routes.length === 0 ? '<div class="no-data">No routes registered yet</div>' : ''}
                     </div>
                 </div>
             </div>
 
             <!-- API Playground -->
-            ${this.options.playground ? `
+            ${
+              this.options.playground
+                ? `
             <div class="card">
                 <div class="card-header">
                     🎮 API Playground
@@ -261,7 +269,9 @@ Content-Type: application/json
                     </div>
                 </div>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
         </div>
     </div>
 
@@ -386,7 +396,12 @@ export function getDevTools(): DevTools | null {
 /**
  * Add route to dev tools (convenience function)
  */
-export function addRouteToDevTools(method: string, path: string, handler: Function, middleware: Function[] = []) {
+export function addRouteToDevTools(
+  method: string,
+  path: string,
+  handler: Function,
+  middleware: Function[] = []
+) {
   if (globalDevTools) {
     globalDevTools.addRoute(method, path, handler, middleware);
   }

@@ -2,6 +2,13 @@ import { MongoClient, Db, Document } from 'mongodb';
 import { createPool } from 'mysql2/promise';
 import { Pool as PgPool } from 'pg';
 import { Redis } from 'ioredis';
+// import Database from 'better-sqlite3';
+import sql from 'mssql';
+import oracledb from 'oracledb';
+import { Client as CassandraClient } from 'cassandra-driver';
+import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import * as admin from 'firebase-admin';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { URL } from 'url';
 import type { Context } from '../context.js';
@@ -9,7 +16,18 @@ import type { Context } from '../context.js';
 type Middleware = (ctx: Context, next: () => Promise<unknown>) => unknown;
 
 interface DatabaseConfig {
-  type: 'mongodb' | 'mysql' | 'postgresql' | 'redis';
+  type:
+    | 'mongodb'
+    | 'mysql'
+    | 'postgresql'
+    | 'redis'
+    | 'sqlite'
+    | 'mssql'
+    | 'oracle'
+    | 'cassandra'
+    | 'elasticsearch'
+    | 'dynamodb'
+    | 'firebase';
   connection: string | Record<string, unknown>;
   pool?: {
     min?: number;
@@ -277,6 +295,34 @@ async function initializeConnection(name: string, config: DatabaseConfig): Promi
       connection = await initializeRedis(config);
       break;
 
+    // case 'sqlite':
+    //   connection = await initializeSQLite(config);
+    //   break;
+
+    case 'mssql':
+      connection = await initializeSQLServer(config);
+      break;
+
+    case 'oracle':
+      connection = await initializeOracle(config);
+      break;
+
+    case 'cassandra':
+      connection = await initializeCassandra(config);
+      break;
+
+    case 'elasticsearch':
+      connection = await initializeElasticsearch(config);
+      break;
+
+    case 'dynamodb':
+      connection = await initializeDynamoDB(config);
+      break;
+
+    case 'firebase':
+      connection = await initializeFirebase(config);
+      break;
+
     default:
       throw new Error(`Unsupported database type: ${config.type}`);
   }
@@ -399,6 +445,164 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
 }
 
 /**
+ * SQLite connection
+ */
+/*
+// async function initializeSQLite(config: DatabaseConfig): Promise<DatabaseConnection> {
+//   const dbPath = typeof config.connection === 'string' ? config.connection : './database.db';
+//   const db = new Database(dbPath);
+
+//   // Enable WAL mode for better concurrency
+//   db.pragma('journal_mode = WAL');
+
+//   return {
+//     type: 'sqlite',
+//     client: db,
+//     pool: null,
+//     multiTenant: false,
+//   };
+// }
+*/
+
+/**
+ * SQL Server connection with pooling
+ */
+async function initializeSQLServer(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj =
+    typeof config.connection === 'object'
+      ? config.connection
+      : {
+          server: 'localhost',
+          database: 'master',
+          user: 'sa',
+          password: 'password',
+          options: {
+            encrypt: true,
+            trustServerCertificate: true,
+          },
+        };
+
+  const pool = new sql.ConnectionPool(configObj as any);
+  await pool.connect();
+
+  return {
+    type: 'mssql',
+    client: pool,
+    pool,
+    multiTenant: false,
+  };
+}
+
+/**
+ * Oracle connection with pooling
+ */
+async function initializeOracle(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj =
+    typeof config.connection === 'object'
+      ? config.connection
+      : {
+          user: 'system',
+          password: 'password',
+          connectString: 'localhost:1521/XE',
+        };
+
+  const pool = await oracledb.createPool(configObj);
+
+  return {
+    type: 'oracle',
+    client: pool,
+    pool,
+    multiTenant: false,
+  };
+}
+
+/**
+ * Cassandra connection
+ */
+async function initializeCassandra(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj =
+    typeof config.connection === 'object'
+      ? config.connection
+      : {
+          contactPoints: ['127.0.0.1'],
+          localDataCenter: 'datacenter1',
+          keyspace: 'keyspace1',
+        };
+
+  const client = new CassandraClient(configObj);
+  await client.connect();
+
+  return {
+    type: 'cassandra',
+    client,
+    pool: null,
+    multiTenant: false,
+  };
+}
+
+/**
+ * Elasticsearch connection
+ */
+async function initializeElasticsearch(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj =
+    typeof config.connection === 'object'
+      ? config.connection
+      : {
+          node: 'http://localhost:9200',
+        };
+
+  const client = new ElasticsearchClient(configObj);
+
+  return {
+    type: 'elasticsearch',
+    client,
+    pool: null,
+    multiTenant: false,
+  };
+}
+
+/**
+ * DynamoDB connection
+ */
+async function initializeDynamoDB(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj =
+    typeof config.connection === 'object'
+      ? config.connection
+      : {
+          region: 'us-east-1',
+        };
+
+  const client = new DynamoDBClient(configObj);
+
+  return {
+    type: 'dynamodb',
+    client,
+    pool: null,
+    multiTenant: false,
+  };
+}
+
+/**
+ * Firebase connection
+ */
+async function initializeFirebase(config: DatabaseConfig): Promise<DatabaseConnection> {
+  const configObj = typeof config.connection === 'object' ? config.connection : {};
+
+  if (!admin.apps.length) {
+    admin.initializeApp(configObj);
+  }
+
+  const db = admin.firestore();
+
+  return {
+    type: 'firebase',
+    client: db,
+    pool: null,
+    multiTenant: false,
+  };
+}
+
+/**
  * Extract tenant ID from request
  */
 function extractTenantId(ctx: Context, tenantKey: string): string | null {
@@ -430,11 +634,20 @@ async function getTenantDatabase(
 
     case 'mysql':
     case 'postgresql':
+    case 'mssql':
+    case 'oracle':
       // Use schema/database per tenant
       // This is a simplified implementation
       return {
         ...(connection.client as Record<string, unknown>),
         __tenantId: tenantId,
+      };
+
+    case 'sqlite':
+      // SQLite doesn't support multi-tenancy well, use prefixed tables
+      return {
+        ...(connection.client as Record<string, unknown>),
+        __tenantPrefix: `tenant_${tenantId}_`,
       };
 
     case 'redis':
@@ -443,6 +656,31 @@ async function getTenantDatabase(
         ...(connection.client as Record<string, unknown>),
         __tenantPrefix: `tenant:${tenantId}:`,
       };
+
+    case 'cassandra':
+      // Use keyspace per tenant
+      return {
+        ...(connection.client as Record<string, unknown>),
+        __tenantKeyspace: `tenant_${tenantId}`,
+      };
+
+    case 'elasticsearch':
+      // Use index prefix per tenant
+      return {
+        ...(connection.client as Record<string, unknown>),
+        __tenantPrefix: `tenant_${tenantId}_`,
+      };
+
+    case 'dynamodb':
+      // Use table prefix per tenant
+      return {
+        ...(connection.client as Record<string, unknown>),
+        __tenantPrefix: `tenant_${tenantId}_`,
+      };
+
+    case 'firebase':
+      // Firebase handles multi-tenancy differently
+      return connection.client;
 
     default:
       return connection.client;
@@ -830,6 +1068,263 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
 }
 
 /**
+ * Cassandra query builder
+ */
+export interface ICassandraQueryBuilder<T = unknown> {
+  find(keyspace: string, table: string, where?: Partial<T>): Promise<T[]>;
+  findOne(keyspace: string, table: string, where: Partial<T>): Promise<T | null>;
+  insert(keyspace: string, table: string, data: Partial<T>): Promise<unknown>;
+  update(keyspace: string, table: string, where: Partial<T>, data: Partial<T>): Promise<unknown>;
+  delete(keyspace: string, table: string, where: Partial<T>): Promise<unknown>;
+}
+
+export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilder<T> {
+  constructor(private client: unknown) {}
+
+  async find(keyspace: string, table: string, where: Partial<T> = {}): Promise<T[]> {
+    const conditions = Object.entries(where)
+      .map(([key], i) => `${key} = ?`)
+      .join(' AND ');
+    const values = Object.values(where);
+    const query = `SELECT * FROM ${keyspace}.${table}${conditions ? ' WHERE ' + conditions : ''}`;
+    const result = await (
+      this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
+    ).execute(query, values);
+    return ((result as { rows?: unknown[] })?.rows as T[]) || [];
+  }
+
+  async findOne(keyspace: string, table: string, where: Partial<T>): Promise<T | null> {
+    const results = await this.find(keyspace, table, where);
+    return results[0] || null;
+  }
+
+  async insert(keyspace: string, table: string, data: Partial<T>): Promise<unknown> {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const placeholders = values.map(() => '?').join(', ');
+    const query = `INSERT INTO ${keyspace}.${table} (${keys.join(', ')}) VALUES (${placeholders})`;
+    return await (
+      this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
+    ).execute(query, values);
+  }
+
+  async update(
+    keyspace: string,
+    table: string,
+    where: Partial<T>,
+    data: Partial<T>
+  ): Promise<unknown> {
+    const setClause = Object.keys(data)
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    const whereClause = Object.keys(where)
+      .map((key) => `${key} = ?`)
+      .join(' AND ');
+    const query = `UPDATE ${keyspace}.${table} SET ${setClause} WHERE ${whereClause}`;
+    const values = [...Object.values(data), ...Object.values(where)];
+    return await (
+      this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
+    ).execute(query, values);
+  }
+
+  async delete(keyspace: string, table: string, where: Partial<T>): Promise<unknown> {
+    const whereClause = Object.keys(where)
+      .map((key) => `${key} = ?`)
+      .join(' AND ');
+    const query = `DELETE FROM ${keyspace}.${table} WHERE ${whereClause}`;
+    const values = Object.values(where);
+    return await (
+      this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
+    ).execute(query, values);
+  }
+}
+
+/**
+ * Elasticsearch query builder
+ */
+export interface IElasticsearchQueryBuilder<T = unknown> {
+  search(index: string, query?: Record<string, unknown>): Promise<T[]>;
+  get(index: string, id: string): Promise<T | null>;
+  index(index: string, document: T): Promise<unknown>;
+  update(index: string, id: string, document: Partial<T>): Promise<unknown>;
+  delete(index: string, id: string): Promise<unknown>;
+}
+
+export class ElasticsearchQueryBuilder<T = unknown> implements IElasticsearchQueryBuilder<T> {
+  constructor(private client: unknown) {}
+
+  async search(index: string, query: Record<string, unknown> = {}): Promise<T[]> {
+    const result = await (this.client as { search: (params: unknown) => Promise<unknown> }).search({
+      index,
+      body: query,
+    });
+    return (
+      ((result as { hits?: { hits?: unknown[] } })?.hits?.hits?.map(
+        (hit: any) => hit._source
+      ) as T[]) || []
+    );
+  }
+
+  async get(index: string, id: string): Promise<T | null> {
+    try {
+      const result = await (this.client as { get: (params: unknown) => Promise<unknown> }).get({
+        index,
+        id,
+      });
+      return (result as { _source?: T })._source || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async index(index: string, document: T): Promise<unknown> {
+    return await (this.client as { index: (params: unknown) => Promise<unknown> }).index({
+      index,
+      body: document,
+    });
+  }
+
+  async update(index: string, id: string, document: Partial<T>): Promise<unknown> {
+    return await (this.client as { update: (params: unknown) => Promise<unknown> }).update({
+      index,
+      id,
+      body: { doc: document },
+    });
+  }
+
+  async delete(index: string, id: string): Promise<unknown> {
+    return await (this.client as { delete: (params: unknown) => Promise<unknown> }).delete({
+      index,
+      id,
+    });
+  }
+}
+
+/**
+ * DynamoDB query builder
+ */
+export interface IDynamoDBQueryBuilder<T = unknown> {
+  scan(tableName: string): Promise<T[]>;
+  query(tableName: string, keyCondition: Record<string, unknown>): Promise<T[]>;
+  get(tableName: string, key: Record<string, unknown>): Promise<T | null>;
+  put(tableName: string, item: T): Promise<unknown>;
+  update(
+    tableName: string,
+    key: Record<string, unknown>,
+    updateExpression: string,
+    expressionAttributeValues: Record<string, unknown>
+  ): Promise<unknown>;
+  delete(tableName: string, key: Record<string, unknown>): Promise<unknown>;
+}
+
+export class DynamoDBQueryBuilder<T = unknown> implements IDynamoDBQueryBuilder<T> {
+  constructor(private client: unknown) {}
+
+  async scan(tableName: string): Promise<T[]> {
+    const command = { TableName: tableName };
+    const result = await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(
+      command
+    );
+    return ((result as { Items?: unknown[] })?.Items as T[]) || [];
+  }
+
+  async query(tableName: string, keyCondition: Record<string, unknown>): Promise<T[]> {
+    const command = {
+      TableName: tableName,
+      KeyConditionExpression: Object.keys(keyCondition)
+        .map((k) => `${k} = :${k}`)
+        .join(' AND '),
+      ExpressionAttributeValues: Object.fromEntries(
+        Object.entries(keyCondition).map(([k, v]) => [`:${k}`, v])
+      ),
+    };
+    const result = await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(
+      command
+    );
+    return ((result as { Items?: unknown[] })?.Items as T[]) || [];
+  }
+
+  async get(tableName: string, key: Record<string, unknown>): Promise<T | null> {
+    const command = { TableName: tableName, Key: key };
+    const result = await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(
+      command
+    );
+    return (result as { Item?: T }).Item || null;
+  }
+
+  async put(tableName: string, item: T): Promise<unknown> {
+    const command = { TableName: tableName, Item: item };
+    return await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(command);
+  }
+
+  async update(
+    tableName: string,
+    key: Record<string, unknown>,
+    updateExpression: string,
+    expressionAttributeValues: Record<string, unknown>
+  ): Promise<unknown> {
+    const command = {
+      TableName: tableName,
+      Key: key,
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+    };
+    return await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(command);
+  }
+
+  async delete(tableName: string, key: Record<string, unknown>): Promise<unknown> {
+    const command = { TableName: tableName, Key: key };
+    return await (this.client as { send: (cmd: unknown) => Promise<unknown> }).send(command);
+  }
+}
+
+/**
+ * Firebase query builder
+ */
+export interface IFirebaseQueryBuilder<T = unknown> {
+  get(collection: string, docId?: string): Promise<T | T[] | null>;
+  set(collection: string, docId: string, data: T): Promise<unknown>;
+  update(collection: string, docId: string, data: Partial<T>): Promise<unknown>;
+  delete(collection: string, docId: string): Promise<unknown>;
+  query(collection: string, where?: [string, any, any][]): Promise<T[]>;
+}
+
+export class FirebaseQueryBuilder<T = unknown> implements IFirebaseQueryBuilder<T> {
+  constructor(private db: unknown) {}
+
+  async get(collection: string, docId?: string): Promise<T | T[] | null> {
+    if (docId) {
+      const doc = await (this.db as any).collection(collection).doc(docId).get();
+      return doc.exists ? doc.data() : null;
+    } else {
+      const snapshot = await (this.db as any).collection(collection).get();
+      return snapshot.docs.map((doc: any) => doc.data());
+    }
+  }
+
+  async set(collection: string, docId: string, data: T): Promise<unknown> {
+    return await (this.db as any).collection(collection).doc(docId).set(data);
+  }
+
+  async update(collection: string, docId: string, data: Partial<T>): Promise<unknown> {
+    return await (this.db as any).collection(collection).doc(docId).update(data);
+  }
+
+  async delete(collection: string, docId: string): Promise<unknown> {
+    return await (this.db as any).collection(collection).doc(docId).delete();
+  }
+
+  async query(collection: string, where: [string, any, any][] = []): Promise<T[]> {
+    let query = (this.db as any).collection(collection);
+    where.forEach(([field, op, value]) => {
+      query = query.where(field, op, value);
+    });
+    const snapshot = await query.get();
+    return snapshot.docs.map((doc: any) => doc.data());
+  }
+}
+
+/**
  * Redis cache adapter
  */
 export interface IRedisCache {
@@ -913,6 +1408,27 @@ export async function closeAllConnections(): Promise<void> {
         case 'redis':
           await (connection.client as { quit: () => Promise<void> })?.quit();
           break;
+        // case 'sqlite':
+        //   (connection.client as { close: () => void })?.close();
+        //   break;
+        case 'mssql':
+          await (connection.pool as { close: () => Promise<void> })?.close();
+          break;
+        case 'oracle':
+          await oracledb.getPool().close(0);
+          break;
+        case 'cassandra':
+          await (connection.client as { shutdown: () => Promise<void> })?.shutdown();
+          break;
+        case 'elasticsearch':
+          await (connection.client as { close: () => Promise<void> })?.close();
+          break;
+        case 'dynamodb':
+          // DynamoDB client doesn't need explicit closing
+          break;
+        case 'firebase':
+          // Firebase handles cleanup automatically
+          break;
       }
       console.log(`[DB] Closed connection: ${name}`);
     } catch {
@@ -963,6 +1479,48 @@ export async function healthCheck(connectionName: string): Promise<{
         break;
       case 'redis':
         await (connection.client as { ping: () => Promise<unknown> }).ping();
+        break;
+      // case 'sqlite':
+      //   (connection.client as { prepare: (q: string) => { get: () => unknown } })
+      //     .prepare('SELECT 1')
+      //     .get();
+      //   break;
+      case 'mssql':
+        await (connection.pool as { request: () => { query: (q: string) => Promise<unknown> } })
+          .request()
+          .query('SELECT 1');
+        break;
+      case 'oracle':
+        const oracleConnection = await (
+          connection.pool as { getConnection: () => Promise<unknown> }
+        ).getConnection();
+        await (oracleConnection as { execute: (q: string) => Promise<unknown> }).execute(
+          'SELECT 1 FROM DUAL'
+        );
+        await (oracleConnection as { close: () => Promise<void> }).close();
+        break;
+      case 'cassandra':
+        await (connection.client as { execute: (q: string) => Promise<unknown> }).execute(
+          'SELECT now() FROM system.local'
+        );
+        break;
+      case 'elasticsearch':
+        await (connection.client as { ping: () => Promise<unknown> }).ping();
+        break;
+      case 'dynamodb':
+        // DynamoDB health check - try to list tables
+        await (connection.client as { send: (cmd: unknown) => Promise<unknown> }).send({} as any);
+        break;
+      case 'firebase':
+        // Firebase health check - try to get a document
+        await (
+          connection.client as {
+            collection: (c: string) => { limit: (n: number) => { get: () => Promise<unknown> } };
+          }
+        )
+          .collection('_health_check')
+          .limit(1)
+          .get();
         break;
     }
 

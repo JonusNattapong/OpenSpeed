@@ -45,7 +45,7 @@ export {
   performanceMonitor,
   getPerformanceMonitor,
   printPerformanceReport,
-  PerformanceMonitor
+  PerformanceMonitor,
 } from './performanceMonitor.js';
 
 // New features (inspired by Hono & Elysia)
