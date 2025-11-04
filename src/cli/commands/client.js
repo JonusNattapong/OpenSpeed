@@ -1,6 +1,8 @@
 OpenSpeed\src\cli\commands\client.js
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import chalk from 'chalk';
+import ora from 'ora';
 
 function clientCommand() {
   return {
@@ -22,9 +24,12 @@ function clientCommand() {
     handler: async (argv) => {
       const { output, url } = argv;
 
-      try {
-        console.log('🔄 Fetching client from server...');
+      const spinner = ora({
+        text: chalk.blue('🔄 Fetching client from server...'),
+        spinner: 'dots'
+      }).start();
 
+      try {
         const response = await fetch(`${url}/client.ts`);
         if (!response.ok) {
           throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
@@ -34,13 +39,16 @@ function clientCommand() {
 
         await writeFile(output, clientCode);
 
-        console.log(`✅ Client generated successfully at ${output}`);
-        console.log('💡 Import and use OpenSpeedClient in your frontend for full type safety!');
-        console.log('   Example: const client = new OpenSpeedClient("http://localhost:3000");');
+        spinner.succeed(chalk.green('✅ Client generated successfully!'));
+
+        console.log(chalk.magenta(`📁 Output: ${output}`));
+        console.log(chalk.yellow('💡 Import and use OpenSpeedClient in your frontend for full type safety!'));
+        console.log(chalk.gray('   Example: const client = new OpenSpeedClient("http://localhost:3000");'));
 
       } catch (error) {
-        console.error('❌ Failed to generate client:', error.message);
-        console.log('💡 Make sure your OpenSpeed server is running and has the openapi plugin enabled.');
+        spinner.fail(chalk.red('❌ Failed to generate client'));
+        console.error(chalk.red('Error:'), error.message);
+        console.log(chalk.yellow('💡 Make sure your OpenSpeed server is running and has the openapi plugin enabled.'));
         process.exit(1);
       }
     }

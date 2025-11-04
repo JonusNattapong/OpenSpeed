@@ -885,9 +885,7 @@ async function main() {
     const ctx: TemplateContext = {
       projectName,
       packageName: sanitizePackageName(projectName),
-    },
-
-
+    };
 
     writeProjectFiles(targetDir, ctx, options.template);
     console.log(LOGO);

@@ -1,19 +1,56 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { input, select, confirm, checkbox, password } from '@inquirer/prompts';
+import { input, select, confirm, checkbox } from '@inquirer/prompts';
 import { execSync, spawn } from 'child_process';
 import fs from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
-import { join, dirname, basename } from 'path';
+import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import chalk from 'chalk';
+import ora from 'ora';
+import boxen from 'boxen';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const require = createRequire(import.meta.url);
 
 const program = new Command();
+
+// ASCII Logo for OpenSpeed
+function displayLogo() {
+  const logo = `
+    ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██████╗ ███████╗███████╗██████╗
+   ██╔═══██╗██╔══██╗██╔════╝████╗  ██║██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗
+   ██║   ██║██████╔╝█████╗  ██╔██╗ ██║███████╗██████╔╝█████╗  █████╗  ██║  ██║
+   ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║╚════██║██╔═══╝ ██╔══╝  ██╔══╝  ██║  ██║
+   ╚██████╔╝██║     ███████╗██║ ╚████║███████║██║     ███████╗███████╗██████╔╝
+    ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝     ╚══════╝╚══════╝╚═════╝
+`;
+  console.log(chalk.cyan.bold(logo));
+  console.log(
+    chalk.yellow(
+      '🚀 High-performance web framework with JSX, SSG, RPC, streaming, and type safety\n'
+    )
+  );
+}
+
+// Enhanced welcome message
+function displayWelcome() {
+  const welcome = boxen(
+    chalk.blue.bold('Welcome to OpenSpeed') +
+      '\n\n' +
+      chalk.white("Let's create something amazing together.\n") +
+      chalk.gray('Choose from interactive prompts or use templates for quick starts.'),
+    {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'round',
+      borderColor: 'cyan',
+      backgroundColor: '#001122',
+    }
+  );
+  console.log(welcome);
+}
 
 program
   .name('openspeed')
@@ -27,6 +64,8 @@ program
   .description('Create a new OpenSpeed project interactively')
   .argument('[name]', 'Project name')
   .action(async (name) => {
+    displayLogo();
+    displayWelcome();
     await createInteractiveProject(name);
   });
 
@@ -74,7 +113,7 @@ program
 
 // Interactive setup
 async function createInteractiveProject(projectName) {
-  console.log("🚀 Welcome to OpenSpeed! Let's create your project...\n");
+  // Welcome message is now handled in command action
 
   // Get project name
   if (!projectName) {
@@ -160,9 +199,14 @@ async function createInteractiveProject(projectName) {
   });
 
   // Create project
-  console.log(`\n📦 Creating ${projectType} project: ${projectName}`);
-  console.log(`Runtime: ${runtime} | Package Manager: ${packageManager}`);
-  console.log(`Features: ${features.join(', ')}\n`);
+  console.log(chalk.magenta(`\n📦 Creating ${projectType} project: ${projectName}`));
+  console.log(chalk.gray(`Runtime: ${runtime} | Package Manager: ${packageManager}`));
+  console.log(chalk.gray(`Features: ${features.join(', ')}\n`));
+
+  const spinner = ora({
+    text: chalk.blue('Setting up your project...'),
+    spinner: 'dots',
+  }).start();
 
   await createProject({
     name: projectName,
@@ -173,16 +217,31 @@ async function createInteractiveProject(projectName) {
     useGit,
   });
 
-  console.log('\n✅ Project created successfully!');
-  console.log('\n🚀 Next steps:');
-  console.log(`  cd ${projectName}`);
-  console.log(`  ${packageManager} install`);
-  console.log(`  ${packageManager} run dev`);
-  console.log('\n📚 Documentation: https://openspeed.dev');
+  spinner.succeed(chalk.green('Project created successfully!'));
+
+  const nextSteps = boxen(
+    chalk.yellow.bold('🚀 Next steps:') +
+      '\n\n' +
+      chalk.white(`  cd ${projectName}`) +
+      '\n' +
+      chalk.white(`  ${packageManager} install`) +
+      '\n' +
+      chalk.white(`  ${packageManager} run dev`) +
+      '\n\n' +
+      chalk.gray('📚 Documentation: https://openspeed.dev'),
+    {
+      padding: 1,
+      borderStyle: 'round',
+      borderColor: 'yellow',
+    }
+  );
+  console.log(nextSteps);
 }
 
 // Template-based creation
 async function createFromTemplate(template, name) {
+  displayLogo();
+
   const templates = {
     api: {
       desc: 'REST API with authentication',
@@ -203,13 +262,21 @@ async function createFromTemplate(template, name) {
   };
 
   if (!templates[template]) {
-    console.error(`❌ Unknown template: ${template}`);
-    console.log('Available templates:', Object.keys(templates).join(', '));
+    console.error(chalk.red(`❌ Unknown template: ${template}`));
+    console.log(
+      chalk.yellow('Available templates:'),
+      chalk.cyan(Object.keys(templates).join(', '))
+    );
     process.exit(1);
   }
 
   const templateConfig = templates[template];
-  console.log(`📦 Creating ${template} project (${templateConfig.desc})`);
+  console.log(chalk.magenta(`📦 Creating ${template} project (${templateConfig.desc})`));
+
+  const spinner = ora({
+    text: chalk.blue('Generating from template...'),
+    spinner: 'dots',
+  }).start();
 
   await createProject({
     name: name || `my-${template}-app`,
@@ -219,51 +286,89 @@ async function createFromTemplate(template, name) {
     packageManager: 'pnpm',
     useGit: true,
   });
+
+  spinner.succeed(chalk.green('Template project created!'));
+
+  const projectName = name || `my-${template}-app`;
+  const nextSteps = boxen(
+    chalk.yellow.bold('🚀 Get started:') +
+      '\n\n' +
+      chalk.white(`  cd ${projectName}`) +
+      '\n' +
+      chalk.white('  pnpm install') +
+      '\n' +
+      chalk.white('  pnpm run dev'),
+    {
+      padding: 1,
+      borderStyle: 'round',
+      borderColor: 'green',
+    }
+  );
+  console.log(nextSteps);
 }
 
 // Plugin management
 async function managePlugins(action, plugin) {
+  displayLogo();
+
   switch (action) {
-    case 'list':
-      console.log('📦 Available plugins:');
-      console.log('  🔐 auth - JWT authentication');
-      console.log('  🗄️ database - Database adapters');
-      console.log('  📁 upload - File upload handling');
-      console.log('  🔒 security - Security middleware');
-      console.log('  📊 monitoring - Metrics & logging');
-      console.log('  📧 email - Email service');
-      console.log('  💳 stripe - Payment processing');
-      console.log('  🧪 testing - Testing utilities');
+    case 'list': {
+      const pluginsList = boxen(
+        chalk.cyan.bold('📦 Available Plugins') +
+          '\n\n' +
+          chalk.white('  🔐 auth        - JWT authentication\n') +
+          chalk.white('  🗄️ database    - Database adapters\n') +
+          chalk.white('  📁 upload      - File upload handling\n') +
+          chalk.white('  🔒 security    - Security middleware\n') +
+          chalk.white('  📊 monitoring  - Metrics & logging\n') +
+          chalk.white('  📧 email       - Email service\n') +
+          chalk.white('  💳 stripe      - Payment processing\n') +
+          chalk.white('  🧪 testing     - Testing utilities'),
+        {
+          padding: 1,
+          borderStyle: 'round',
+          borderColor: 'blue',
+        }
+      );
+      console.log(pluginsList);
       break;
+    }
 
     case 'add':
       if (!plugin) {
-        console.error('❌ Please specify a plugin to add');
+        console.error(chalk.red('❌ Please specify a plugin to add'));
         return;
       }
-      console.log(`📦 Adding plugin: ${plugin}`);
+      console.log(chalk.magenta(`📦 Adding plugin: ${plugin}`));
       // Implementation would go here
       break;
 
     case 'search':
-      console.log('🔍 Searching plugins...');
+      console.log(chalk.blue('🔍 Searching plugins...'));
       // Implementation would go here
       break;
 
     default:
-      console.error(`❌ Unknown action: ${action}`);
+      console.error(chalk.red(`❌ Unknown action: ${action}`));
   }
 }
 
 // Development server
 async function startDevServer(options) {
-  console.log(`🚀 Starting development server on ${options.host}:${options.port}`);
+  displayLogo();
+
+  console.log(chalk.cyan(`🚀 Starting development server on ${options.host}:${options.port}`));
 
   // Check if we're in a project directory
   if (!existsSync('package.json')) {
-    console.error('❌ Not in a project directory. Run "openspeed create" first.');
+    console.error(chalk.red('❌ Not in a project directory. Run "openspeed create" first.'));
     process.exit(1);
   }
+
+  const spinner = ora({
+    text: chalk.blue('Initializing development server...'),
+    spinner: 'dots',
+  }).start();
 
   // Start the development server
   const child = spawn('tsx', ['watch', 'src/index.ts'], {
@@ -272,26 +377,47 @@ async function startDevServer(options) {
   });
 
   child.on('error', (error) => {
-    console.error('❌ Failed to start development server:', error.message);
+    spinner.fail(chalk.red('Failed to start development server'));
+    console.error(chalk.red('❌ Error:'), error.message);
   });
+
+  // Wait a bit for server to start
+  setTimeout(() => {
+    spinner.succeed(chalk.green('Development server started!'));
+    console.log(chalk.gray(`\n🌐 Open your browser to http://${options.host}:${options.port}`));
+  }, 2000);
 }
 
 // Code generation
 async function generateCode(type, name) {
-  console.log(`🔧 Generating ${type}: ${name}`);
+  displayLogo();
 
-  switch (type) {
-    case 'route':
-      await generateRoute(name);
-      break;
-    case 'model':
-      await generateModel(name);
-      break;
-    case 'middleware':
-      await generateMiddleware(name);
-      break;
-    default:
-      console.error(`❌ Unknown type: ${type}`);
+  console.log(chalk.magenta(`🔧 Generating ${type}: ${name}`));
+
+  const spinner = ora({
+    text: chalk.blue(`Creating ${type}...`),
+    spinner: 'dots',
+  }).start();
+
+  try {
+    switch (type) {
+      case 'route':
+        await generateRoute(name);
+        break;
+      case 'model':
+        await generateModel(name);
+        break;
+      case 'middleware':
+        await generateMiddleware(name);
+        break;
+      default:
+        throw new Error(`Unknown type: ${type}`);
+    }
+    spinner.succeed(chalk.green(`${type} generated successfully!`));
+  } catch (error) {
+    spinner.fail(chalk.red(`Failed to generate ${type}`));
+    console.error(chalk.red('❌ Error:'), error.message);
+    throw error;
   }
 }
 
@@ -301,7 +427,7 @@ async function createProject(config) {
 
   // Create directory
   if (existsSync(name)) {
-    console.error(`❌ Directory "${name}" already exists`);
+    console.error(chalk.red(`❌ Directory "${name}" already exists`));
     process.exit(1);
   }
 
@@ -531,7 +657,7 @@ authRoutes.post('/login', async (ctx) => {
 
   // Placeholder token generation (DO NOT use in production)
   const crypto = require('crypto');
-  const placeholderToken = `dev_token_${crypto.randomBytes(32).toString('hex')}`;
+  const placeholderToken = \`dev_token_\${crypto.randomBytes(32).toString('hex')}\`;
 
   return ctx.json({
     success: true,
@@ -661,8 +787,8 @@ JWT_EXPIRES_IN=7d
 
   if (features.includes('database')) {
     env += `# Database
-DATABASE_URL=mongodb://localhost:27017/${name}
-# DATABASE_URL=postgresql://user:password@localhost:5432/${name}
+DATABASE_URL=mongodb://localhost:27017/my-app
+# DATABASE_URL=postgresql://user:password@localhost:5432/my-app
 
 `;
   }
@@ -749,7 +875,7 @@ export default ${name}Routes;
 
   const filename = `src/routes/${name}.ts`;
   await fs.writeFile(filename, routeContent);
-  console.log(`✅ Created route: ${filename}`);
+  console.log(chalk.green(`✅ Created route: ${filename}`));
 }
 
 async function generateModel(name) {
@@ -781,7 +907,7 @@ export class ${name}Model {
   const filename = `src/models/${name}.ts`;
   await fs.mkdir('src/models', { recursive: true });
   await fs.writeFile(filename, modelContent);
-  console.log(`✅ Created model: ${filename}`);
+  console.log(chalk.green(`✅ Created model: ${filename}`));
 }
 
 async function generateMiddleware(name) {
@@ -800,8 +926,14 @@ export function ${name}Middleware(options: any = {}) {
 
   const filename = `src/middleware/${name}.ts`;
   await fs.writeFile(filename, middlewareContent);
-  console.log(`✅ Created middleware: ${filename}`);
+  console.log(chalk.green(`✅ Created middleware: ${filename}`));
 }
 
-// Run CLI
-program.parse();
+// Default action - show logo and help
+if (process.argv.length === 2) {
+  displayLogo();
+  displayWelcome();
+  program.help();
+} else {
+  program.parse();
+}
