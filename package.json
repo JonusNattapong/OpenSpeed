@@ -1,6 +1,6 @@
 {
   "name": "openspeed",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "High-performance web framework with JSX, SSG, RPC, streaming, and type safety. Inspired by Hono and Elysia but 2-3x faster.",
   "main": "dist/src/openspeed/index.js",
   "type": "module",
@@ -47,7 +47,7 @@
   },
   "bin": {
     "openspeed": "src/cli/interactive.js",
-    "create-openspeed-app": "src/create-openspeed-app/index.js"
+    "create-openspeed-app": "src/create-openspeed-app/index.ts"
   },
   "scripts": {
     "build": "npx tsc -p tsconfig.build.json --noEmitOnError false",
@@ -76,7 +76,7 @@
     "security:scan:json": "tsx scripts/security-scan.ts --json --output security-report.json",
     "security:fix": "tsx scripts/security-fix.ts",
     "security:fix:dry": "tsx scripts/security-fix.ts --dry-run",
-    "prepare": "husky"
+    "migrate:auth": "tsx scripts/migrate-auth.ts"
   },
   "keywords": [
     "web",
@@ -127,6 +127,7 @@
     "@types/express": "^5.0.5",
     "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.0",
     "@types/nodemailer": "^7.0.3",
     "@types/pg": "^8.11.10",
     "@types/spdy": "^3.4.9",

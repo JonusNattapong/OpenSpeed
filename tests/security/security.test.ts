@@ -1,11 +1,11 @@
 /**
  * Security Testing Suite
- * 
+ *
  * Comprehensive security tests for OpenSpeed framework
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OpenSpeed } from '../src/openspeed/index.js';
+import { createApp as OpenSpeed } from '../src/openspeed/index.ts';
 import { security } from '../src/openspeed/plugins/security.js';
 import { csrf } from '../src/openspeed/plugins/csrfProtection.js';
 import { validateSQL } from '../src/openspeed/plugins/sqlValidator.js';
@@ -15,7 +15,7 @@ describe('Security Tests', () => {
   describe('SQL Injection Prevention', () => {
     it('should detect SQL injection in string interpolation', () => {
       const maliciousInput = "1' OR '1'='1";
-      
+
       expect(() => {
         validateSQL(`SELECT * FROM users WHERE id = '${maliciousInput}'`);
       }).toThrow('String interpolation detected');
@@ -43,34 +43,32 @@ describe('Security Tests', () => {
   describe('XSS Prevention', () => {
     it('should escape HTML in JSX by default', () => {
       const { renderToString, jsx } = require('../src/openspeed/plugins/jsx.js');
-      
+
       const maliciousInput = '<script>alert("XSS")</script>';
       const element = jsx('div', {}, maliciousInput);
       const html = renderToString(element);
-      
+
       expect(html).not.toContain('<script>');
       expect(html).toContain('&lt;script&gt;');
     });
 
     it('should warn when using raw HTML without trusted flag', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       raw('<div>Test</div>');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('SECURITY WARNING')
-      );
-      
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SECURITY WARNING'));
+
       consoleSpy.mockRestore();
     });
 
     it('should not warn for trusted raw HTML', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       raw('<div>Test</div>', { trusted: true });
-      
+
       expect(consoleSpy).not.toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -79,33 +77,33 @@ describe('Security Tests', () => {
     let app: any;
 
     beforeEach(() => {
-      app = new OpenSpeed();
+      app = OpenSpeed();
       app.use(csrf());
     });
 
     it('should allow GET requests without token', async () => {
       app.get('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const req = {
         method: 'GET',
         url: '/test',
         headers: {},
       };
-      
+
       // Should not throw
       await app.handleRequest(req);
     });
 
     it('should block POST requests without CSRF token', async () => {
       app.post('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const req = {
         method: 'POST',
         url: '/test',
         headers: {},
         body: {},
       };
-      
+
       const response = await app.handleRequest(req);
       expect(response.status).toBe(403);
       expect(response.body).toContain('CSRF');
@@ -113,17 +111,17 @@ describe('Security Tests', () => {
 
     it('should allow POST with valid CSRF token', async () => {
       app.post('/test', (ctx: any) => ctx.text('OK'));
-      
+
       // First, get token from GET request
       const getReq = {
         method: 'GET',
         url: '/test',
         headers: {},
       };
-      
+
       await app.handleRequest(getReq);
       // Extract token from response cookie
-      
+
       // Then POST with token
       // (Full implementation would require cookie handling)
     });
@@ -133,45 +131,45 @@ describe('Security Tests', () => {
     let app: any;
 
     beforeEach(() => {
-      app = new OpenSpeed();
+      app = OpenSpeed();
       app.use(security());
     });
 
     it('should set X-Frame-Options header', async () => {
       app.get('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const req = {
         method: 'GET',
         url: '/test',
         headers: {},
       };
-      
+
       const response = await app.handleRequest(req);
       expect(response.headers?.['x-frame-options']).toBe('DENY');
     });
 
     it('should set X-Content-Type-Options header', async () => {
       app.get('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const req = {
         method: 'GET',
         url: '/test',
         headers: {},
       };
-      
+
       const response = await app.handleRequest(req);
       expect(response.headers?.['x-content-type-options']).toBe('nosniff');
     });
 
     it('should set Content-Security-Policy header', async () => {
       app.get('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const req = {
         method: 'GET',
         url: '/test',
         headers: {},
       };
-      
+
       const response = await app.handleRequest(req);
       expect(response.headers?.['content-security-policy']).toContain("default-src 'self'");
     });
@@ -179,13 +177,13 @@ describe('Security Tests', () => {
 
   describe('Input Validation', () => {
     it('should reject oversized payloads', async () => {
-      const app = new OpenSpeed();
+      const app = OpenSpeed();
       app.use(security({ maxBodySize: 1024 })); // 1KB limit
-      
+
       app.post('/test', (ctx: any) => ctx.text('OK'));
-      
+
       const largePayload = 'x'.repeat(2048); // 2KB
-      
+
       const req = {
         method: 'POST',
         url: '/test',
@@ -194,19 +192,19 @@ describe('Security Tests', () => {
         },
         body: largePayload,
       };
-      
+
       const response = await app.handleRequest(req);
       expect(response.status).toBe(413); // Payload Too Large
     });
 
     it('should sanitize suspicious input', async () => {
-      const app = new OpenSpeed();
+      const app = OpenSpeed();
       app.use(security({ sanitizeInput: true }));
-      
+
       app.post('/test', (ctx: any) => {
         return ctx.json({ input: ctx.req.body });
       });
-      
+
       const req = {
         method: 'POST',
         url: '/test',
@@ -215,7 +213,7 @@ describe('Security Tests', () => {
           script: '<script>alert("XSS")</script>',
         },
       };
-      
+
       const response = await app.handleRequest(req);
       // Should sanitize or flag suspicious content
     });
@@ -225,7 +223,7 @@ describe('Security Tests', () => {
     it('should reject weak passwords', () => {
       // Test password strength requirements
       const weakPasswords = ['123456', 'password', 'qwerty'];
-      
+
       for (const pwd of weakPasswords) {
         expect(pwd.length).toBeLessThan(12); // Should enforce minimum length
       }
@@ -234,18 +232,18 @@ describe('Security Tests', () => {
     it('should use secure password hashing', () => {
       // Verify bcrypt is used instead of MD5/SHA1
       const { hashPassword } = require('../packages/auth/src/index.js');
-      
+
       const hash = hashPassword('SecurePassword123!');
       expect(hash).toMatch(/^\$2[aby]\$/); // Bcrypt hash pattern
     });
 
     it('should implement rate limiting on login', async () => {
-      const app = new OpenSpeed();
+      const app = OpenSpeed();
       const { rateLimit } = require('../src/openspeed/plugins/rateLimit.js');
-      
+
       app.use(rateLimit({ windowMs: 60000, max: 5 }));
       app.post('/login', (ctx: any) => ctx.text('OK'));
-      
+
       // Simulate multiple login attempts
       for (let i = 0; i < 6; i++) {
         const req = {
@@ -256,9 +254,9 @@ describe('Security Tests', () => {
           },
           body: { username: 'test', password: 'test' },
         };
-        
+
         const response = await app.handleRequest(req);
-        
+
         if (i < 5) {
           expect(response.status).not.toBe(429);
         } else {
@@ -271,13 +269,13 @@ describe('Security Tests', () => {
   describe('Session Security', () => {
     it('should set secure cookie flags', () => {
       const { cookie } = require('../src/openspeed/plugins/cookie.js');
-      
+
       const middleware = cookie({
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
       });
-      
+
       // Verify cookie options are set correctly
       expect(middleware).toBeDefined();
     });
@@ -296,11 +294,11 @@ describe('Security Tests', () => {
   describe('File Upload Security', () => {
     it('should validate file types', async () => {
       const { upload } = require('../src/openspeed/plugins/upload.js');
-      
+
       const middleware = upload({
         allowedExtensions: ['.jpg', '.png', '.pdf'],
       });
-      
+
       // Should reject .exe, .sh, etc.
     });
 
@@ -311,13 +309,13 @@ describe('Security Tests', () => {
 
     it('should enforce file size limits', async () => {
       const { upload } = require('../src/openspeed/plugins/upload.js');
-      
+
       const middleware = upload({
         limits: {
           fileSize: 1024 * 1024, // 1MB
         },
       });
-      
+
       // Should reject files larger than limit
     });
   });
@@ -325,20 +323,20 @@ describe('Security Tests', () => {
   describe('Error Handling Security', () => {
     it('should not leak sensitive info in production errors', async () => {
       process.env.NODE_ENV = 'production';
-      
-      const app = new OpenSpeed();
+
+      const app = OpenSpeed();
       app.get('/error', () => {
         throw new Error('Database connection failed: postgres://user:pass@host/db');
       });
-      
+
       const req = {
         method: 'GET',
         url: '/error',
         headers: {},
       };
-      
+
       const response = await app.handleRequest(req);
-      
+
       // Should not include connection string in response
       expect(response.body).not.toContain('postgres://');
       expect(response.body).not.toContain('user:pass');
@@ -354,7 +352,7 @@ describe('Security Tests', () => {
 describe('Penetration Testing', () => {
   describe('Common Attack Vectors', () => {
     it('should resist path traversal attacks', async () => {
-      const app = new OpenSpeed();
+      const app = OpenSpeed();
       app.get('/file/:path', (ctx: any) => {
         // Should validate path parameter
         const path = ctx.params.path;
@@ -375,18 +373,18 @@ describe('Penetration Testing', () => {
       // Password/token comparison should be constant-time
       const constantTimeCompare = (a: string, b: string) => {
         if (a.length !== b.length) return false;
-        
+
         let result = 0;
         for (let i = 0; i < a.length; i++) {
           result |= a.charCodeAt(i) ^ b.charCodeAt(i);
         }
         return result === 0;
       };
-      
+
       const token1 = 'secret123';
       const token2 = 'secret123';
       const token3 = 'secret456';
-      
+
       expect(constantTimeCompare(token1, token2)).toBe(true);
       expect(constantTimeCompare(token1, token3)).toBe(false);
     });

@@ -232,7 +232,7 @@ async function processBatch(entries: AuditLogEntry[], config: AuditConfig): Prom
       break;
 
     case 'elasticsearch':
-      await writeToElasticsearch(entries, config);
+      await writeToElasticsearch(entries);
       break;
 
     case 'custom':
@@ -278,7 +278,7 @@ async function writeToDatabase(entries: AuditLogEntry[], config: AuditConfig): P
 /**
  * Write logs to Elasticsearch
  */
-async function writeToElasticsearch(entries: AuditLogEntry[], _config: AuditConfig): Promise<void> {
+async function writeToElasticsearch(entries: AuditLogEntry[]): Promise<void> {
   // Implementation would use Elasticsearch client
   // This is a placeholder
   console.log('[Audit] Would write to Elasticsearch:', entries.length, 'entries');

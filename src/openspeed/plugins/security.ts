@@ -22,9 +22,11 @@ export interface SecurityOptions {
         secret?: string;
         cookieName?: string;
         headerName?: string;
-        enforceInProduction?: boolean; // Force CSRF in production
       }
     | boolean;
+
+  // Enforce CSRF in production
+  enforceCSRFInProduction?: boolean;
 
   // Security logging
   logSecurityEvents?: boolean;
@@ -56,6 +58,7 @@ export function security(options: SecurityOptions = {}) {
     sanitizeInput = true,
     maxBodySize = 1024 * 1024, // 1MB
     csrf,
+    enforceCSRFInProduction = true,
     logSecurityEvents = true,
     customChecks = [],
   } = options;
@@ -80,16 +83,10 @@ export function security(options: SecurityOptions = {}) {
     console.error('Or use the csrfProtection plugin for more advanced features.');
     console.error('='.repeat(80) + '\n');
 
-    // Only throw if enforceInProduction is not explicitly set to false
-    let shouldEnforce = true;
-    if (typeof csrf === 'object' && csrf !== null) {
-      shouldEnforce = csrf.enforceInProduction !== false;
-    }
-
-    if (shouldEnforce) {
+    if (enforceCSRFInProduction) {
       throw new Error(
         'SECURITY ERROR: CSRF protection is REQUIRED in production. ' +
-          'Set csrf options or set csrf.enforceInProduction to false to disable this check.'
+          'Set csrf options or set enforceCSRFInProduction to false to disable this check.'
       );
     }
   }
@@ -309,17 +306,7 @@ async function validateCSRF(
     return { valid: true };
   }
 
-  const {
-    secret = process.env.CSRF_SECRET ||
-      (() => {
-        console.warn(
-          '[SECURITY WARNING] Using default CSRF secret. Set CSRF_SECRET environment variable.'
-        );
-        return 'default-csrf-secret-change-me';
-      })(),
-    cookieName = 'csrf-token',
-    headerName = 'x-csrf-token',
-  } = options;
+  const { cookieName = 'csrf-token', headerName = 'x-csrf-token' } = options;
 
   // Skip CSRF check for safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(ctx.req.method)) {
@@ -381,7 +368,7 @@ export const securityPresets = {
     contentSecurityPolicy: "default-src 'self' 'unsafe-inline'", // Removed 'unsafe-eval' for security
     hsts: false,
     logSecurityEvents: true,
-    csrf: { enforceInProduction: false }, // Don't require CSRF in development
+    enforceCSRFInProduction: false, // Don't require CSRF in development
   },
 
   // Strict security for production
@@ -391,8 +378,8 @@ export const securityPresets = {
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     csrf: {
       secret: process.env.CSRF_SECRET || '',
-      enforceInProduction: true,
     },
+    enforceCSRFInProduction: true,
     logSecurityEvents: true,
   },
 
@@ -402,8 +389,8 @@ export const securityPresets = {
     hsts: { maxAge: 31536000, includeSubDomains: true },
     csrf: {
       secret: process.env.CSRF_SECRET || '',
-      enforceInProduction: true,
     },
+    enforceCSRFInProduction: true,
     sanitizeInput: true,
     maxBodySize: 1024 * 1024, // 1MB
   },

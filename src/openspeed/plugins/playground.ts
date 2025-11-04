@@ -1,8 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer as createHttpServer } from 'http';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
+
 import { randomBytes } from 'crypto';
 import type { Context } from '../context.js';
 import type { Plugin } from '../index.js';
@@ -58,12 +56,6 @@ interface PlaygroundResponse {
   duration: number;
   timestamp: number;
   size: number;
-}
-
-interface AIMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: number;
 }
 
 class PlaygroundManager {

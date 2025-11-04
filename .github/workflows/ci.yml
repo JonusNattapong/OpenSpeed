@@ -74,6 +74,9 @@ jobs:
       - name: Run security audit
         run: pnpm audit --audit-level moderate
 
+      - name: Run custom security scan
+        run: pnpm run security:scan
+
       - name: Run CodeQL Analysis
         uses: github/codeql-action/init@v3
         with:

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **End-to-End Type Safety**: Implemented OpenAPI-based TypeScript client generation for full-stack type safety with auto-completion, runtime validation, and type inference
+  - Enhanced OpenAPI plugin with `/client.ts` endpoint serving generated TypeScript clients
+  - Added CLI command `openspeed client client.ts` to fetch and persist generated clients
+  - Integrated Zod-to-TypeScript conversion for accurate type generation
+  - Runtime response validation in generated clients using Zod schemas
+  - Support for typed path parameters, query parameters, request bodies, headers, and authentication
+  - Comprehensive test coverage for client generation features
+  - Documentation and examples for client usage
+
+## [0.8.3] - 2024-12-21
+
+### Fixed
+- TypeScript compilation errors in multiple plugins:
+  - Fixed unused variables and type issues in `security.ts`, `auditLog.ts`, `auth.ts`, `ssg.ts`, `loadBalancer.ts`, and `playground.ts`
+  - Improved type safety and removed deprecated imports
+
+### Added
+- Auth migration script (`scripts/migrate-auth.ts`) for transitioning from deprecated HMAC-SHA256 auth to secure bcrypt-based auth
+- CLI command `npm run migrate:auth` with subcommands for migration guidance and example generation
+- Enhanced error handling and type declarations for better developer experience
+
 ## [0.8.2] - 2024-12-20
 
 ### 🔒 Security - Complete Security Audit and Fixes

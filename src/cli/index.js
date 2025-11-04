@@ -43,6 +43,9 @@ async function loadCommands() {
     const { generateCommand } = await import('./commands/generate.js');
     program.addCommand(generateCommand());
 
+    // Client command - Generate TypeScript client with type safety
+    const { default: clientCommand } = await import('./commands/client.js');
+    program.addCommand(clientCommand());
   } catch (error) {
     console.error('❌ Failed to load CLI commands:', error.message);
     process.exit(1);

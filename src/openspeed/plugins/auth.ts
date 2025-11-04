@@ -88,7 +88,7 @@ export function auth(options: AuthOptions) {
         const payload = verifyJWT(token, options.jwt.secret);
         ctx.req.user = payload;
         authenticated = true;
-      } catch (err) {
+      } catch {
         ctx.res.status = 401;
         ctx.res.body = JSON.stringify({ error: 'Invalid token' });
         return;

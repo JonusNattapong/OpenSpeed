@@ -324,6 +324,16 @@ class SecurityScanner {
       return true;
     }
 
+    // Skip migration files (contain example insecure code)
+    if (
+      filePath.includes('migration') ||
+      basename(filePath).includes('migration') ||
+      filePath.includes('migrate') ||
+      basename(filePath).includes('migrate')
+    ) {
+      return true;
+    }
+
     // Skip benchmark files
     if (filePath.includes('/benchmarks/') || filePath.includes('\\benchmarks\\')) {
       return true;

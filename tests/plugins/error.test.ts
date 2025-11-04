@@ -6,7 +6,7 @@ const createCtx = () =>
   new Context({
     method: 'GET',
     url: 'http://localhost/',
-    headers: {},
+    headers: { accept: 'application/json' },
   });
 
 describe('errorHandler plugin', () => {
@@ -78,7 +78,7 @@ describe('errorHandler plugin', () => {
 
   it('can expose stack trace', async () => {
     const ctx = createCtx();
-    const mw = errorHandler({ exposeStack: true });
+    const mw = errorHandler({ exposeStack: true, developmentMode: true });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await mw(ctx, async () => {

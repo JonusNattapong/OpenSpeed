@@ -182,7 +182,7 @@ async function renderRoute(route: SSGRoute, baseUrl: string): Promise<string> {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     return await response.text();
-  } catch (error) {
+  } catch {
     // If server not running, return a placeholder or error
     console.warn(`Could not fetch ${url}, generating placeholder`);
     return generatePlaceholderHtml(route);
@@ -236,7 +236,6 @@ function getOutputPath(routePath: string): string {
  * Prettify HTML output
  */
 function prettifyHtml(html: string): string {
-  let formatted = html;
   let indent = 0;
   const lines: string[] = [];
 

@@ -24,7 +24,7 @@ export class LoadBalancer {
   private healthCheckInterval: number;
   private healthCheckTimeout: number;
   private maxRetries: number;
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: LoadBalancerOptions) {
     this.backends = options.backends.map((backend) => ({
@@ -114,17 +114,17 @@ export class LoadBalancer {
 
   private async checkHealth(backend: BackendInstance): Promise<void> {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.healthCheckTimeout);
-
-      const response = await fetch(`${backend.url}/health`, {
-        signal: controller.signal,
-        method: 'GET',
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), this.healthCheckTimeout);
       });
 
-      clearTimeout(timeoutId);
+      const response = await Promise.race([
+        fetch(`${backend.url}/health`, { method: 'GET' }),
+        timeoutPromise,
+      ]);
+
       backend.healthy = response.ok;
-    } catch (error) {
+    } catch {
       backend.healthy = false;
     }
   }

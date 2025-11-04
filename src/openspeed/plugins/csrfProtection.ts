@@ -1,6 +1,6 @@
 /**
  * Enhanced CSRF Protection Plugin
- * 
+ *
  * Provides comprehensive Cross-Site Request Forgery protection
  */
 
@@ -25,7 +25,9 @@ export interface CSRFOptions {
 }
 
 export class CSRFProtection {
-  private options: Required<CSRFOptions> & { cookieOptions: Required<CSRFOptions['cookieOptions']> };
+  private options: Required<CSRFOptions> & {
+    cookieOptions: Required<CSRFOptions['cookieOptions']>;
+  };
 
   constructor(options: CSRFOptions = {}) {
     this.options = {
@@ -59,10 +61,8 @@ export class CSRFProtection {
    */
   generateToken(): string {
     const salt = randomBytes(16).toString('hex');
-    const token = createHmac('sha256', this.options.secret)
-      .update(salt)
-      .digest('hex');
-    
+    const token = createHmac('sha256', this.options.secret).update(salt).digest('hex');
+
     return `${salt}.${token}`;
   }
 
@@ -75,15 +75,13 @@ export class CSRFProtection {
     }
 
     const [salt, expectedToken] = token.split('.');
-    
+
     if (!salt || !expectedToken) {
       return false;
     }
 
-    const actualToken = createHmac('sha256', this.options.secret)
-      .update(salt)
-      .digest('hex');
-    
+    const actualToken = createHmac('sha256', this.options.secret).update(salt).digest('hex');
+
     // Constant-time comparison to prevent timing attacks
     return this.constantTimeCompare(actualToken, expectedToken);
   }
@@ -118,7 +116,7 @@ export class CSRFProtection {
 
     // Check if origin is trusted
     if (this.options.trustedOrigins.length > 0) {
-      const isOriginTrusted = this.options.trustedOrigins.some(trusted => {
+      const isOriginTrusted = this.options.trustedOrigins.some((trusted) => {
         return origin?.startsWith(trusted) || referer?.startsWith(trusted);
       });
 
@@ -151,22 +149,22 @@ export class CSRFProtection {
       const path = ctx.req.url;
 
       // Skip ignored paths
-      if (this.options.ignorePaths.some(p => path.startsWith(p))) {
+      if (this.options.ignorePaths.some((p) => path.startsWith(p))) {
         return next();
       }
 
       // For safe methods (GET, HEAD, OPTIONS), generate and set token
       if (!this.options.enforceForMethods.includes(method)) {
         const token = this.generateToken();
-        
+
         // Set token in cookie
         if (ctx.cookies) {
           ctx.cookies.set(this.options.cookieName, token, this.options.cookieOptions);
         }
-        
+
         // Make token available to templates
-        ctx.req.csrfToken = token;
-        
+        (ctx.req as any).csrfToken = token;
+
         return next();
       }
 

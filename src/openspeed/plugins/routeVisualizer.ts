@@ -22,7 +22,7 @@ interface RouteVisualizerOptions {
  */
 export class RouteVisualizer {
   private routes: RouteInfo[] = [];
-  private options: Required<RouteVisualizerOptions>;
+  public options: Required<RouteVisualizerOptions>;
 
   constructor(options: RouteVisualizerOptions = {}) {
     this.options = {
@@ -31,21 +31,28 @@ export class RouteVisualizer {
       includeMiddleware: true,
       groupByFile: false,
       showInConsole: true,
-      ...options
+      ...options,
     };
   }
 
   /**
    * Add a route to the visualizer
    */
-  addRoute(method: string, path: string, handler: Function, middleware: Function[] = [], file?: string, line?: number) {
+  addRoute(
+    method: string,
+    path: string,
+    handler: Function,
+    middleware: Function[] = [],
+    file?: string,
+    line?: number
+  ) {
     this.routes.push({
       method: method.toUpperCase(),
       path,
       handler: handler.name || 'anonymous',
-      middleware: middleware.map(m => m.name || 'anonymous'),
+      middleware: middleware.map((m) => m.name || 'anonymous'),
       file,
-      line
+      line,
     });
 
     if (this.options.showInConsole) {
@@ -142,7 +149,7 @@ export class RouteVisualizer {
                 <div class="stat-label">Total Routes</div>
             </div>
             <div class="stat">
-                <div class="stat-number">${new Set(this.routes.map(r => r.method)).size}</div>
+                <div class="stat-number">${new Set(this.routes.map((r) => r.method)).size}</div>
                 <div class="stat-label">HTTP Methods</div>
             </div>
             <div class="stat">
@@ -152,12 +159,17 @@ export class RouteVisualizer {
         </div>
 
         <div class="routes">
-            ${this.options.groupByFile ?
-              Object.entries(routes).map(([file, fileRoutes]) => `
+            ${
+              this.options.groupByFile
+                ? Object.entries(routes)
+                    .map(
+                      ([file, fileRoutes]) => `
                 <div class="group-header">📁 ${file}</div>
-                ${fileRoutes.map(route => this.renderRoute(route)).join('')}
-              `).join('') :
-              this.routes.map(route => this.renderRoute(route)).join('')
+                ${fileRoutes.map((route) => this.renderRoute(route)).join('')}
+              `
+                    )
+                    .join('')
+                : this.routes.map((route) => this.renderRoute(route)).join('')
             }
 
             ${this.routes.length === 0 ? '<div class="no-routes">No routes registered yet. Start building your API! 🚀</div>' : ''}
@@ -182,10 +194,16 @@ export class RouteVisualizer {
         <span class="method ${route.method}">${route.method}</span>
         <span class="path">${route.path}</span>
         <span class="handler">${route.handler}</span>
-        ${this.options.includeMiddleware && route.middleware.length > 0 ?
-          `<span class="middleware">middleware: ${route.middleware.join(', ')}</span>` : ''}
-        ${route.file && route.line ?
-          `<span class="file-info">${route.file}:${route.line}</span>` : ''}
+        ${
+          this.options.includeMiddleware && route.middleware.length > 0
+            ? `<span class="middleware">middleware: ${route.middleware.join(', ')}</span>`
+            : ''
+        }
+        ${
+          route.file && route.line
+            ? `<span class="file-info">${route.file}:${route.line}</span>`
+            : ''
+        }
       </div>
     `;
   }
@@ -207,8 +225,7 @@ export class RouteVisualizer {
       const method = route.method.padEnd(8);
       const path = route.path.padEnd(30);
       const handler = route.handler.padEnd(20);
-      const middleware = this.options.includeMiddleware ?
-        route.middleware.join(', ') : '';
+      const middleware = this.options.includeMiddleware ? route.middleware.join(', ') : '';
 
       output += `${method}${path}${handler}${middleware}\n`;
     }
@@ -231,6 +248,7 @@ export function routeVisualizer(options: RouteVisualizerOptions = {}) {
   return async (ctx: Context, next: () => Promise<any>) => {
     // Handle route visualization endpoint
     if (ctx.req.url === visualizer.options.endpoint) {
+      ctx.res.headers = ctx.res.headers || {};
       ctx.res.headers['content-type'] = 'text/html';
       ctx.res.body = visualizer.generateHTML();
       return;
@@ -250,14 +268,23 @@ export function getRouteVisualizer(): RouteVisualizer | null {
 /**
  * Add route to visualizer (call this from your router)
  */
-export function addRouteToVisualizer(method: string, path: string, handler: Function, middleware: Function[] = []) {
+export function addRouteToVisualizer(
+  method: string,
+  path: string,
+  handler: Function,
+  middleware: Function[] = []
+) {
   if (globalVisualizer) {
     // Try to get file and line information
     const stack = new Error().stack;
     const callerLine = stack?.split('\n')[3];
     const match = callerLine?.match(/\((.+):(\d+):\d+\)/);
 
-    globalVisualizer.addRoute(method, path, handler, middleware,
+    globalVisualizer.addRoute(
+      method,
+      path,
+      handler,
+      middleware,
       match ? match[1] : undefined,
       match ? parseInt(match[2]) : undefined
     );

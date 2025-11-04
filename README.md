@@ -47,6 +47,7 @@ Openspeed provides a modern, type-safe API with runtime-agnostic support for Nod
 - **⚡ Advanced Caching**: Intelligent query coalescing, batching, and bloom filters
 - **🚀 Zero-Copy Streaming**: Memory-efficient large payload handling
 - **🎯 Object Pooling**: High-frequency object reuse for optimal performance
+- **🔒 End-to-End Type Safety**: Best-in-class type safety with auto-completion, runtime validation, and end-to-end type inference
 
 ### 🛠️ Development Tools
 - **📍 Route Visualizer**: Interactive dashboard showing all API routes with methods, handlers, and middleware
@@ -381,7 +382,7 @@ app.post('/api/data', (ctx) => {
 
 ### OpenAPI Generator
 
-Auto-generate API documentation:
+Auto-generate API documentation and TypeScript clients with best-in-class type safety, auto-completion, runtime validation, and end-to-end type inference:
 
 ```typescript
 import { openapi } from 'openspeed/plugins/openapi';
@@ -398,6 +399,12 @@ app.get('/users', (ctx) => ctx.json([]));
 // api.collect('GET', '/users', 'List all users');
 
 app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
+
+// Access generated client at /client.ts
+// Provides fully typed client with auto-completion and type inference
+
+// Or generate client file using CLI for end-to-end type safety
+// npx openspeed client client.ts
 ```
 
 ### Security Plugins
