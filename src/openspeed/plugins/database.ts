@@ -468,14 +468,14 @@ async function initializeRedis(config: DatabaseConfig): Promise<DatabaseConnecti
  * SQL Server connection with pooling
  */
 async function initializeSQLServer(config: DatabaseConfig): Promise<DatabaseConnection> {
-  const configObj =
+  const configObj: any =
     typeof config.connection === 'object'
       ? config.connection
       : {
           server: 'localhost',
           database: 'master',
           user: 'sa',
-          password: 'password',
+          password: process.env.DB_PASSWORD || 'your_password_here',
           options: {
             encrypt: true,
             trustServerCertificate: true,
@@ -502,7 +502,7 @@ async function initializeOracle(config: DatabaseConfig): Promise<DatabaseConnect
       ? config.connection
       : {
           user: 'system',
-          password: 'password',
+          password: process.env.DB_PASSWORD || 'your_password_here',
           connectString: 'localhost:1521/XE',
         };
 
@@ -548,7 +548,7 @@ async function initializeElasticsearch(config: DatabaseConfig): Promise<Database
     typeof config.connection === 'object'
       ? config.connection
       : {
-          node: 'http://localhost:9200',
+          node: 'https://localhost:9200',
         };
 
   const client = new ElasticsearchClient(configObj);
@@ -1081,7 +1081,24 @@ export interface ICassandraQueryBuilder<T = unknown> {
 export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilder<T> {
   constructor(private client: unknown) {}
 
+  /**
+   * Validate identifier to prevent injection
+   */
+  private validateIdentifier(identifier: string): void {
+    if (!/^[a-zA-Z0-9_]+$/.test(identifier)) {
+      throw new Error(
+        `Invalid identifier: "${identifier}". Identifiers must contain only alphanumeric characters and underscores.`
+      );
+    }
+    if (identifier.length > 48) {
+      throw new Error(`Identifier too long: "${identifier}". Maximum length is 48 characters.`);
+    }
+  }
+
   async find(keyspace: string, table: string, where: Partial<T> = {}): Promise<T[]> {
+    this.validateIdentifier(keyspace);
+    this.validateIdentifier(table);
+
     const conditions = Object.entries(where)
       .map(([key], i) => `${key} = ?`)
       .join(' AND ');
@@ -1099,6 +1116,9 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
   }
 
   async insert(keyspace: string, table: string, data: Partial<T>): Promise<unknown> {
+    this.validateIdentifier(keyspace);
+    this.validateIdentifier(table);
+
     const keys = Object.keys(data);
     const values = Object.values(data);
     const placeholders = values.map(() => '?').join(', ');
@@ -1114,6 +1134,9 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
     where: Partial<T>,
     data: Partial<T>
   ): Promise<unknown> {
+    this.validateIdentifier(keyspace);
+    this.validateIdentifier(table);
+
     const setClause = Object.keys(data)
       .map((key) => `${key} = ?`)
       .join(', ');
@@ -1128,6 +1151,9 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
   }
 
   async delete(keyspace: string, table: string, where: Partial<T>): Promise<unknown> {
+    this.validateIdentifier(keyspace);
+    this.validateIdentifier(table);
+
     const whereClause = Object.keys(where)
       .map((key) => `${key} = ?`)
       .join(' AND ');
