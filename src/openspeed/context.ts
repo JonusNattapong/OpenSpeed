@@ -98,9 +98,9 @@ export class CookieJar {
 }
 
 export interface ResponseLike {
-  status?: number;
-  headers?: Record<string, string>;
-  body?: unknown;
+  status: number;
+  headers: Record<string, string>;
+  body: unknown;
 }
 
 export class Context {

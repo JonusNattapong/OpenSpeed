@@ -551,6 +551,22 @@ Performance comparison (requests/second):
 > **Note:** Benchmarks run with autocannon (100 concurrent connections, 10 seconds)
 > *With adaptive optimizer enabled - 2x-3x faster than competition!
 
+### Latest Benchmark Results (Node.js v23.10.0)
+
+**Basic Routing** (`GET /`):
+- Requests/sec: 4,678 avg (up to 7,331)
+- Latency: 257ms avg (208ms median)
+- Throughput: 921 KB/s
+- Total: 48k requests, 9.21 MB
+
+**JSON Handling** (`POST /json`):
+- Requests/sec: 6,537 avg (up to 8,367)
+- Latency: 7ms avg (6ms median)
+- Throughput: 1.37 MB/s
+- Total: 65k requests, 13.7 MB
+
+> Test conditions: 100 connections (routing), 50 connections (JSON), 10 seconds each, autocannon tool. Results show excellent performance with end-to-end type safety enabled.
+
 ### Running Benchmarks
 
 Compare Openspeed with Hono and Elysia across different scenarios:

@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createApp as OpenSpeed } from '../src/openspeed/index.ts';
-import { security } from '../src/openspeed/plugins/security.js';
-import { csrf } from '../src/openspeed/plugins/csrfProtection.js';
-import { validateSQL } from '../src/openspeed/plugins/sqlValidator.js';
-import { raw } from '../src/openspeed/plugins/jsx.js';
+import { createApp as OpenSpeed } from '../../dist/src/openspeed/index.js';
+import { security } from '../../dist/src/openspeed/plugins/security.js';
+import { csrf } from '../../dist/src/openspeed/plugins/csrfProtection.js';
+import { validateSQL } from '../../dist/src/openspeed/plugins/sqlValidator.js';
+import { raw } from '../../dist/src/openspeed/plugins/jsx.js';
 
 describe('Security Tests', () => {
   describe('SQL Injection Prevention', () => {
@@ -231,7 +231,7 @@ describe('Security Tests', () => {
 
     it('should use secure password hashing', () => {
       // Verify bcrypt is used instead of MD5/SHA1
-      const { hashPassword } = require('../packages/auth/src/index.js');
+      const { hashPassword } = require('../../dist/packages/auth/src/index.js');
 
       const hash = hashPassword('SecurePassword123!');
       expect(hash).toMatch(/^\$2[aby]\$/); // Bcrypt hash pattern
@@ -239,7 +239,7 @@ describe('Security Tests', () => {
 
     it('should implement rate limiting on login', async () => {
       const app = OpenSpeed();
-      const { rateLimit } = require('../src/openspeed/plugins/rateLimit.js');
+      const { rateLimit } = require('../../dist/src/openspeed/plugins/rateLimit.js');
 
       app.use(rateLimit({ windowMs: 60000, max: 5 }));
       app.post('/login', (ctx: any) => ctx.text('OK'));
@@ -268,7 +268,7 @@ describe('Security Tests', () => {
 
   describe('Session Security', () => {
     it('should set secure cookie flags', () => {
-      const { cookie } = require('../src/openspeed/plugins/cookie.js');
+      const { cookie } = require('../../dist/src/openspeed/plugins/cookie.js');
 
       const middleware = cookie({
         httpOnly: true,
@@ -293,7 +293,7 @@ describe('Security Tests', () => {
 
   describe('File Upload Security', () => {
     it('should validate file types', async () => {
-      const { upload } = require('../src/openspeed/plugins/upload.js');
+      const { upload } = require('../../dist/src/openspeed/plugins/upload.js');
 
       const middleware = upload({
         allowedExtensions: ['.jpg', '.png', '.pdf'],

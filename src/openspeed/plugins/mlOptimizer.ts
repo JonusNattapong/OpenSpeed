@@ -118,7 +118,6 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
   });
 
   // Monitoring dashboard
-  const monitor = new MLMonitor(metricsStore, anomalyHistory, optimizationHistory);
 
   return async (ctx: Context, next: () => Promise<any>) => {
     const startTime = Date.now();
@@ -151,7 +150,6 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
       if (features.resourceAllocation !== false) {
         const priorityHeader = ctx.req.headers['x-priority'];
         const allocation = await resourceAllocator.allocate({
-          requestType: ctx.req.method,
           estimatedLoad: metricsStore.getCurrentLoad(),
           availableResources: getSystemResources(),
           priority: Array.isArray(priorityHeader) ? priorityHeader[0] : priorityHeader || 'normal',
@@ -200,7 +198,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
 
             // Auto-healing
             if (anomaly.severity === 'critical') {
-              applyAutoHealing(anomaly, ctx);
+              applyAutoHealing(anomaly);
             }
           });
         }
@@ -208,7 +206,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
 
       // 6. Query optimization feedback
       if (features.queryOptimization !== false && ctx.queryExecutions) {
-        await queryOptimizer.learn(ctx.queryExecutions, duration);
+        await queryOptimizer.learn(ctx.queryExecutions);
       }
 
       // 7. Load balancing optimization
@@ -248,7 +246,6 @@ class PerformancePredictor {
   private patterns: Map<string, number[]> = new Map();
 
   async predict(input: any): Promise<PredictionResult> {
-    const key = `${input.method}:${input.path}`;
     const historical = input.historicalData.filter(
       (m: MetricData) => m.method === input.method && m.path === input.path
     );
@@ -472,18 +469,17 @@ class ResourceAllocator {
   private qTable: Map<string, Map<string, number>> = new Map(); // Q-learning table
 
   async allocate(options: {
-    requestType: string;
     estimatedLoad: number;
     availableResources: any;
     priority: string;
   }): Promise<any> {
-    const { requestType, estimatedLoad, availableResources, priority } = options;
+    const { estimatedLoad, availableResources, priority } = options;
 
     // State representation
     const state = this.getState(estimatedLoad, availableResources);
 
     // Action selection (epsilon-greedy)
-    const action = this.selectAction(state, requestType);
+    const action = this.selectAction(state);
 
     // Calculate allocation
     const baseAllocation = {
@@ -511,7 +507,7 @@ class ResourceAllocator {
     return `${loadLevel}_${memoryLevel}`;
   }
 
-  private selectAction(state: string, requestType: string): string {
+  private selectAction(state: string): string {
     const epsilon = 0.1; // Exploration rate
 
     if (!this.qTable.has(state)) {
@@ -566,7 +562,7 @@ class QueryOptimizer {
   private queryPatterns = new Map<string, any>();
   private indexSuggestions = new Map<string, string[]>();
 
-  async learn(executions: any[], totalDuration: number): Promise<void> {
+  async learn(executions: any[]): Promise<void> {
     executions.forEach((exec) => {
       const pattern = this.extractPattern(exec.query);
 
@@ -701,30 +697,6 @@ class TimeSeriesStore {
   }
 }
 
-/**
- * ML Monitoring Dashboard
- */
-class MLMonitor {
-  constructor(
-    private metricsStore: TimeSeriesStore,
-    private anomalyHistory: AnomalyAlert[],
-    private optimizationHistory: OptimizationDecision[]
-  ) {}
-
-  getStats(): any {
-    const metrics = this.metricsStore.getRecentMetrics(1000);
-
-    return {
-      totalRequests: metrics.length,
-      avgResponseTime: metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length || 0,
-      errorRate: metrics.filter((m) => m.statusCode >= 400).length / metrics.length || 0,
-      anomaliesDetected: this.anomalyHistory.length,
-      optimizationsApplied: this.optimizationHistory.length,
-      currentLoad: this.metricsStore.getCurrentLoad(),
-    };
-  }
-}
-
 // Helper functions
 async function applyPredictiveOptimization(
   ctx: Context,
@@ -760,7 +732,7 @@ async function applyPredictiveOptimization(
   });
 }
 
-function applyAutoHealing(anomaly: AnomalyAlert, ctx: Context): void {
+function applyAutoHealing(anomaly: AnomalyAlert): void {
   switch (anomaly.type) {
     case 'latency':
       // Increase timeout, enable caching
@@ -781,7 +753,6 @@ function applyAutoHealing(anomaly: AnomalyAlert, ctx: Context): void {
 
 function getSystemResources(): any {
   const memUsage = process.memoryUsage();
-  const cpuUsage = process.cpuUsage();
 
   return {
     memory: Math.floor((memUsage.heapTotal - memUsage.heapUsed) / 1024 / 1024),

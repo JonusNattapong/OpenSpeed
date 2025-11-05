@@ -1,6 +1,6 @@
 import type { Context } from '../context.js';
 
-type Middleware = (ctx: Context, next: () => Promise<any>) => any;
+type Middleware = (ctx: Context, next: () => Promise<any>) => Promise<any>;
 
 interface KubernetesConfig {
   namespace?: string;
@@ -14,6 +14,114 @@ interface KubernetesConfig {
   cooldownPeriod?: number;
   metricsEndpoint?: string;
   kubeconfig?: string;
+}
+
+interface Pod {
+  name: string;
+  cpu?: number;
+  memory?: number;
+  requests?: number;
+}
+
+interface DeploymentInfo {
+  replicas: number;
+}
+
+interface KubernetesClient {
+  listPods(namespace: string, deployment: string): Promise<Pod[]>;
+  getDeployment(namespace: string, deployment: string): Promise<DeploymentInfo>;
+  scaleDeployment(namespace: string, deployment: string, replicas: number): Promise<void>;
+}
+
+interface Metrics {
+  timestamp: string;
+  memory: {
+    rss: number;
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+  };
+  cpu: {
+    user: number;
+    system: number;
+  };
+  uptime: number;
+}
+
+interface KubernetesDeployment {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    labels: Record<string, string>;
+  };
+  spec: {
+    replicas: number;
+    selector: {
+      matchLabels: Record<string, string>;
+    };
+    template: {
+      metadata: {
+        labels: Record<string, string>;
+      };
+      spec: {
+        containers: Array<{
+          name: string;
+          image: string;
+          ports: Array<{
+            containerPort: number;
+          }>;
+          resources: {
+            requests: Record<string, string>;
+            limits: Record<string, string>;
+          };
+          livenessProbe: {
+            httpGet: {
+              path: string;
+              port: number;
+            };
+            initialDelaySeconds: number;
+            periodSeconds: number;
+          };
+          readinessProbe: {
+            httpGet: {
+              path: string;
+              port: number;
+            };
+            initialDelaySeconds: number;
+            periodSeconds: number;
+          };
+        }>;
+      };
+    };
+  };
+}
+
+interface KubernetesHPA {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+  };
+  spec: {
+    scaleTargetRef: {
+      apiVersion: string;
+      kind: string;
+      name: string;
+    };
+    minReplicas: number;
+    maxReplicas: number;
+    metrics: Array<{
+      type: string;
+      resource: {
+        name: string;
+        target: {
+          type: string;
+          averageUtilization: number;
+        };
+      };
+    }>;
+  };
 }
 
 interface PodMetrics {
@@ -45,20 +153,8 @@ interface ScalingDecision {
  * - Rolling updates support
  */
 export function kubernetesOperator(config: KubernetesConfig): Middleware {
-  const {
-    namespace = 'default',
-    deployment,
-    minReplicas = 1,
-    maxReplicas = 10,
-    targetCPU = 70,
-    targetMemory = 80,
-    scaleUpThreshold = 80,
-    scaleDownThreshold = 30,
-    cooldownPeriod = 300000, // 5 minutes
-    metricsEndpoint = '/metrics',
-  } = config;
+  const { namespace = 'default', deployment, metricsEndpoint = '/metrics' } = config;
 
-  let lastScaleTime = 0;
   const metricsHistory: PodMetrics[] = [];
 
   // Start metrics collection
@@ -165,10 +261,10 @@ async function getPodMetrics(
   // For now, return mock data
 
   try {
-    const k8sClient = await getKubernetesClient(config);
+    const k8sClient = await getKubernetesClient();
     const pods = await k8sClient.listPods(namespace, deployment);
 
-    return pods.map((pod: any) => ({
+    return pods.map((pod: Pod) => ({
       name: pod.name,
       cpu: pod.cpu || 0, // Default to 0 if metrics not available
       memory: pod.memory || 0, // Default to 0 if metrics not available
@@ -259,7 +355,7 @@ async function getCurrentReplicas(
   config: KubernetesConfig
 ): Promise<number> {
   try {
-    const k8sClient = await getKubernetesClient(config);
+    const k8sClient = await getKubernetesClient();
     const deploymentInfo = await k8sClient.getDeployment(namespace, deployment);
     return deploymentInfo.replicas || 1;
   } catch (error) {
@@ -278,7 +374,7 @@ async function scaleDeployment(
   config: KubernetesConfig
 ): Promise<void> {
   try {
-    const k8sClient = await getKubernetesClient(config);
+    const k8sClient = await getKubernetesClient();
     await k8sClient.scaleDeployment(namespace, deployment, replicas);
   } catch (error) {
     console.error('[K8s] Error scaling deployment:', error);
@@ -289,25 +385,25 @@ async function scaleDeployment(
 /**
  * Get Kubernetes client
  */
-async function getKubernetesClient(config: KubernetesConfig): Promise<any> {
+async function getKubernetesClient(): Promise<KubernetesClient> {
   // In a real implementation, this would initialize the Kubernetes client
   // using @kubernetes/client-node or similar
   // For now, return a mock client
 
   return {
-    async listPods(namespace: string, deployment: string) {
+    async listPods(_namespace: string, _deployment: string) {
       // Mock implementation
       return [];
     },
 
-    async getDeployment(namespace: string, deployment: string) {
+    async getDeployment(_namespace: string, _deployment: string) {
       // Mock implementation
       return { replicas: 1 };
     },
 
-    async scaleDeployment(namespace: string, deployment: string, replicas: number) {
+    async scaleDeployment(_namespace: string, _deployment: string, replicas: number) {
       // Mock implementation
-      console.log(`[K8s] Would scale ${namespace}/${deployment} to ${replicas} replicas`);
+      console.log(`[K8s] Would scale ${_namespace}/${_deployment} to ${replicas} replicas`);
     },
   };
 }
@@ -324,7 +420,7 @@ async function checkReadiness(): Promise<boolean> {
 /**
  * Collect application metrics
  */
-async function collectMetrics(): Promise<any> {
+async function collectMetrics(): Promise<Metrics> {
   const memoryUsage = process.memoryUsage();
   const cpuUsage = process.cpuUsage();
 
@@ -355,7 +451,7 @@ export function generateDeploymentManifest(
     cpu?: string;
     memory?: string;
   }
-): any {
+): KubernetesDeployment {
   return {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
@@ -431,7 +527,7 @@ export function generateHPAManifest(
   minReplicas: number = 1,
   maxReplicas: number = 10,
   targetCPU: number = 70
-): any {
+): KubernetesHPA {
   return {
     apiVersion: 'autoscaling/v2',
     kind: 'HorizontalPodAutoscaler',

@@ -35,6 +35,6 @@ for (const route of routingConfig) {
 // Routes are handled by the config loop above
 
 const port = process.argv[2] || 3000;
-app.listen(port, () => {
+app.listen(port).then(() => {
   console.log(`OpenSpeed Routing Benchmark listening on port ${port}`);
 });

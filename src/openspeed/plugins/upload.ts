@@ -40,11 +40,10 @@ let redis: Redis | null = null;
 try {
   redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
   redis.on('error', (err: Error) => {
-    console.warn('[UPLOAD] Redis connection failed, falling back to in-memory:', err.message);
     redis = null;
   });
 } catch {
-  console.warn('[UPLOAD] Redis not available, using in-memory storage');
+  // Redis not available, using in-memory storage
 }
 
 // Fallback in-memory store

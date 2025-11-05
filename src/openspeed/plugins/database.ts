@@ -774,7 +774,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
    */
   private validateTableName(table: string): void {
     // Table name should only contain alphanumeric characters, underscores, and dots (for schema.table)
-    if (!/^[a-zA-Z0-9_\.]+$/.test(table)) {
+    if (!/^[a-zA-Z0-9_.]+$/.test(table)) {
       throw new Error(
         `Invalid table name: "${table}". Table names must contain only alphanumeric characters, underscores, and dots.`
       );
@@ -795,7 +795,7 @@ export class SQLQueryBuilder<T = unknown> implements ISQLQueryBuilder<T> {
    */
   private quoteIdentifier(identifier: string): string {
     // Validate identifier
-    if (!/^[a-zA-Z0-9_\.]+$/.test(identifier)) {
+    if (!/^[a-zA-Z0-9_.]+$/.test(identifier)) {
       throw new Error(
         `Invalid identifier: "${identifier}". Identifiers must contain only alphanumeric characters, underscores, and dots.`
       );
@@ -1095,15 +1095,21 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
     }
   }
 
-  async find(keyspace: string, table: string, where: Partial<T> = {}): Promise<T[]> {
-    this.validateIdentifier(keyspace);
-    this.validateIdentifier(table);
+  /**
+   * Safely quote identifier (keyspace or table name)
+   */
+  private quoteIdentifier(identifier: string): string {
+    this.validateIdentifier(identifier);
+    // Use double quotes for Cassandra CQL identifiers
+    return `"${identifier}"`;
+  }
 
+  async find(keyspace: string, table: string, where: Partial<T> = {}): Promise<T[]> {
     const conditions = Object.entries(where)
-      .map(([key], i) => `${key} = ?`)
+      .map(([key]) => `${this.quoteIdentifier(key)} = ?`)
       .join(' AND ');
     const values = Object.values(where);
-    const query = `SELECT * FROM ${keyspace}.${table}${conditions ? ' WHERE ' + conditions : ''}`;
+    const query = `SELECT * FROM ${this.quoteIdentifier(keyspace)}.${this.quoteIdentifier(table)}${conditions ? ' WHERE ' + conditions : ''}`;
     const result = await (
       this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
     ).execute(query, values);
@@ -1116,13 +1122,10 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
   }
 
   async insert(keyspace: string, table: string, data: Partial<T>): Promise<unknown> {
-    this.validateIdentifier(keyspace);
-    this.validateIdentifier(table);
-
     const keys = Object.keys(data);
     const values = Object.values(data);
     const placeholders = values.map(() => '?').join(', ');
-    const query = `INSERT INTO ${keyspace}.${table} (${keys.join(', ')}) VALUES (${placeholders})`;
+    const query = `INSERT INTO ${this.quoteIdentifier(keyspace)}.${this.quoteIdentifier(table)} (${keys.map((k) => this.quoteIdentifier(k)).join(', ')}) VALUES (${placeholders})`;
     return await (
       this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
     ).execute(query, values);
@@ -1134,16 +1137,13 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
     where: Partial<T>,
     data: Partial<T>
   ): Promise<unknown> {
-    this.validateIdentifier(keyspace);
-    this.validateIdentifier(table);
-
     const setClause = Object.keys(data)
-      .map((key) => `${key} = ?`)
+      .map((key) => `${this.quoteIdentifier(key)} = ?`)
       .join(', ');
     const whereClause = Object.keys(where)
-      .map((key) => `${key} = ?`)
+      .map((key) => `${this.quoteIdentifier(key)} = ?`)
       .join(' AND ');
-    const query = `UPDATE ${keyspace}.${table} SET ${setClause} WHERE ${whereClause}`;
+    const query = `UPDATE ${this.quoteIdentifier(keyspace)}.${this.quoteIdentifier(table)} SET ${setClause} WHERE ${whereClause}`;
     const values = [...Object.values(data), ...Object.values(where)];
     return await (
       this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
@@ -1151,13 +1151,10 @@ export class CassandraQueryBuilder<T = unknown> implements ICassandraQueryBuilde
   }
 
   async delete(keyspace: string, table: string, where: Partial<T>): Promise<unknown> {
-    this.validateIdentifier(keyspace);
-    this.validateIdentifier(table);
-
     const whereClause = Object.keys(where)
-      .map((key) => `${key} = ?`)
+      .map((key) => `${this.quoteIdentifier(key)} = ?`)
       .join(' AND ');
-    const query = `DELETE FROM ${keyspace}.${table} WHERE ${whereClause}`;
+    const query = `DELETE FROM ${this.quoteIdentifier(keyspace)}.${this.quoteIdentifier(table)} WHERE ${whereClause}`;
     const values = Object.values(where);
     return await (
       this.client as { execute: (q: string, v: unknown[]) => Promise<unknown> }
@@ -1516,7 +1513,7 @@ export async function healthCheck(connectionName: string): Promise<{
           .request()
           .query('SELECT 1');
         break;
-      case 'oracle':
+      case 'oracle': {
         const oracleConnection = await (
           connection.pool as { getConnection: () => Promise<unknown> }
         ).getConnection();
@@ -1525,6 +1522,7 @@ export async function healthCheck(connectionName: string): Promise<{
         );
         await (oracleConnection as { close: () => Promise<void> }).close();
         break;
+      }
       case 'cassandra':
         await (connection.client as { execute: (q: string) => Promise<unknown> }).execute(
           'SELECT now() FROM system.local'

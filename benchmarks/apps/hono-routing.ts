@@ -29,7 +29,39 @@ for (const route of routingConfig) {
 }
 
 const port = process.argv[2] || 3100;
-export default {
-  port,
-  fetch: app.fetch,
-};
+
+// Health check
+app.get('/health', (c: any) => {
+  return c.json({
+    status: 'ok',
+    framework: 'hono',
+    scenario: 'routing',
+  });
+});
+
+// Start Node.js HTTP server
+import { createServer } from 'http';
+
+const server = createServer((req, res) => {
+  app
+    .fetch(
+      new Request(`http://localhost${req.url}`, {
+        method: req.method,
+        headers: req.headers,
+        body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
+      })
+    )
+    .then((response) => {
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => {
+        res.setHeader(key, value);
+      });
+      response.text().then((text) => {
+        res.end(text);
+      });
+    });
+});
+
+server.listen(port, () => {
+  console.log(`Hono Routing Benchmark listening on port ${port}`);
+});

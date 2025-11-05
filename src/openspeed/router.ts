@@ -1,4 +1,8 @@
-export type Handler<Req = unknown, Res = unknown> = (ctx: unknown) => Promise<unknown> | unknown;
+import Context from './context.js';
+
+import type { ResponseLike } from './context.js';
+
+export type Handler = (ctx: Context) => Promise<ResponseLike> | ResponseLike;
 
 interface RouteMatch {
   handler: Handler;

@@ -1,12 +1,12 @@
 import Router from './router.js';
-import Context, { RequestLike } from './context.js';
+import Context, { RequestLike, ResponseLike } from './context.js';
 import { createServer } from './server.js';
 import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 
 type Middleware = (ctx: Context, next: () => Promise<unknown>) => Promise<unknown>;
-type RouteHandler = (ctx: Context) => Promise<unknown>;
+type RouteHandler = (ctx: Context) => Promise<ResponseLike> | ResponseLike;
 
 export interface Plugin {
   name: string;
@@ -26,18 +26,20 @@ export interface OpenSpeedApp {
   delete(path: string, ...args: Middleware[]): OpenSpeedApp;
   patch(path: string, ...args: Middleware[]): OpenSpeedApp;
   options(path: string, ...args: Middleware[]): OpenSpeedApp;
-  handle(
-    req: RequestLike
-  ): Promise<{ status: number; headers: Record<string, string>; body: unknown }>;
+  handle(req: RequestLike): Promise<ResponseLike>;
   listen(port?: number): Promise<unknown>;
   [key: string]: unknown; // Allow decorated properties
 }
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'options'] as const;
 
-function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unknown>): Promise<unknown> {
+function runStack(
+  ctx: Context,
+  stack: Middleware[],
+  terminal: () => Promise<ResponseLike>
+): Promise<ResponseLike> {
   if (!stack.length) {
-    return Promise.resolve(terminal());
+    return terminal();
   }
 
   let next = terminal;
@@ -45,7 +47,7 @@ function runStack(ctx: Context, stack: Middleware[], terminal: () => Promise<unk
   for (let i = stack.length - 1; i >= 0; i--) {
     const middleware = stack[i];
     const currentNext = next;
-    next = () => Promise.resolve(middleware(ctx, currentNext));
+    next = () => Promise.resolve(middleware(ctx, currentNext) as Promise<ResponseLike>);
   }
 
   return next();
@@ -164,7 +166,6 @@ export function createApp(): OpenSpeedApp {
           mod = await import(url);
         } catch (err) {
           // swallow module load errors but log for developer
-          // eslint-disable-next-line no-console
           console.error(`Failed to import route file ${full}:`, err);
           continue;
         }
@@ -175,9 +176,10 @@ export function createApp(): OpenSpeedApp {
           const fn = mod[name] || mod[name.toLowerCase()];
           if (typeof fn === 'function') {
             // wrap handler to match internal RouteHandler signature
-            const handler: RouteHandler = (ctx: Context) => Promise.resolve(fn(ctx));
+            const handler: RouteHandler = (ctx: Context) =>
+              Promise.resolve(fn(ctx) as ResponseLike);
             const middlewareNames = [`file:${path.relative(process.cwd(), full)}`];
-            router.add(name, routePath, handler as (ctx: unknown) => Promise<unknown>, middlewareNames);
+            router.add(name, routePath, handler, middlewareNames);
           }
         }
       }
@@ -196,7 +198,7 @@ export function createApp(): OpenSpeedApp {
       const routeMiddlewares = args.slice(0, -1) as Middleware[];
       const compiledHandler = composeRoute(routeMiddlewares, handler);
       const middlewareNames = routeMiddlewares.map((m) => m.name || 'anonymous');
-      router.add(method.toUpperCase(), path, compiledHandler as (ctx: unknown) => Promise<unknown>, middlewareNames);
+      router.add(method.toUpperCase(), path, compiledHandler, middlewareNames);
       return app;
     };
   }
