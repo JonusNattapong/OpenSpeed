@@ -2,11 +2,13 @@
 
 /**
  * OpenSpeed Security Auto-Fixer
- * 
+ *
  * Automatically fixes common security vulnerabilities
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
+import { join, extname } from 'path';
+import { fileURLToPath } from 'url';
 import { SecurityScanner } from './security-scan.js';
 
 interface FixResult {
@@ -23,7 +25,7 @@ class SecurityFixer {
    */
   async fixDirectory(dir: string, dryRun = false): Promise<void> {
     console.log('🔧 OpenSpeed Security Auto-Fixer\n');
-    
+
     if (dryRun) {
       console.log('🔍 DRY RUN MODE - No files will be modified\n');
     }
@@ -34,7 +36,7 @@ class SecurityFixer {
 
     // Group issues by file
     const fileIssues = new Map<string, any[]>();
-    
+
     for (const issue of scanResult.issues) {
       if (!fileIssues.has(issue.file)) {
         fileIssues.set(issue.file, []);
@@ -56,7 +58,7 @@ class SecurityFixer {
    */
   private async fixFile(filePath: string, issues: any[], dryRun: boolean): Promise<void> {
     console.log(`\n📝 Fixing: ${filePath}`);
-    
+
     let content = readFileSync(filePath, 'utf-8');
     let modified = false;
     const fixes: string[] = [];
@@ -121,13 +123,13 @@ class SecurityFixer {
     if (modified && !dryRun) {
       // Add security fix comment at top of file
       const header = `// 🔒 Security fixes applied by OpenSpeed Security Auto-Fixer\n// Date: ${new Date().toISOString()}\n\n`;
-      
+
       if (!content.startsWith('// 🔒')) {
         content = header + content;
       }
 
       writeFileSync(filePath, content, 'utf-8');
-      
+
       this.fixes.push({
         file: filePath,
         fixes: fixes.length,
@@ -198,24 +200,21 @@ class SecurityFixer {
   private fixHardcodedSecrets(content: string, issue: any): string {
     const lines = content.split('\n');
     const lineIndex = issue.line - 1;
-    
+
     if (lineIndex < 0 || lineIndex >= lines.length) return content;
 
     const line = lines[lineIndex];
-    
+
     // Extract variable name and value
     const match = line.match(/(const|let|var)\s+(\w+)\s*=\s*['"]([^'"]+)['"]/);
-    
+
     if (match) {
-      const [, , varName, ] = match;
+      const [, , varName] = match;
       const envVarName = varName.toUpperCase();
-      
+
       // Replace with environment variable
-      lines[lineIndex] = line.replace(
-        /=\s*['"][^'"]+['"]/,
-        `= process.env.${envVarName} || ''`
-      );
-      
+      lines[lineIndex] = line.replace(/=\s*['"][^'"]+['"]/, `= process.env.${envVarName} || ''`);
+
       // Add comment
       lines.splice(lineIndex, 0, `  // ⚠️  Set ${envVarName} in environment variables`);
     }
@@ -241,16 +240,13 @@ class SecurityFixer {
    */
   private fixInnerHTML(content: string): string {
     // Replace innerHTML with textContent for simple cases
-    content = content.replace(
-      /(\w+)\.innerHTML\s*=\s*([^;]+);/g,
-      (match, elem, value) => {
-        // Check if value needs HTML escaping
-        if (value.includes('`') || value.includes('+')) {
-          return `// ⚠️  Manual review: ${match}\n  ${elem}.textContent = ${value}; // Consider using a sanitizer if HTML is needed`;
-        }
-        return `${elem}.textContent = ${value};`;
+    content = content.replace(/(\w+)\.innerHTML\s*=\s*([^;]+);/g, (match, elem, value) => {
+      // Check if value needs HTML escaping
+      if (value.includes('`') || value.includes('+')) {
+        return `// ⚠️  Manual review: ${match}\n  ${elem}.textContent = ${value}; // Consider using a sanitizer if HTML is needed`;
       }
-    );
+      return `${elem}.textContent = ${value};`;
+    });
 
     return content;
   }
@@ -264,7 +260,7 @@ class SecurityFixer {
     console.log('='.repeat(80) + '\n');
 
     const totalFixes = this.fixes.reduce((sum, f) => sum + f.fixes, 0);
-    
+
     console.log(`Files modified: ${this.fixes.length}`);
     console.log(`Total fixes applied: ${totalFixes}\n`);
 
@@ -286,14 +282,22 @@ class SecurityFixer {
 }
 
 // CLI Usage
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
-  const dir = args[0] || process.cwd();
-  const dryRun = args.includes('--dry-run');
+  let dir = process.cwd();
+  let dryRun = false;
+
+  for (const arg of args) {
+    if (arg === '--dry-run') {
+      dryRun = true;
+    } else if (!arg.startsWith('-')) {
+      dir = arg;
+    }
+  }
 
   const fixer = new SecurityFixer();
-  
-  fixer.fixDirectory(dir, dryRun).catch(error => {
+
+  fixer.fixDirectory(dir, dryRun).catch((error) => {
     console.error('❌ Auto-fix error:', error);
     process.exit(1);
   });
