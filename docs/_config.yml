@@ -2,10 +2,7 @@
 
 title: OpenSpeed Documentation
 description: Comprehensive documentation for the OpenSpeed framework
-remote_theme: pmarsceill/just-the-docs
-
-plugins:
-  - jekyll-remote-theme
+theme: minima
 
 url: 'https://JonusNattapong.github.io'
 baseurl: '/OpenSpeed'
