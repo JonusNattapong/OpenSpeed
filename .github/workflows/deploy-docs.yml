@@ -13,6 +13,15 @@ on:
   pull_request:
     branches: [main]
 
+# Grant minimal permissions required for deployment.
+# - `pages: write` is required so the workflow can publish to GitHub Pages.
+# - `contents: read` is sufficient for checking out repository contents.
+# - `id-token: write` enables certain actions that may require OIDC (kept for future compatibility).
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -20,6 +29,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        # Ensure the checkout action persists credentials so the GITHUB_TOKEN
+        # can be used by subsequent steps (for pushing to gh-pages).
+        persist-credentials: true
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
       with:
