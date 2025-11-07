@@ -26,3 +26,18 @@ main:
     url: contributing/
   - title: "Release Notes"
     url: release-v0.7.0/
+
+  - title: "Installation"
+    url: installation/
+  - title: "Quick Start"
+    url: quick-start/
+  - title: "Core Architecture"
+    url: core-architecture/
+  - title: "Benchmarks"
+    url: benchmarks/
+
+  - title: "FAQ"
+    url: faq/
+
+  - title: "License"
+    url: license/
