@@ -1,0 +1,244 @@
+---
+---
+
+@import "minima";
+
+/* Custom OpenSpeed documentation styles
+   - Improves typography, header, navigation, hero, cards, and footer
+   - Keeps colors subtle and professional for documentation
+*/
+
+/* Base typography & background */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f7fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.65;
+}
+
+/* Site header */
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e6eef6;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  padding: 18px 0;
+}
+
+.site-title {
+  font-family: "Merriweather", Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  color: #0b3a66;
+  margin: 0;
+  line-height: 1;
+}
+
+/* Top navigation adjustments */
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  margin-top: 6px;
+}
+
+.site-nav a {
+  color: #0b5ed7;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background .12s ease, color .12s ease, transform .08s ease;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.site-nav a:hover,
+.site-nav a:focus {
+  background: rgba(11,78,215,0.06);
+  color: #063a7a;
+  transform: translateY(-1px);
+}
+
+/* Main content wrapper */
+.main-content {
+  max-width: 1100px;
+  margin: 28px auto;
+  padding: 0 20px;
+}
+
+/* Hero / intro panel */
+.hero {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid #eef4fb;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-size: 36px;
+  margin: 0 0 8px 0;
+  color: #072d4b;
+  line-height: 1.1;
+}
+
+.hero p {
+  margin: 0 0 12px 0;
+  font-size: 17px;
+  color: #475569;
+}
+
+/* Quick links / feature grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.card {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #eef4fb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: #083156;
+}
+
+.card p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.card a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0b5ed7;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Collections and page lists: wrap and tidy long lists */
+.collection-list,
+.page-list,
+.site-nav .collection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+}
+
+.collection-list li,
+.page-list li {
+  margin: 0;
+}
+
+/* Improve table appearance in docs */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #eef4fb;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
+}
+
+th,
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+thead th {
+  background: #fbfdff;
+  color: #0b3a66;
+  font-weight: 600;
+}
+
+/* Code blocks */
+.highlight pre,
+pre {
+  border-radius: 8px;
+  padding: 14px;
+  background: #0f172a;
+  color: #e6eef6;
+  overflow: auto;
+  box-shadow: inset 0 -4px 12px rgba(15,23,42,0.25);
+}
+
+/* Footer */
+.site-footer {
+  margin-top: 28px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 28px 0;
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .hero {
+    padding: 20px;
+  }
+
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .site-title {
+    font-size: 20px;
+  }
+
+  .site-nav a {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .site-nav {
+    gap: 6px 8px;
+  }
+}
+
+/* Utility helpers */
+.kicker {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b5ed7;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Accessibility improvements */
+a:focus {
+  outline: 3px solid rgba(11,78,215,0.18);
+  outline-offset: 2px;
+  border-radius: 6px;
+}

@@ -30,3 +30,12 @@ aux_links_new_tab: false
 
 # Sort order for navigation links
 nav_sort: case_insensitive
+
+# Custom stylesheet configuration
+# The SCSS file at docs/assets/main.scss contains front matter and will be processed
+# by Jekyll into /assets/main.css. Minima will use this stylesheet for custom styles.
+sass:
+  style: compressed
+
+include:
+  - assets/main.scss
