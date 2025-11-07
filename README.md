@@ -382,31 +382,131 @@ app.post('/api/data', (ctx) => {
 
 ### OpenAPI Generator
 
-Auto-generate API documentation and TypeScript clients with best-in-class type safety, auto-completion, runtime validation, and end-to-end type inference:
+Auto-generate API documentation and clients in any programming language with best-in-class type safety, auto-completion, runtime validation, and end-to-end type inference. Built-in support for TypeScript, PHP, C++, Rust, Go, and Python, with extensible architecture for adding custom languages.
 
 ```typescript
 import { openapi } from 'openspeed/plugins/openapi';
 
-const api = openapi({
-  title: 'My API',
-  version: '1.0.0',
-  description: 'API documentation'
+const api = openapi({ title: 'My API', version: '1.0.0' });
+
+// Register a custom language generator
+api.registerLanguage('kotlin', (routes) => {
+  let clientCode = `// Generated Kotlin OpenSpeed Client
+package com.example.api
+
+import okhttp3.*
+import com.google.gson.Gson
+
+class OpenSpeedClient(private val baseUrl: String) {
+    private val client = OkHttpClient()
+    private val gson = Gson()
+
+`;
+
+  for (const route of routes) {
+    const path = route.path;
+    const method = route.method.toUpperCase();
+    const funcName = path.replace(/:/g, '_').replace(/\//g, '_').replace(/^_/, '') || 'root';
+
+    // Build function signature
+    const params = [];
+    if (route.parameters?.some(p => p.in === 'path')) params.push('pathParams: Map<String, String>');
+    if (route.parameters?.some(p => p.in === 'query')) params.push('queryParams: Map<String, String>? = null');
+    if (route.requestBody) params.push('body: Any? = null');
+    params.push('headers: Map<String, String>? = null');
+
+    clientCode += `    fun ${funcName}(${params.join(', ')}): String {\n`;
+
+    // URL construction
+    let urlTemplate = route.path;
+    for (const param of route.parameters || []) {
+      if (param.in === 'path') {
+        urlTemplate = urlTemplate.replace(`:${param.name}`, `\${pathParams["${param.name}"]}`);
+      }
+    }
+    clientCode += `        var url = "\${baseUrl}${urlTemplate}"\n`;
+
+    if (route.parameters?.some(p => p.in === 'query')) {
+      clientCode += `        queryParams?.let { qp ->\n`;
+      clientCode += `            val queryString = qp.entries.joinToString("&") { "\${it.key}=\${it.value}" }\n`;
+      clientCode += `            url += "?\${queryString}"\n`;
+      clientCode += `        }\n`;
+    }
+
+    // HTTP request
+    clientCode += `        val request = Request.Builder().url(url)\n`;
+    if (route.requestBody) {
+      clientCode += `        body?.let { b ->\n`;
+      clientCode += `            val jsonBody = gson.toJson(b)\n`;
+      clientCode += `            request.post(RequestBody.create(MediaType.parse("application/json"), jsonBody))\n`;
+      clientCode += `        }\n`;
+    } else {
+      clientCode += `        request.${method.toLowerCase()}()\n`;
+    }
+
+    clientCode += `        headers?.forEach { (k, v) -> request.addHeader(k, v) }\n`;
+    clientCode += `        val response = client.newCall(request.build()).execute()\n`;
+    clientCode += `        return response.body()?.string() ?: ""\n`;
+    clientCode += `    }\n\n`;
+  }
+
+  clientCode += `}
+`;
+  return clientCode;
 });
 
-app.use(api.middleware);
+// Generate clients for any registered language
+const kotlinClient = api.generateClient('kotlin');
 
-app.get('/users', (ctx) => ctx.json([]));
-// api.collect('GET', '/users', 'List all users');
+// Access generated clients via dynamic endpoints:
+// /client.ts - TypeScript client with full type safety
+// /client.php - PHP client with cURL
+// /client.cpp - C++ client with nlohmann/json
+// /client.rs - Rust client with reqwest and serde_json
+// /client.go - Go client with net/http and encoding/json
+// /client.py - Python client with requests library
+// /client.{any-ext} - Custom language clients (e.g., /client.kotlin)
 
 app.get('/openapi.json', (ctx) => ctx.json(api.generate()));
 
-// Access generated client at /client.ts
-// Provides fully typed client with auto-completion and type inference
-
-// Or generate client file using CLI for end-to-end type safety
-// npx openspeed client client.ts
+// Or generate client files using CLI for any supported language
+// npx openspeed client client.ts   # TypeScript
+// npx openspeed client client.php  # PHP
+// npx openspeed client client.cpp  # C++
+// npx openspeed client client.rs   # Rust
+// npx openspeed client client.go   # Go
+// npx openspeed client client.py   # Python
+// npx openspeed client client.kotlin  # Custom language
 ```
 
+This generates fully typed clients in your preferred language that you can import and use with auto-completion and runtime validation. The extensible architecture allows you to add support for any programming language by registering custom generators.
+
+#### Supported Languages & Extensions
+
+**Built-in Languages:**
+- TypeScript (.ts, .js) - Full type safety with Zod validation
+- PHP (.php) - cURL-based HTTP clients with type hints
+- C++ (.cpp, .cc, .cxx) - libcurl + nlohmann/json clients
+- Rust (.rs) - reqwest + serde_json async clients
+- Go (.go) - net/http + encoding/json clients
+- Python (.py) - requests library clients
+
+**Extensible System:**
+Register custom language generators for any programming language:
+
+```typescript
+// Example: Add Java client generation
+api.registerLanguage('java', (routes) => {
+  return `// Generated Java client\npublic class ApiClient {\n    // HTTP client implementation\n}`;
+});
+
+// Now you can generate Java clients
+const javaClient = api.generateClient('java');
+// Or via endpoint: GET /client.java
+// Or via CLI: npx openspeed client client.java
+```
+
+The system supports 50+ file extensions mapped to language names, making it easy to add support for languages like Java, Kotlin, C#, Swift, Ruby, and more.
 ### Security Plugins
 
 Comprehensive security features for production applications:

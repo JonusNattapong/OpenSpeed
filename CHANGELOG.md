@@ -8,14 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **End-to-End Type Safety**: Implemented OpenAPI-based TypeScript client generation for full-stack type safety with auto-completion, runtime validation, and type inference
-  - Enhanced OpenAPI plugin with `/client.ts` endpoint serving generated TypeScript clients
-  - Added CLI command `openspeed client client.ts` to fetch and persist generated clients
-  - Integrated Zod-to-TypeScript conversion for accurate type generation
-  - Runtime response validation in generated clients using Zod schemas
-  - Support for typed path parameters, query parameters, request bodies, headers, and authentication
-  - Comprehensive test coverage for client generation features
-  - Documentation and examples for client usage
+- **Extensible Multi-Language Client Generation**: Transformed OpenAPI-based client generation into a fully extensible system supporting any programming language, with built-in support for TypeScript, PHP, C++, Rust, Go, and Python for full-stack type safety with auto-completion, runtime validation, and end-to-end type inference
+  - Enhanced OpenAPI plugin with dynamic endpoints for all supported languages:
+    - `/client.ts` - TypeScript clients with full type safety
+    - `/client.php` - PHP clients with cURL
+    - `/client.cpp` - C++ clients with libcurl and nlohmann/json
+    - `/client.rs` - Rust clients with reqwest and serde_json
+    - `/client.go` - Go clients with net/http and encoding/json
+    - `/client.py` - Python clients with requests library
+    - `/client.{any-ext}` - Custom language clients via extensible system
+  - Added CLI commands for all languages: `openspeed client client.{ts,php,cpp,rs,go,py}` and custom extensions
+  - Implemented `registerLanguage()` API for adding custom language generators
+  - Added 50+ file extension mappings for automatic language detection
+  - Integrated Zod-to-language conversion for accurate type generation
+  - Runtime response validation in generated clients using language-specific libraries
+  - Support for typed path parameters, query parameters, request bodies, headers, and authentication across all languages
+  - Comprehensive test coverage for extensible client generation features
+  - Documentation and examples for multi-language and custom language client usage
 
 ## [0.8.3] - 2024-12-21
 

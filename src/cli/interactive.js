@@ -100,6 +100,16 @@ program
     await startDevServer(options);
   });
 
+// Generate client
+program
+  .command('client')
+  .description('Generate type-safe client from running OpenSpeed server')
+  .argument('<filename>', 'Output filename (client.ts, client.php, client.cpp)')
+  .option('-u, --url <url>', 'Server URL', 'http://localhost:3000')
+  .action(async (filename, options) => {
+    await generateClient(filename, options);
+  });
+
 // Generate code
 program
   .command('generate')
@@ -386,6 +396,47 @@ async function startDevServer(options) {
     spinner.succeed(chalk.green('Development server started!'));
     console.log(chalk.gray(`\n🌐 Open your browser to http://${options.host}:${options.port}`));
   }, 2000);
+}
+
+// Client generation
+async function generateClient(filename, options) {
+  displayLogo();
+
+  console.log(chalk.magenta(`📡 Generating client: ${filename}`));
+
+  const spinner = ora({
+    text: chalk.blue('Fetching client from server...'),
+    spinner: 'dots',
+  }).start();
+
+  try {
+    const ext = filename.split('.').pop();
+    const endpoint = `/client.${ext}`;
+
+    const response = await fetch(`${options.url}${endpoint}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Server responded with ${response.status}: ${response.statusText}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+      } catch {
+        // Use default error message
+      }
+      throw new Error(errorMessage);
+    }
+
+    const clientCode = await response.text();
+    await fs.writeFile(filename, clientCode);
+
+    spinner.succeed(chalk.green(`Client generated successfully: ${filename}`));
+  } catch (error) {
+    spinner.fail(chalk.red('Failed to generate client'));
+    console.error(chalk.red('❌ Error:'), error.message);
+    throw error;
+  }
 }
 
 // Code generation
