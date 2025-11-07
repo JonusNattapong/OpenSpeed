@@ -37,27 +37,41 @@ jobs:
       with:
         ruby-version: '3.1'
         bundler-cache: true
-    - name: Install Ruby gems (bundler & dependencies) and print debug info
+    - name: Install system build dependencies, Ruby gems and print debug info
       run: |
         set -eux
-        # Ensure we are in the docs directory and print environment diagnostics
+        # Move into docs directory for subsequent steps
         cd docs
+
+        # Install native build dependencies required by some gems (e.g., nokogiri, openssl extensions)
+        # Use apt-get; on GitHub Actions Ubuntu runners this will work.
+        echo "=== Apt update & install native build deps ==="
+        sudo apt-get update -y
+        sudo apt-get install -y build-essential libssl-dev zlib1g-dev libreadline-dev libyaml-dev libxml2-dev libxslt1-dev libgmp-dev pkg-config
+
+        # Print environment diagnostics
         echo "=== ruby & gem versions ==="
         ruby --version || true
         gem --version || true
         echo "=== PATH ==="
         echo "$PATH"
+
         echo "=== Working directory content ==="
         ls -la
+
         echo "=== Show Gemfile and Gemfile.lock if present ==="
         [ -f Gemfile ] && sed -n '1,200p' Gemfile || echo "No Gemfile"
         [ -f Gemfile.lock ] && sed -n '1,200p' Gemfile.lock || echo "No Gemfile.lock"
-        # Install bundler (try to install a modern bundler, but continue if already present)
-        gem install bundler || true
+
+        # Ensure bundler is available (install if necessary)
+        gem install bundler --no-document || true
+
         # Use a local vendor/bundle to avoid permission issues
         bundle config set --local path 'vendor/bundle'
+
         # Install gems with verbose output to capture errors
         bundle install --jobs 4 --retry 3 --verbose
+
         echo "=== Bundler list ==="
         bundle list || gem list
     - name: Build with Jekyll (verbose + diagnostics)
