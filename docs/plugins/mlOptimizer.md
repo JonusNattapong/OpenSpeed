@@ -2,6 +2,7 @@
 layout: default
 title: MlOptimizer
 parent: Plugins
+nav_order: 5
 ---
 
 # ML Optimizer Plugin

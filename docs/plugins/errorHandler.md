@@ -2,6 +2,7 @@
 layout: default
 title: ErrorHandler
 parent: Plugins
+nav_order: 4
 ---
 
 # Error Handler Plugin

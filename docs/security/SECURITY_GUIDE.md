@@ -2,6 +2,7 @@
 layout: default
 title: SECURITY GUIDE
 parent: Security
+nav_order: 3
 ---
 
 # OpenSpeed Security Guide

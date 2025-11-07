@@ -2,6 +2,7 @@
 layout: default
 title: Websocket
 parent: Plugins
+nav_order: 2
 ---
 
 # WebSocket Plugin

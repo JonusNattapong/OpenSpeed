@@ -2,6 +2,7 @@
 layout: default
 title: Cookie
 parent: Plugins
+nav_order: 3
 ---
 
 # Cookie Plugin

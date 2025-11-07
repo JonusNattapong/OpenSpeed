@@ -2,6 +2,7 @@
 layout: default
 title: ML_OPTIMIZER_SUMMARY
 parent: Plugins
+nav_order: 6
 ---
 
 # ML Optimizer - Feature Summary

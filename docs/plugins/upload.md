@@ -2,6 +2,7 @@
 layout: default
 title: Upload
 parent: Plugins
+nav_order: 1
 ---
 
 # File Upload Plugin

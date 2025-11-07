@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Performance Optimization
-nav_order: 9
+nav_order: 12
 ---
 
 # OpenSpeed Performance Optimization Guide

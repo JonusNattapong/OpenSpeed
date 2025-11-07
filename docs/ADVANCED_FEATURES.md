@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Advanced Features
-nav_order: 8
+nav_order: 11
 ---
 
 # Advanced Features Guide
