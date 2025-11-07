@@ -25,19 +25,51 @@ jobs:
       with:
         ruby-version: '3.1'
         bundler-cache: true
-    - name: Install Ruby gems (bundler & dependencies)
+    - name: Install Ruby gems (bundler & dependencies) and print debug info
       run: |
+        set -eux
+        # Ensure we are in the docs directory and print environment diagnostics
         cd docs
-        gem install bundler
+        echo "=== ruby & gem versions ==="
+        ruby --version || true
+        gem --version || true
+        echo "=== PATH ==="
+        echo "$PATH"
+        echo "=== Working directory content ==="
+        ls -la
+        echo "=== Show Gemfile and Gemfile.lock if present ==="
+        [ -f Gemfile ] && sed -n '1,200p' Gemfile || echo "No Gemfile"
+        [ -f Gemfile.lock ] && sed -n '1,200p' Gemfile.lock || echo "No Gemfile.lock"
+        # Install bundler (try to install a modern bundler, but continue if already present)
+        gem install bundler || true
+        # Use a local vendor/bundle to avoid permission issues
         bundle config set --local path 'vendor/bundle'
-        bundle install --jobs 4 --retry 3
-    - name: Build with Jekyll
+        # Install gems with verbose output to capture errors
+        bundle install --jobs 4 --retry 3 --verbose
+        echo "=== Bundler list ==="
+        bundle list || gem list
+    - name: Build with Jekyll (verbose + diagnostics)
       run: |
+        set -eux
         cd docs
-        bundle exec jekyll build --destination ./_site
-    - name: Deploy
+        echo "=== Jekyll config ==="
+        sed -n '1,200p' _config.yml || true
+        echo "=== Jekyll version & environment ==="
+        bundle exec jekyll -v || true
+        echo "=== Node/npm info (if present) ==="
+        node --version || true
+        npm --version || true
+        echo "=== Pre-build sanity: list docs dir ==="
+        ls -la
+        echo "=== Running Jekyll build with --trace for detailed errors ==="
+        # Use --trace to get full Ruby backtrace on error; include destination explicitly
+        bundle exec jekyll build --destination ./_site --trace || ( echo "Jekyll build failed, printing _site contents (if any)"; ls -la ./_site || true; false )
+    - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./docs/_site
+        # include a clear commit message for traceability and allow empty commit if no changes
+        commit_message: "chore(docs): deploy site from ${GITHUB_SHA}"
+        allow_empty_commit: true
