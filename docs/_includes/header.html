@@ -1,0 +1,21 @@
+<header class="site-header" role="banner">
+  <div class="wrapper">
+    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">
+      {{ site.title | default: "OpenSpeed" }}
+    </a>
+
+    <nav class="site-nav" aria-label="Primary Navigation">
+      <div class="trigger">
+        {%- assign default_paths = site.pages | map: "path" -%}
+        {%- assign page_paths = site.header_pages | default: default_paths -%}
+
+        <a class="page-link" href="{{ '/guides/' | relative_url }}">📚 Guides</a>
+        <a class="page-link" href="{{ '/api/' | relative_url }}">🔧 API</a>
+        <a class="page-link" href="{{ '/plugins/' | relative_url }}">🔌 Plugins</a>
+        <a class="page-link" href="{{ '/examples/' | relative_url }}">💼 Examples</a>
+        <a class="page-link" href="{{ '/security/' | relative_url }}">🔒 Security</a>
+        <a class="page-link" href="https://github.com/JonusNattapong/OpenSpeed" target="_blank" rel="noopener">⭐ GitHub</a>
+      </div>
+    </nav>
+  </div>
+</header>

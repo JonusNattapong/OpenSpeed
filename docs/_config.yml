@@ -1,41 +1,128 @@
-# Just the Docs
+# OpenSpeed Documentation Site Configuration
+# Corporate Professional Theme
 
+# Site Settings
 title: OpenSpeed Documentation
-description: Comprehensive documentation for the OpenSpeed framework
+tagline: Enterprise-Grade Performance Optimization Framework
+description: Comprehensive documentation for the OpenSpeed framework - Lightning-fast performance optimization for modern web applications with advanced caching, compression, and analytics.
+author: OpenSpeed Team
+email: support@openspeed.dev
+
+# Theme Configuration
 theme: minima
 
+# URLs
 url: 'https://JonusNattapong.github.io'
 baseurl: '/OpenSpeed'
+repository: JonusNattapong/OpenSpeed
 
-# Enable or disable heading anchor links
+# Build Settings
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+
+# Kramdown Settings
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Collections
+collections:
+  guides:
+    output: true
+    permalink: /guides/:path/
+  plugins:
+    output: true
+    permalink: /plugins/:path/
+
+# Defaults
+defaults:
+  - scope:
+      path: ''
+      type: 'pages'
+    values:
+      layout: 'default'
+  - scope:
+      path: ''
+      type: 'posts'
+    values:
+      layout: 'default'
+  - scope:
+      path: ''
+      type: 'guides'
+    values:
+      layout: 'default'
+  - scope:
+      path: ''
+      type: 'plugins'
+    values:
+      layout: 'default'
+
+# Navigation
+nav_sort: case_insensitive
 heading_anchors: true
 
-# Footer content
-footer_content: 'Copyright &copy; 2024 OpenSpeed. Distributed by an <a href="https://github.com/pmarsceill/just-the-docs/tree/main/LICENSE.txt">MIT license.</a>'
+# SEO Settings
+lang: en
+timezone: UTC
 
-# Back to top link
-back_to_top: true
-back_to_top_text: 'Back to top'
+# Social Media
+twitter:
+  username: openspeed
+  card: summary_large_image
 
-# Color scheme currently only supports "dark", "light"/nil (default), or a custom scheme that you define
-color_scheme: nil
+social:
+  name: OpenSpeed Framework
+  links:
+    - https://github.com/JonusNattapong/OpenSpeed
+    - https://twitter.com/openspeed
+    - https://www.npmjs.com/package/openspeed
 
-# Aux links for the upper right navigation
-aux_links:
-  'OpenSpeed on GitHub':
-    - '//github.com/JonusNattapong/OpenSpeed' # Replace with actual GitHub URL
+# Google Analytics (add your tracking ID if needed)
+# google_analytics: UA-XXXXXXXXX-X
 
-# Makes Aux links open in a new tab. Default is false
-aux_links_new_tab: false
+# GitHub
+github:
+  repository_url: https://github.com/JonusNattapong/OpenSpeed
+  repository_name: OpenSpeed
 
-# Sort order for navigation links
-nav_sort: case_insensitive
+# Footer Content
+footer_content: 'Copyright &copy; 2024 OpenSpeed Framework. Released under the <a href="https://github.com/JonusNattapong/OpenSpeed/blob/main/LICENSE">MIT License</a>.'
 
-# Custom stylesheet configuration
-# The SCSS file at docs/assets/main.scss contains front matter and will be processed
-# by Jekyll into /assets/main.css. Minima will use this stylesheet for custom styles.
+# Sass Configuration
 sass:
   style: compressed
+  sass_dir: _sass
 
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Include/Exclude
 include:
+  - _pages
   - assets/main.scss
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .sass-cache
+  - .jekyll-cache
+  - .git
+  - .github
+  - README.md
+  - package.json
+  - package-lock.json
+
+# Liquid Options
+liquid:
+  error_mode: warn
+  strict_filters: false
+  strict_variables: false
