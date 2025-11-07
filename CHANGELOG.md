@@ -5,6 +5,27 @@ All notable changes to Openspeed will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2024-11-07
+
+### Added
+- **NPM Publication**: First official release on npm registry as `openspeed@1.0.4`
+- **Comprehensive Documentation Site**: Full docs with just-the-docs theme at https://jonusnattapong.github.io/OpenSpeed/
+- **Installation Guide**: Multiple setup options, runtime support, and deployment instructions
+- **Quick Start Tutorial**: Step-by-step beginner guide with practical examples
+- **Core Architecture Overview**: Framework internals, performance features, and design principles
+- **Benchmarks**: Performance comparisons, test results, and optimization tips
+- **FAQ**: Common questions about usage, performance, security, and troubleshooting
+- **License Information**: MIT license details and third-party dependencies
+- **Complete API Reference**: 881-line comprehensive API docs with examples and TypeScript definitions
+- **GitHub Pages Integration**: Professional documentation hosting with navigation and search
+
+### Technical Details
+- **Package Size**: 228.5 kB (978.1 kB unpacked)
+- **Files**: 197 files included
+- **TypeScript Support**: Full type definitions and intellisense
+- **Runtime Agnostic**: Node.js, Bun, and Deno support
+- **Plugin Ecosystem**: 11+ plugins with comprehensive documentation
+
 ## [Unreleased]
 
 ### Added
