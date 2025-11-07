@@ -1,3 +1,9 @@
+---
+layout: default
+title: Contributing
+nav_order: 9
+---
+
 # Contributing to OpenSpeed
 
 Thank you for your interest in contributing to OpenSpeed! We welcome contributions from the community.

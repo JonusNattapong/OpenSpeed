@@ -1,3 +1,9 @@
+---
+layout: default
+title: Cookie
+parent: Plugins
+---
+
 # Cookie Plugin
 
 The cookie plugin provides comprehensive cookie management with a CookieJar implementation for session handling and state management.

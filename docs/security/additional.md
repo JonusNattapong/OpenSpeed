@@ -1,3 +1,9 @@
+---
+layout: default
+title: Additional
+parent: Security
+---
+
 # OpenSpeed Additional Security Components
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Upload
+parent: Plugins
+---
+
 # File Upload Plugin
 
 The file upload plugin provides comprehensive multipart form data handling with streaming support.

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Examples
+nav_order: 7
+---
+
 # OpenSpeed Examples
 
 This directory contains complete, runnable examples demonstrating various OpenSpeed features and use cases.

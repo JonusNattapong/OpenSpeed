@@ -1,3 +1,10 @@
+---
+layout: default
+title: Migration Guide
+parent: Guides
+nav_order: 2
+---
+
 # Migration Guide: From Hono/Elysia to OpenSpeed
 
 This guide helps you migrate from **Hono** or **Elysia** to **OpenSpeed**. OpenSpeed combines the best features of both frameworks while offering superior performance and additional enterprise capabilities.

@@ -1,3 +1,9 @@
+---
+layout: default
+title: SECURITY GUIDE
+parent: Security
+---
+
 # OpenSpeed Security Guide
 
 ## 🔒 Security Best Practices

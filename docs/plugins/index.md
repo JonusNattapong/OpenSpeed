@@ -1,3 +1,10 @@
+---
+layout: default
+title: Plugins
+nav_order: 5
+has_children: true
+---
+
 # OpenSpeed Plugins
 
 OpenSpeed provides a rich ecosystem of plugins to extend your application's functionality. All plugins follow a consistent API and can be easily combined.

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Getting Started
+parent: Guides
+nav_order: 1
+---
+
 # Getting Started with OpenSpeed
 
 Welcome to OpenSpeed! This guide will help you get started with building web applications using the framework.

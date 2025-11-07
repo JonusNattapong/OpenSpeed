@@ -1,3 +1,9 @@
+---
+layout: default
+title: Authentication
+parent: Security
+---
+
 # OpenSpeed Authentication Security Guide
 
 ## Overview

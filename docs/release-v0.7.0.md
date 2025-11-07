@@ -1,3 +1,9 @@
+---
+layout: default
+title: Release v0.7.0
+nav_order: 10
+---
+
 # OpenSpeed v0.7.0: Achieving Feature Parity with Hono and Elysia
 
 **Published on:** October 30, 2025  

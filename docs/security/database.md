@@ -1,3 +1,9 @@
+---
+layout: default
+title: Database
+parent: Security
+---
+
 OpenSpeed\docs\security\database.md
 # OpenSpeed Database Security Guide
 

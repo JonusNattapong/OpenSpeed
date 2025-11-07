@@ -1,3 +1,9 @@
+---
+layout: default
+title: ErrorHandler
+parent: Plugins
+---
+
 # Error Handler Plugin
 
 The error handler plugin provides comprehensive error management with typed exceptions and automatic error response formatting.

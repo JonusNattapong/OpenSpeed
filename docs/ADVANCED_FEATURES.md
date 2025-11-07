@@ -1,3 +1,9 @@
+---
+layout: default
+title: Advanced Features
+nav_order: 8
+---
+
 # Advanced Features Guide
 
 ## File-Based Routing

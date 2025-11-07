@@ -1,3 +1,9 @@
+---
+layout: default
+title: Websocket
+parent: Plugins
+---
+
 # WebSocket Plugin
 
 The WebSocket plugin provides real-time bidirectional communication with room-based messaging and connection management.

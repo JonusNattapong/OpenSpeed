@@ -1,0 +1,28 @@
+# Site navigation
+main:
+  - title: "Home"
+  - title: "Why OpenSpeed"
+    url: why-openspeed/
+  - title: "API"
+    url: api/
+  - title: "Guides"
+    url: guides/
+  - title: "Plugins"
+    url: plugins/
+  - title: "Security"
+    url: security/
+  - title: "Examples"
+    url: examples/
+  - title: "Advanced Features"
+    url: advanced-features/
+  - title: "Contributing"
+    url: contributing/
+  - title: "Release Notes"
+    url: release-v0.7.0/
+
+  - title: "Advanced Features"
+    url: advanced-features/
+  - title: "Contributing"
+    url: contributing/
+  - title: "Release Notes"
+    url: release-v0.7.0/

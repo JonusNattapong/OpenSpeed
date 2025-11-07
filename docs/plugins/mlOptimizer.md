@@ -1,3 +1,9 @@
+---
+layout: default
+title: MlOptimizer
+parent: Plugins
+---
+
 # ML Optimizer Plugin
 
 Advanced machine learning-powered performance optimization plugin for OpenSpeed framework.

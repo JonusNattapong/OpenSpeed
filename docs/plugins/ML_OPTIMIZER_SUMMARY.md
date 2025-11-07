@@ -1,3 +1,9 @@
+---
+layout: default
+title: ML_OPTIMIZER_SUMMARY
+parent: Plugins
+---
+
 # ML Optimizer - Feature Summary
 
 ## Overview
