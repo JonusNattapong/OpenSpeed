@@ -18,7 +18,7 @@ on:
 # - `contents: read` is sufficient for checking out repository contents.
 # - `id-token: write` enables certain actions that may require OIDC (kept for future compatibility).
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
