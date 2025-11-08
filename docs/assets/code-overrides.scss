@@ -1,0 +1,335 @@
+---
+---
+
+/* ============================================================================
+   OpenSpeed - High-specificity Code Block Overrides
+   File: docs/assets/code-overrides.scss
+   Purpose: Fix invisible code issues, ensure strong contrast, and style copy button
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   High-specificity overrides to win against other theme rules.
+   These selectors appear first and use !important where necessary.
+   --------------------------------------------------------------------------- */
+.main-content pre,
+.card pre,
+.hero pre,
+.highlight pre,
+pre,
+pre.hljs,
+pre[data-lang] {
+  background: #0b1220 !important;         /* deep navy for strong contrast */
+  color: #e6eef6 !important;              /* light foreground for readability */
+  border-color: rgba(255,255,255,0.06) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 20px rgba(2,6,23,0.45) !important;
+  border-radius: 0.75rem !important;
+  padding: 1.25rem !important;
+  overflow: auto !important;
+  line-height: 1.6 !important;
+  font-family: var(--font-family-mono, "SF Mono", "Consolas", "Monaco", "Courier New", monospace) !important;
+  font-size: 0.95rem !important;
+}
+
+/* Ensure inline <code> inside pre inherits and is visible */
+pre code,
+.highlight code,
+pre code span {
+  color: inherit !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Variables / Fallback tokens
+   --------------------------------------------------------------------------- */
+:root {
+  --code-bg: #0b1220;
+  --code-fg: #e6eef6;
+  --inline-bg: #f1f5f9;
+  --inline-fg: #002958;
+  --accent: var(--color-accent, #d4af37);
+  --accent-light: var(--color-accent-light, #f0d966);
+  --primary-dark: var(--color-primary-dark, #002958);
+  --copy-bg: var(--accent);
+  --copy-ink: var(--primary-dark);
+  --focus-ring: rgba(212, 175, 55, 0.25);
+}
+
+/* ---------------------------------------------------------------------------
+   Inline code (non-pre)
+   --------------------------------------------------------------------------- */
+code:not(pre code) {
+  background: var(--inline-bg);
+  color: var(--inline-fg);
+  padding: 0.12em 0.38em;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(0,0,0,0.04);
+  font-family: var(--font-family-mono, "SF Mono", "Consolas", "Monaco", monospace);
+  font-size: 0.95em;
+  white-space: nowrap;
+  box-shadow: 0 1px 0 rgba(15,23,42,0.02) inset;
+}
+
+/* ---------------------------------------------------------------------------
+   Pre / Block code base rules (non-overriding)
+   --------------------------------------------------------------------------- */
+pre, .highlight pre {
+  /* keep things consistent; high-specificity rules above will ensure dominance */
+  word-wrap: normal;
+  tab-size: 2;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Left accent stripe for highlighted code blocks (visual brand accent) */
+.highlight pre,
+pre.hljs,
+pre[data-lang] {
+  border-left: 4px solid var(--accent) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Rouge token color mapping (common classes)
+   - These selectors use !important to avoid theme token collisions.
+   --------------------------------------------------------------------------- */
+/* comments */
+.highlight .c,
+.highlight .cm,
+.highlight .cp,
+.highlight .c1,
+.highlight .cs {
+  color: #8b98a8 !important; /* muted gray-blue */
+}
+
+/* keywords */
+.highlight .k,
+.highlight .kd,
+.highlight .kr,
+.highlight .kt {
+  color: #ffd08a !important; /* warm gold for keywords */
+  font-weight: 600 !important;
+}
+
+/* strings */
+.highlight .s,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .s2,
+.highlight .se,
+.highlight .sh,
+.highlight .si,
+.highlight .sr {
+  color: #9be6a8 !important; /* soft green for strings */
+}
+
+/* numbers / constants */
+.highlight .m,
+.highlight .mi,
+.highlight .mf,
+.highlight .mh,
+.highlight .mb {
+  color: #f6ad55 !important; /* orange */
+}
+
+/* function / class / name tokens */
+.highlight .nf,
+.highlight .nx,
+.highlight .nt {
+  color: #9ad0ff !important; /* light blue */
+  font-weight: 600 !important;
+}
+
+/* punctuation / operators */
+.highlight .o,
+.highlight .p {
+  color: #e6eef6 !important;
+}
+
+/* builtins / variable names */
+.highlight .nb,
+.highlight .vc,
+.highlight .vg {
+  color: #ffd08a !important;
+}
+
+/* tag names for markup */
+.highlight .nt,
+.highlight .na {
+  color: #9ad0ff !important;
+}
+
+/* attribute names */
+.highlight .na {
+  color: #ffd08a !important;
+}
+
+/* Make punctuation/line numbers subtle but readable */
+.highlight .lineno {
+  color: rgba(230,238,246,0.45) !important;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Copy button styles
+   --------------------------------------------------------------------------- */
+/* Positioning: top-right corner; CSS controls visibility (hover/focus) */
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.36rem 0.64rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+
+  background: var(--copy-bg);
+  color: var(--copy-ink);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 18px rgba(2,6,23,0.32);
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transition: opacity 160ms ease, transform 160ms ease, background 160ms ease;
+  z-index: 10;
+}
+
+/* Show on hover/focus-within, always visible on touch devices */
+pre:hover .copy-button,
+pre:focus-within .copy-button,
+.highlight pre:hover .copy-button,
+.highlight pre:focus-within .copy-button {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Touch devices - always visible affordance */
+@media (hover: none) and (pointer: coarse) {
+  .copy-button { opacity: 1; transform: none; }
+}
+
+/* Hover/focus styles */
+.copy-button:hover,
+.copy-button:focus {
+  background: var(--accent-light);
+  color: var(--copy-ink);
+  transform: translateY(-2px) scale(1.02);
+  outline: none;
+}
+
+/* Accessible focus ring */
+.copy-button:focus-visible {
+  box-shadow: 0 0 0 4px var(--focus-ring);
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* Visual label/icon inside button */
+.copy-button .icon { font-size: 1.05rem; line-height: 1; }
+.copy-button .label { display: inline-block; margin-left: 0.25rem; }
+
+/* Visual feedback states (added by JS) */
+.copy-button.copied {
+  background: #22c55e !important; /* green feedback */
+  color: #042a2b !important;
+  transform: translateY(-1px) scale(1.02) !important;
+}
+.copy-button.copy-failed {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+/* Ensure copy button does not overflow small pre containers */
+pre .copy-button { max-width: 38% }
+
+/* ---------------------------------------------------------------------------
+   Language label helper (optional)
+   --------------------------------------------------------------------------- */
+.lang-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.18rem 0.4rem;
+  border-radius: 0.35rem;
+  background: rgba(0,0,0,0.18);
+  color: var(--code-fg);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  z-index: 9;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive adjustments
+   --------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  pre, .highlight pre {
+    padding: 0.9rem !important;
+    font-size: 0.9rem !important;
+  }
+  .copy-button {
+    top: 0.4rem;
+    right: 0.4rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   High-contrast / accessibility mode
+   --------------------------------------------------------------------------- */
+@media (prefers-contrast: more) {
+  code:not(pre code) {
+    background: #000;
+    color: #fff;
+    border: 2px solid var(--accent);
+  }
+  pre, .highlight pre {
+    background: #000 !important;
+    color: #fff !important;
+    border: 3px solid var(--accent) !important;
+    box-shadow: none !important;
+  }
+  .highlight pre { border-left-width: 6px !important; }
+  .copy-button { opacity: 1 !important; transform: none !important; border: 2px solid #fff; }
+  .copy-button:focus-visible { box-shadow: 0 0 0 6px rgba(212,175,55,0.32); }
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .copy-button,
+  pre:hover .copy-button,
+  pre:focus-within .copy-button {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .fade-in, .card, .hero { animation: none !important; transition: none !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   Print styles
+   --------------------------------------------------------------------------- */
+@media print {
+  code:not(pre code) { background: none; color: #000; border: none; padding: 0; }
+  pre, .highlight pre {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    padding: 0.6rem !important;
+    font-size: 0.9rem !important;
+  }
+  .copy-button { display: none !important; }
+  .lang-label { display: none !important; }
+}
+
+/* End of file */

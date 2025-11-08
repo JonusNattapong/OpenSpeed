@@ -14,55 +14,8 @@ theme: minima
 # URLs
 url: 'https://JonusNattapong.github.io'
 baseurl: '/OpenSpeed'
-repository: JonusNattapong/OpenSpeed
 
-# Build Settings
-markdown: kramdown
-highlighter: rouge
-permalink: pretty
-
-# Kramdown Settings
-kramdown:
-  input: GFM
-  syntax_highlighter: rouge
-  syntax_highlighter_opts:
-    block:
-      line_numbers: false
-
-# Collections
-collections:
-  guides:
-    output: true
-    permalink: /guides/:path/
-  plugins:
-    output: true
-    permalink: /plugins/:path/
-
-# Defaults
-defaults:
-  - scope:
-      path: ''
-      type: 'pages'
-    values:
-      layout: 'default'
-  - scope:
-      path: ''
-      type: 'posts'
-    values:
-      layout: 'default'
-  - scope:
-      path: ''
-      type: 'guides'
-    values:
-      layout: 'default'
-  - scope:
-      path: ''
-      type: 'plugins'
-    values:
-      layout: 'default'
-
-# Navigation
-nav_sort: case_insensitive
+# Enable or disable heading anchor links
 heading_anchors: true
 
 # SEO Settings
@@ -95,18 +48,11 @@ footer_content: 'Copyright &copy; 2024 OpenSpeed Framework. Released under the <
 # Sass Configuration
 sass:
   style: compressed
-  sass_dir: _sass
 
-# Plugins
-plugins:
-  - jekyll-feed
-  - jekyll-seo-tag
-  - jekyll-sitemap
-
-# Include/Exclude
 include:
   - _pages
   - assets/main.scss
+  - assets/code-overrides.scss
 
 exclude:
   - Gemfile
