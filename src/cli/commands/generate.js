@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -65,6 +66,16 @@ class AICodeGenerator {
         baseURL: 'https://api.anthropic.com',
         model: 'claude-3-sonnet-20240229',
       },
+      gemini: {
+        name: 'Google Gemini',
+        apiKey:
+          process.env.GEMINI_API_KEY ||
+          (process.env.GEMINI_API_KEY_FILE
+            ? readFileSync(process.env.GEMINI_API_KEY_FILE, 'utf8').trim()
+            : undefined),
+        baseURL: 'https://generativelanguage.googleapis.com',
+        model: 'gemini-pro',
+      },
     };
 
     this.currentProvider = 'openai'; // Default provider
@@ -74,7 +85,9 @@ class AICodeGenerator {
       console.log(`🤖 AI Code Generation enabled (${this.providers[this.currentProvider].name})`);
     } else {
       console.log('📝 Template-based code generation (set API keys for AI features)');
-      console.log('Available providers: OpenAI, DeepSeek, OpenRouter, Anthropic');
+      console.log(
+        'Available providers: OpenAI (GPT-4), DeepSeek, OpenRouter, Anthropic (Claude), Gemini'
+      );
     }
 
     this.loadGenerators();
@@ -434,7 +447,13 @@ class AICodeGenerator {
     try {
       let response;
 
-      if (this.currentProvider === 'anthropic') {
+      if (this.currentProvider === 'gemini') {
+        const genAI = new GoogleGenerativeAI(provider.apiKey);
+        const model = genAI.getGenerativeModel({ model: provider.model });
+
+        response = await model.generateContent(prompt);
+        return response.response.text().trim();
+      } else if (this.currentProvider === 'anthropic') {
         const client = new Anthropic({
           apiKey: provider.apiKey,
         });
@@ -1796,7 +1815,7 @@ export function generateCommand() {
     .option('-y, --yes', 'Skip confirmations')
     .option(
       '-p, --provider <provider>',
-      'AI provider to use (openai, deepseek, openrouter, anthropic)',
+      'AI provider to use (openai, deepseek, openrouter, anthropic, gemini)',
       'openai'
     )
     .option('--no-cache', 'Disable caching for this generation')
@@ -1938,7 +1957,7 @@ export function generateCommand() {
         .option('-d, --dry-run', 'Show what would be generated')
         .option(
           '-p, --provider <provider>',
-          'AI provider to use (openai, deepseek, openrouter, anthropic)',
+          'AI provider to use (openai, deepseek, openrouter, anthropic, gemini)',
           'openai'
         )
         .option('--no-cache', 'Disable caching for this generation')

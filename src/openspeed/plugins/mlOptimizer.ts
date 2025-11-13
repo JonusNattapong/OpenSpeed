@@ -100,6 +100,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
   // Initialize ML models
   const performanceModel = new PerformancePredictor();
   const anomalyDetector = new AnomalyDetector();
+  const neuralAnomalyDetector = new NeuralNetworkAnomalyDetector();
   const resourceAllocator = new ResourceAllocator();
   const queryOptimizer = new QueryOptimizer();
   const loadBalancer = new AdaptiveLoadBalancer();
@@ -113,6 +114,7 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
   startTrainingScheduler(trainingInterval, {
     performanceModel,
     anomalyDetector,
+    neuralAnomalyDetector,
     resourceAllocator,
     metricsStore,
   });
@@ -190,6 +192,23 @@ export function mlOptimizer(config: MLOptimizerConfig = {}): Middleware {
           historicalData: metricsStore.getRecentMetrics(1000),
           thresholds: optimization,
         });
+
+        // Neural network anomaly detection
+        const neuralResult = await neuralAnomalyDetector.detectAnomaly(metric);
+        if (neuralResult.isAnomaly) {
+          const neuralAnomaly: AnomalyAlert = {
+            severity: neuralResult.confidence > 0.8 ? 'high' : 'medium',
+            type: 'latency',
+            message: `Neural network detected anomaly with confidence ${(neuralResult.confidence * 100).toFixed(1)}%`,
+            metrics: {
+              neuralScore: neuralResult.score,
+              confidence: neuralResult.confidence,
+            },
+            suggestion: 'Review recent traffic patterns and system resources',
+            timestamp: Date.now(),
+          };
+          anomalies.push(neuralAnomaly);
+        }
 
         if (anomalies.length > 0) {
           anomalies.forEach((anomaly) => {
@@ -464,6 +483,211 @@ class AnomalyDetector {
  * Intelligent Resource Allocator
  * Uses reinforcement learning for optimal resource distribution
  */
+/**
+ * Neural Network-based Anomaly Detector
+ * Uses a simple feedforward neural network for pattern recognition
+ */
+class NeuralNetworkAnomalyDetector {
+  private network: {
+    inputSize: number;
+    hiddenSize: number;
+    outputSize: number;
+    weightsIH: number[][];
+    weightsHO: number[][];
+    biasH: number[];
+    biasO: number[];
+  };
+  private learningRate: number = 0.1;
+  private trainingData: number[][] = [];
+  private isTrained: boolean = false;
+
+  constructor(inputSize: number = 5, hiddenSize: number = 3) {
+    this.network = {
+      inputSize,
+      hiddenSize,
+      outputSize: 1,
+      weightsIH: this.initializeWeights(inputSize, hiddenSize),
+      weightsHO: this.initializeWeights(hiddenSize, 1),
+      biasH: new Array(hiddenSize).fill(0),
+      biasO: new Array(1).fill(0),
+    };
+  }
+
+  private initializeWeights(rows: number, cols: number): number[][] {
+    const weights: number[][] = [];
+    for (let i = 0; i < rows; i++) {
+      weights[i] = [];
+      for (let j = 0; j < cols; j++) {
+        weights[i][j] = (Math.random() - 0.5) * 0.1; // Small random weights
+      }
+    }
+    return weights;
+  }
+
+  private sigmoid(x: number): number {
+    return 1 / (1 + Math.exp(-x));
+  }
+
+  private sigmoidDerivative(x: number): number {
+    return x * (1 - x);
+  }
+
+  private forward(input: number[]): { hidden: number[]; output: number[] } {
+    // Hidden layer
+    const hidden: number[] = [];
+    for (let i = 0; i < this.network.hiddenSize; i++) {
+      let sum = this.network.biasH[i];
+      for (let j = 0; j < this.network.inputSize; j++) {
+        sum += input[j] * this.network.weightsIH[j][i];
+      }
+      hidden[i] = this.sigmoid(sum);
+    }
+
+    // Output layer
+    const output: number[] = [];
+    for (let i = 0; i < this.network.outputSize; i++) {
+      let sum = this.network.biasO[i];
+      for (let j = 0; j < this.network.hiddenSize; j++) {
+        sum += hidden[j] * this.network.weightsHO[j][i];
+      }
+      output[i] = this.sigmoid(sum);
+    }
+
+    return { hidden, output };
+  }
+
+  private backward(input: number[], target: number[], hidden: number[], output: number[]): void {
+    // Calculate output layer errors
+    const outputErrors: number[] = [];
+    for (let i = 0; i < this.network.outputSize; i++) {
+      outputErrors[i] = (target[i] - output[i]) * this.sigmoidDerivative(output[i]);
+    }
+
+    // Calculate hidden layer errors
+    const hiddenErrors: number[] = [];
+    for (let i = 0; i < this.network.hiddenSize; i++) {
+      let error = 0;
+      for (let j = 0; j < this.network.outputSize; j++) {
+        error += outputErrors[j] * this.network.weightsHO[i][j];
+      }
+      hiddenErrors[i] = error * this.sigmoidDerivative(hidden[i]);
+    }
+
+    // Update weights and biases
+    // Hidden to output
+    for (let i = 0; i < this.network.hiddenSize; i++) {
+      for (let j = 0; j < this.network.outputSize; j++) {
+        this.network.weightsHO[i][j] += this.learningRate * outputErrors[j] * hidden[i];
+      }
+    }
+    for (let i = 0; i < this.network.outputSize; i++) {
+      this.network.biasO[i] += this.learningRate * outputErrors[i];
+    }
+
+    // Input to hidden
+    for (let i = 0; i < this.network.inputSize; i++) {
+      for (let j = 0; j < this.network.hiddenSize; j++) {
+        this.network.weightsIH[i][j] += this.learningRate * hiddenErrors[j] * input[i];
+      }
+    }
+    for (let i = 0; i < this.network.hiddenSize; i++) {
+      this.network.biasH[i] += this.learningRate * hiddenErrors[i];
+    }
+  }
+
+  async train(data: MetricData[], epochs: number = 100): Promise<void> {
+    // Prepare training data
+    this.trainingData = data.map((metric) => [
+      metric.duration / 1000, // Normalize duration
+      metric.memoryUsage / (1024 * 1024 * 100), // Normalize memory
+      metric.cpuUsage / 100, // Normalize CPU
+      metric.responseSize / (1024 * 1024), // Normalize response size
+      metric.queryCount || 0, // Query count
+    ]);
+
+    // Normalize data
+    const normalizedData = this.normalizeData(this.trainingData);
+
+    for (let epoch = 0; epoch < epochs; epoch++) {
+      let totalLoss = 0;
+
+      for (const sample of normalizedData) {
+        const { hidden, output } = this.forward(sample);
+        // For training, we use reconstruction error as target
+        const target = sample.slice(0, 1); // Use first feature as target for simplicity
+        this.backward(sample, target, hidden, output);
+
+        // Calculate loss
+        const loss = Math.pow(target[0] - output[0], 2);
+        totalLoss += loss;
+      }
+
+      if (epoch % 10 === 0) {
+        console.log(
+          `Neural Network Training - Epoch ${epoch}, Loss: ${totalLoss / normalizedData.length}`
+        );
+      }
+    }
+
+    this.isTrained = true;
+  }
+
+  private normalizeData(data: number[][]): number[][] {
+    const normalized: number[][] = [];
+    const mins = data[0].map(() => Infinity);
+    const maxs = data[0].map(() => -Infinity);
+
+    // Find min/max for each feature
+    for (const sample of data) {
+      for (let i = 0; i < sample.length; i++) {
+        mins[i] = Math.min(mins[i], sample[i]);
+        maxs[i] = Math.max(maxs[i], sample[i]);
+      }
+    }
+
+    // Normalize
+    for (const sample of data) {
+      const normalizedSample: number[] = [];
+      for (let i = 0; i < sample.length; i++) {
+        const range = maxs[i] - mins[i];
+        normalizedSample[i] = range > 0 ? (sample[i] - mins[i]) / range : 0;
+      }
+      normalized.push(normalizedSample);
+    }
+
+    return normalized;
+  }
+
+  async detectAnomaly(
+    metric: MetricData
+  ): Promise<{ isAnomaly: boolean; confidence: number; score: number }> {
+    if (!this.isTrained) {
+      return { isAnomaly: false, confidence: 0, score: 0 };
+    }
+
+    const input = [
+      metric.duration / 1000,
+      metric.memoryUsage / (1024 * 1024 * 100),
+      metric.cpuUsage / 100,
+      metric.responseSize / (1024 * 1024),
+      metric.queryCount || 0,
+    ];
+
+    const normalizedInput = this.normalizeData([input])[0];
+    const { output } = this.forward(normalizedInput);
+
+    // Calculate reconstruction error
+    const reconstructionError = Math.abs(normalizedInput[0] - output[0]);
+    const threshold = 0.3; // Configurable threshold
+
+    return {
+      isAnomaly: reconstructionError > threshold,
+      confidence: Math.min(reconstructionError / threshold, 1),
+      score: reconstructionError,
+    };
+  }
+}
+
 class ResourceAllocator {
   private allocationHistory: Map<string, number[]> = new Map();
   private qTable: Map<string, Map<string, number>> = new Map(); // Q-learning table
@@ -769,6 +993,7 @@ function startTrainingScheduler(intervalMinutes: number, models: any): void {
       const data = models.metricsStore.getRecentMetrics(10000);
 
       await models.performanceModel.train(data);
+      await models.neuralAnomalyDetector.train(data, 50); // Train neural network with 50 epochs
 
       console.log('[ML Optimizer] Training completed');
     },

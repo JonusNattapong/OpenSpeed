@@ -642,6 +642,7 @@ async function quickAIGenerate(options) {
         { name: '🧠 DeepSeek (Cost-effective)', value: 'deepseek' },
         { name: '🌐 OpenRouter (Multi-model)', value: 'openrouter' },
         { name: '🧠 Anthropic Claude (Balanced)', value: 'anthropic' },
+        { name: '🤖 Google Gemini (Fast)', value: 'gemini' },
       ],
       default: options.provider,
     });
@@ -732,6 +733,7 @@ async function validateProvider(provider) {
     deepseek: 'DEEPSEEK_API_KEY',
     openrouter: 'OPENROUTER_API_KEY',
     anthropic: 'ANTHROPIC_API_KEY',
+    gemini: 'GEMINI_API_KEY',
   };
 
   const envVar = envVars[provider];
