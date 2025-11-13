@@ -34,12 +34,12 @@ export { validateSQL, sql, getSQLValidator, SQLQueryValidator } from './sqlValid
 
 // Development tools
 export { devTools, getDevTools, addRouteToDevTools, printDevInfo, DevTools } from './devTools.js';
-export { 
-  routeVisualizer, 
-  getRouteVisualizer, 
-  addRouteToVisualizer, 
+export {
+  routeVisualizer,
+  getRouteVisualizer,
+  addRouteToVisualizer,
   printRoutes,
-  RouteVisualizer 
+  RouteVisualizer,
 } from './routeVisualizer.js';
 export {
   performanceMonitor,
@@ -130,6 +130,8 @@ export {
   BloomFilter,
 } from './adaptiveOptimizer.js';
 
+export { mlOptimizer } from './mlOptimizer.js';
+
 // Type exports for better TypeScript support
 export type { SecurityOptions, SecurityEvent } from './security.js';
 export type { ValidationOptions, ValidationError, Validator } from './validate.js';
@@ -137,3 +139,10 @@ export type { JSXOptions, JSXElement, JSXChild } from './jsx.js';
 export type { SSGOptions, SSGRoute, SSGStats, SSGContext } from './ssg.js';
 export type { RPCClientOptions, RPCResponse, RequestOptions, RPCClient, RPCApp } from './rpc.js';
 export type { StreamOptions, SSEOptions } from './stream.js';
+export type {
+  MLOptimizerConfig,
+  MetricData,
+  PredictionResult,
+  AnomalyAlert,
+  OptimizationDecision,
+} from './mlOptimizer.js';

@@ -776,4 +776,7 @@ function startTrainingScheduler(intervalMinutes: number, models: any): void {
   );
 }
 
+// Export types for TypeScript support
+export type { MLOptimizerConfig, MetricData, PredictionResult, AnomalyAlert, OptimizationDecision };
+
 export default mlOptimizer;

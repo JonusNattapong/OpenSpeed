@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
+import Anthropic from '@anthropic-ai/sdk';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,6 +55,16 @@ class AICodeGenerator {
         baseURL: 'https://openrouter.ai/api/v1',
         model: 'anthropic/claude-3-haiku',
       },
+      anthropic: {
+        name: 'Anthropic',
+        apiKey:
+          process.env.ANTHROPIC_API_KEY ||
+          (process.env.ANTHROPIC_API_KEY_FILE
+            ? readFileSync(process.env.ANTHROPIC_API_KEY_FILE, 'utf8').trim()
+            : undefined),
+        baseURL: 'https://api.anthropic.com',
+        model: 'claude-3-sonnet-20240229',
+      },
     };
 
     this.currentProvider = 'openai'; // Default provider
@@ -63,7 +74,7 @@ class AICodeGenerator {
       console.log(`🤖 AI Code Generation enabled (${this.providers[this.currentProvider].name})`);
     } else {
       console.log('📝 Template-based code generation (set API keys for AI features)');
-      console.log('Available providers: OpenAI, DeepSeek, OpenRouter');
+      console.log('Available providers: OpenAI, DeepSeek, OpenRouter, Anthropic');
     }
 
     this.loadGenerators();
@@ -421,32 +432,53 @@ class AICodeGenerator {
     }
 
     try {
-      const client = new OpenAI({
-        apiKey: provider.apiKey,
-        baseURL: provider.baseURL,
-      });
+      let response;
 
-      const response = await client.chat.completions.create({
-        model: provider.model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are an expert TypeScript and React developer. Generate clean, well-documented, and production-ready code. Follow best practices and include proper error handling.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      });
+      if (this.currentProvider === 'anthropic') {
+        const client = new Anthropic({
+          apiKey: provider.apiKey,
+        });
 
-      const callTime = Date.now() - startTime;
-      console.log(`⏱️  AI call completed in ${callTime}ms`);
+        response = await client.messages.create({
+          model: provider.model,
+          max_tokens: 2000,
+          temperature: 0.3,
+          system:
+            'You are an expert TypeScript and React developer. Generate clean, well-documented, and production-ready code. Follow best practices and include proper error handling.',
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        });
 
-      return response.choices[0].message.content.trim();
+        return response.content[0].text.trim();
+      } else {
+        const client = new OpenAI({
+          apiKey: provider.apiKey,
+          baseURL: provider.baseURL,
+        });
+
+        response = await client.chat.completions.create({
+          model: provider.model,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an expert TypeScript and React developer. Generate clean, well-documented, and production-ready code. Follow best practices and include proper error handling.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.3,
+          max_tokens: 2000,
+        });
+
+        return response.choices[0].message.content.trim();
+      }
     } catch (error) {
       const callTime = Date.now() - startTime;
       console.warn(`❌ AI call failed after ${callTime}ms:`, error.message);
@@ -1764,7 +1796,7 @@ export function generateCommand() {
     .option('-y, --yes', 'Skip confirmations')
     .option(
       '-p, --provider <provider>',
-      'AI provider to use (openai, deepseek, openrouter)',
+      'AI provider to use (openai, deepseek, openrouter, anthropic)',
       'openai'
     )
     .option('--no-cache', 'Disable caching for this generation')
@@ -1906,7 +1938,7 @@ export function generateCommand() {
         .option('-d, --dry-run', 'Show what would be generated')
         .option(
           '-p, --provider <provider>',
-          'AI provider to use (openai, deepseek, openrouter)',
+          'AI provider to use (openai, deepseek, openrouter, anthropic)',
           'openai'
         )
         .option('--no-cache', 'Disable caching for this generation')

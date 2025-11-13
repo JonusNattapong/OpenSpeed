@@ -641,6 +641,7 @@ async function quickAIGenerate(options) {
         { name: '🤖 OpenAI GPT-4 (Most capable)', value: 'openai' },
         { name: '🧠 DeepSeek (Cost-effective)', value: 'deepseek' },
         { name: '🌐 OpenRouter (Multi-model)', value: 'openrouter' },
+        { name: '🧠 Anthropic Claude (Balanced)', value: 'anthropic' },
       ],
       default: options.provider,
     });
@@ -730,6 +731,7 @@ async function validateProvider(provider) {
     openai: 'OPENAI_API_KEY',
     deepseek: 'DEEPSEEK_API_KEY',
     openrouter: 'OPENROUTER_API_KEY',
+    anthropic: 'ANTHROPIC_API_KEY',
   };
 
   const envVar = envVars[provider];
