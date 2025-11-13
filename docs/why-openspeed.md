@@ -5,71 +5,20 @@ nav_order: 2
 description: "Discover why OpenSpeed outperforms Hono and Elysia with revolutionary ML-powered optimization and enterprise features"
 ---
 
-<div class="hero">
-  <h1>Why Choose OpenSpeed?</h1>
-  <p class="tagline">Beyond Conventional Frameworks - Revolutionary Performance Engineering</p>
-  <p>OpenSpeed is significantly more advanced than both Hono and Elysia, featuring revolutionary techniques and enterprise-grade capabilities that set it apart from conventional web frameworks.</p>
-</div>
+# OpenSpeed: Beyond Hono and Elysia
 
-## 🚀 Performance That Speaks for Itself
+## Overview
 
-<div class="alert alert-success">
-  <strong>⚡ Benchmark Results:</strong> OpenSpeed achieves 2-3x better performance than Hono and Elysia with 85% improvement under load using adaptive optimization.
-</div>
+OpenSpeed is now **significantly more advanced** than both Hono and Elysia, featuring revolutionary techniques and enterprise-grade capabilities that set it apart from conventional web frameworks.
 
-## 🎯 Revolutionary Innovations
-
-<div class="grid">
-  <div class="card">
-    <span class="card-icon">🧠</span>
-    <h3>ML-Powered Optimization</h3>
-    <p>Machine learning adapts to traffic patterns, delivering 84% performance improvement over static optimization.</p>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🌸</span>
-    <h3>Bloom Filter Routing</h3>
-    <p>99.9% faster rejection of invalid routes with O(1) lookups - critical for security.</p>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">♻️</span>
-    <h3>Zero GC Pressure</h3>
-    <p>Object pooling reduces garbage collection pauses by 60% for consistent latency.</p>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🏢</span>
-    <h3>Multi-Tenant Ready</h3>
-    <p>Built-in database isolation for SaaS applications - no manual configuration needed.</p>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🔒</span>
-    <h3>Enterprise Security</h3>
-    <p>RBAC with hierarchical permissions, SOC 2/GDPR/HIPAA compliance out of the box.</p>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">☸️</span>
-    <h3>Cloud Native</h3>
-    <p>Native Kubernetes integration with auto-scaling and health checks built-in.</p>
-  </div>
-</div>
-
----
-
-## 🔬 Technical Deep Dive
+## 🎯 Unique Innovations
 
 ### 1. **Adaptive Performance Optimizer** 🧠
 
-<div class="alert alert-info">
-  <strong>💡 Key Insight:</strong> Unlike Hono and Elysia which use static optimization, OpenSpeed employs machine learning to adapt to your application's traffic patterns in real-time.
-</div>
+Unlike Hono and Elysia which use static optimization, OpenSpeed employs **machine learning** to adapt to your application's traffic patterns:
 
-**Intelligent Request Batching**
-
-```javascript
+#### Intelligent Request Batching
+```typescript
 // Automatically batches similar requests within a 10ms window
 // Reduces database queries by 80% under high load
 const optimizer = adaptiveOptimizer({
@@ -122,13 +71,9 @@ class BloomFilter {
 
 ### 3. **Object Pooling for Zero GC Pressure** ♻️
 
-<div class="alert alert-warning">
-  <strong>⚠️ Problem:</strong> Hono and Elysia create new objects on each request, causing GC pressure and latency spikes.
-</div>
+While Hono/Elysia create new objects on each request, OpenSpeed reuses them:
 
-**OpenSpeed's Solution:**
-
-```javascript
+```typescript
 const bufferPool = new ObjectPool(
   () => Buffer.alloc(1024),
   (buffer) => buffer.fill(0),
@@ -272,22 +217,18 @@ routes/
     └── users.ts      # /users (admin context)
 ```
 
----
-
 ## 📊 Performance Comparison
 
-<div class="alert alert-info">
-  <strong>🔬 Benchmark Setup:</strong>
-  <ul style="margin: 0.5rem 0 0 1.5rem;">
-    <li>Tool: autocannon</li>
-    <li>Connections: 100 concurrent</li>
-    <li>Duration: 10 seconds</li>
-    <li>Endpoint: Simple JSON response</li>
-    <li>Hardware: 8 cores, 16GB RAM</li>
-  </ul>
-</div>
+### Benchmark Details
 
-### Baseline Performance (Without Optimization)
+Setup:
+- Tool: autocannon
+- Connections: 100 concurrent
+- Duration: 10 seconds
+- Endpoint: Simple JSON response
+- Hardware: 8 cores, 16GB RAM
+
+#### Without Optimization
 
 | Metric | OpenSpeed | Hono | Elysia |
 |--------|-----------|------|--------|
@@ -305,44 +246,17 @@ routes/
 | Cache Hit Rate | 78% | N/A |
 | GC Pauses | -60% | N/A |
 
----
+### Real-World Scenarios
 
-## 🌟 Real-World Scenarios
+#### E-commerce API (100k users)
+- **Hono**: ~2,500 req/s, 98% CPU
+- **Elysia**: ~2,200 req/s, 99% CPU
+- **OpenSpeed**: ~6,800 req/s, 72% CPU ✨
 
-<div class="grid">
-  <div class="card">
-    <span class="card-icon">🛒</span>
-    <h3>E-commerce API</h3>
-    <p><strong>100k users</strong></p>
-    <ul style="font-size: 0.9rem; line-height: 1.6;">
-      <li>Hono: ~2,500 req/s, 98% CPU</li>
-      <li>Elysia: ~2,200 req/s, 99% CPU</li>
-      <li><strong>OpenSpeed: ~6,800 req/s, 72% CPU ✨</strong></li>
-    </ul>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🏢</span>
-    <h3>SaaS Multi-tenant</h3>
-    <p><strong>1000 tenants</strong></p>
-    <ul style="font-size: 0.9rem; line-height: 1.6;">
-      <li>Hono: Not supported ❌</li>
-      <li>Elysia: Not supported ❌</li>
-      <li><strong>OpenSpeed: Built-in ✅</strong></li>
-    </ul>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🔐</span>
-    <h3>Enterprise Compliance</h3>
-    <p><strong>Audit & Security</strong></p>
-    <ul style="font-size: 0.9rem; line-height: 1.6;">
-      <li>Hono: Manual setup ⚠️</li>
-      <li>Elysia: Manual setup ⚠️</li>
-      <li><strong>OpenSpeed: SOC 2/GDPR ready ✨</strong></li>
-    </ul>
-  </div>
-</div>
+#### SaaS Multi-tenant (1000 tenants)
+- **Hono**: Not supported, requires custom code
+- **Elysia**: Not supported, requires custom code
+- **OpenSpeed**: Built-in, zero configuration ✨
 
 ---
 
@@ -418,154 +332,51 @@ const ctx = pools.contexts.acquire();
 
 ---
 
-## 🎓 Learning from Industry Leaders
+OpenSpeed incorporates battle-tested patterns from:
 
-<div class="grid">
-  <div class="card">
-    <h3>🌐 Nginx</h3>
-    <p>Bloom filters for ultra-fast route lookups</p>
-  </div>
-  
-  <div class="card">
-    <h3>⚡ Redis</h3>
-    <p>Object pooling and memory management</p>
-  </div>
-  
-  <div class="card">
-    <h3>☸️ Kubernetes</h3>
-    <p>Auto-scaling algorithms and orchestration</p>
-  </div>
-  
-  <div class="card">
-    <h3>🧠 TensorFlow</h3>
-    <p>ML-based performance optimization</p>
-  </div>
-  
-  <div class="card">
-    <h3>🐘 PostgreSQL</h3>
-    <p>Multi-tenancy and isolation patterns</p>
-  </div>
-  
-  <div class="card">
-    <h3>☁️ AWS</h3>
-    <p>Audit logging and compliance standards</p>
-  </div>
-</div>
-
----
+1. **Nginx**: Bloom filters for route lookups
+2. **Redis**: Object pooling and memory management
+3. **Kubernetes**: Auto-scaling algorithms
+4. **TensorFlow**: ML-based optimization
+5. **PostgreSQL**: Multi-tenancy patterns
+6. **AWS**: Audit logging and compliance
 
 ## 🚀 Future Roadmap
 
-<div class="grid">
-  <div class="card">
-    <span class="card-icon">🎯</span>
-    <h3>Phase 1 - Q1 2026</h3>
-    <ul style="font-size: 0.9rem;">
-      <li>WebAssembly plugins (10x faster)</li>
-      <li>GPU-accelerated compression</li>
-      <li>Distributed request tracing</li>
-      <li>Real-time performance analytics</li>
-    </ul>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🔮</span>
-    <h3>Phase 2 - Q2 2026</h3>
-    <ul style="font-size: 0.9rem;">
-      <li>Self-healing error recovery</li>
-      <li>Auto database optimization</li>
-      <li>Smart load shedding</li>
-      <li>Predictive scaling</li>
-    </ul>
-  </div>
-  
-  <div class="card">
-    <span class="card-icon">🌍</span>
-    <h3>Phase 3 - Q3 2026</h3>
-    <ul style="font-size: 0.9rem;">
-      <li>Edge computing integration</li>
-      <li>Serverless function support</li>
-      <li>Multi-region active-active</li>
-      <li>Chaos engineering tools</li>
-    </ul>
-  </div>
-</div>
+### Phase 1 (Q1 2026)
+- [ ] WebAssembly plugins for 10x faster middleware
+- [ ] GPU-accelerated compression
+- [ ] Distributed request tracing
+- [ ] Real-time performance analytics
 
----
+### Phase 2 (Q2 2026)
+- [ ] Self-healing error recovery
+- [ ] Automatic database query optimization
+- [ ] Smart load shedding under pressure
+- [ ] Predictive scaling (before traffic spike)
 
-## 🏆 Why OpenSpeed Wins
+### Phase 3 (Q3 2026)
+- [ ] Edge computing integration
+- [ ] Serverless function support
+- [ ] Multi-region active-active
+- [ ] Chaos engineering tools
 
-<div class="hero">
-  <h2 style="color: var(--color-white); margin-top: 0;">The Complete Package</h2>
-  <div class="grid" style="margin-top: 2rem;">
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">⚡ 2-3x Faster</h3>
-      <p style="color: var(--color-white);">Outperforms Hono and Elysia</p>
-    </div>
-    
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">🏢 Enterprise-Ready</h3>
-      <p style="color: var(--color-white);">RBAC and compliance built-in</p>
-    </div>
-    
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">☸️ Cloud-Native</h3>
-      <p style="color: var(--color-white);">Kubernetes integration included</p>
-    </div>
-    
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">🧠 AI-Powered</h3>
-      <p style="color: var(--color-white);">ML-based optimization</p>
-    </div>
-    
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">👨‍💻 Developer-Friendly</h3>
-      <p style="color: var(--color-white);">File-based routing & TypeScript</p>
-    </div>
-    
-    <div class="card" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-      <h3 style="color: var(--color-accent);">✅ Battle-Tested</h3>
-      <p style="color: var(--color-white);">102 tests passing</p>
-    </div>
-  </div>
-  
-  <div style="text-align: center; margin-top: 2rem;">
-    <p style="font-size: 1.5rem; color: var(--color-accent-light); margin-bottom: 1.5rem;">
-      <strong>The future of web frameworks is here.</strong>
-    </p>
-    <div class="cta-buttons" style="justify-content: center;">
-      <a href="{{ site.baseurl }}/guides/getting-started/" class="btn btn-primary">Get Started Now</a>
-      <a href="{{ site.baseurl }}/api/" class="btn btn-secondary">View API Docs</a>
-    </div>
-  </div>
-</div>
+## 📚 Resources
 
----
+- [Advanced Features Guide](./ADVANCED_FEATURES.md)
+- [API Documentation](./api.md)
+- [Examples](../examples/)
+- [Contributing](./CONTRIBUTING.md)
 
-## 📚 Learn More
+## 🏆 Conclusion
 
-<div class="grid">
-  <div class="card">
-    <h3>📖 Documentation</h3>
-    <p>Explore comprehensive guides and tutorials</p>
-    <a href="{{ site.baseurl }}/guides/">Browse guides</a>
-  </div>
-  
-  <div class="card">
-    <h3>🔧 API Reference</h3>
-    <p>Complete API documentation and examples</p>
-    <a href="{{ site.baseurl }}/api/">View API</a>
-  </div>
-  
-  <div class="card">
-    <h3>💼 Examples</h3>
-    <p>Real-world code examples and patterns</p>
-    <a href="{{ site.baseurl }}/examples/">See examples</a>
-  </div>
-  
-  <div class="card">
-    <h3>🤝 Contributing</h3>
-    <p>Join our community and contribute</p>
-    <a href="{{ site.baseurl }}/contributing/">Get involved</a>
-  </div>
-</div>
+OpenSpeed is not just faster - it's **fundamentally more capable**:
+
+✅ **2-3x faster** than Hono and Elysia
+✅ **Enterprise-ready** with RBAC and compliance
+✅ **Cloud-native** with Kubernetes integration
+✅ **AI-powered** with ML-based optimization
+✅ **Developer-friendly** with file-based routing
+✅ **Production-tested** with 102 tests passing
+
+**The future of web frameworks is here.** 🚀

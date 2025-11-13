@@ -11,6 +11,7 @@ import { createRequire } from 'module';
 import chalk from 'chalk';
 import ora from 'ora';
 import boxen from 'boxen';
+import { AICodeGenerator } from './commands/generate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -121,17 +122,82 @@ program
     await generateCode(type, name);
   });
 
+// Shell completion
+program
+  .command('completion')
+  .description('Generate shell completion script')
+  .argument('<shell>', 'Shell type (bash, zsh, fish)')
+  .action(async (shell) => {
+    await generateCompletion(shell);
+  });
+
+// Interactive setup
+// Quick AI code generation
+program
+  .command('ai')
+  .description('🚀 Quick AI-powered code generation with interactive prompts')
+  .option('-p, --provider <provider>', 'AI provider (openai, deepseek, openrouter)', 'openai')
+  .option('--no-cache', 'Disable caching')
+  .action(async (options) => {
+    await quickAIGenerate(options);
+  });
+
+// Performance stats
+program
+  .command('stats')
+  .description('📊 Show AI code generation performance statistics')
+  .action(async () => {
+    await showPerformanceStats();
+  });
+
+// Quick setup
+program
+  .command('quick')
+  .description('⚡ Quick project setup with sensible defaults')
+  .argument('[name]', 'Project name')
+  .option('-t, --type <type>', 'Project type (api, web, fullstack)', 'api')
+  .option('-r, --runtime <runtime>', 'Runtime (bun, node)', 'bun')
+  .option('-p, --package-manager <pm>', 'Package manager (pnpm, npm)', 'pnpm')
+  .action(async (name, options) => {
+    await quickSetup(name, options);
+  });
+
 // Interactive setup
 async function createInteractiveProject(projectName) {
-  // Welcome message is now handled in command action
+  try {
+    // Welcome message is now handled in command action
 
-  // Get project name
-  if (!projectName) {
-    projectName = await input({
-      message: "What's your project name?",
-      default: 'my-openspeed-app',
-      validate: (value) => value.length > 0 || 'Project name is required',
-    });
+    // Get project name
+    if (!projectName) {
+      projectName = await input({
+        message: "What's your project name?",
+        default: 'my-openspeed-app',
+        validate: (value) => {
+          if (!value || value.length === 0) return 'Project name is required';
+          if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value)) {
+            return 'Project name must start with a letter and contain only letters, numbers, hyphens, and underscores';
+          }
+          if (existsSync(value)) {
+            return `Directory "${value}" already exists. Please choose a different name.`;
+          }
+          return true;
+        },
+        transformer: (value) => value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+      });
+    }
+
+    // Validate project name if provided
+    if (projectName) {
+      if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(projectName)) {
+        throw new Error('Project name must start with a letter and contain only letters, numbers, hyphens, and underscores');
+      }
+      if (existsSync(projectName)) {
+        throw new Error(`Directory "${projectName}" already exists`);
+      }
+    }
+  } catch (error) {
+    console.error(chalk.red('❌ Project setup failed:'), error.message);
+    process.exit(1);
   }
 
   // Choose project type
@@ -387,16 +453,75 @@ async function startDevServer(options) {
   });
 
   child.on('error', (error) => {
-    spinner.fail(chalk.red('Failed to start development server'));
-    console.error(chalk.red('❌ Error:'), error.message);
-  });
+   async function startDevServer(options) {
+     try {
+       displayLogo();
 
-  // Wait a bit for server to start
-  setTimeout(() => {
-    spinner.succeed(chalk.green('Development server started!'));
-    console.log(chalk.gray(`\n🌐 Open your browser to http://${options.host}:${options.port}`));
-  }, 2000);
-}
+       console.log(chalk.cyan(`🚀 Starting development server on ${options.host}:${options.port}`));
+
+       // Check if we're in a project directory
+       if (!existsSync('package.json')) {
+         console.error(chalk.red('❌ Not in a project directory. Run "openspeed create" first.'));
+         console.log(chalk.yellow('💡 Tip: Use "openspeed create" to create a new project'));
+         process.exit(1);
+       }
+
+       // Check if src/index.ts exists
+       if (!existsSync('src/index.ts')) {
+         console.error(chalk.red('❌ Main application file not found at src/index.ts'));
+         console.log(chalk.yellow('💡 Make sure your main file is at src/index.ts'));
+         process.exit(1);
+       }
+
+       // Check if tsx is available
+       try {
+         execSync('tsx --version', { stdio: 'ignore' });
+       } catch {
+         console.error(chalk.red('❌ tsx is not installed. Please install it:'));
+         console.log(chalk.yellow('  npm install -D tsx'));
+         process.exit(1);
+       }
+
+       const spinner = ora({
+         text: chalk.blue('Initializing development server...'),
+         spinner: 'dots',
+       }).start();
+
+       // Start the development server
+       const child = spawn('tsx', ['watch', 'src/index.ts'], {
+         stdio: 'inherit',
+         env: { ...process.env, PORT: options.port, HOST: options.host },
+       });
+
+       child.on('error', (error) => {
+         spinner.fail(chalk.red('Failed to start development server'));
+         console.error(chalk.red('❌ Error:'), error.message);
+         console.log(chalk.yellow('\n🔧 Troubleshooting:'));
+         console.log('  • Check if the port is already in use');
+         console.log('  • Verify your src/index.ts file syntax');
+         console.log('  • Make sure all dependencies are installed');
+         process.exit(1);
+       });
+
+       // Handle process termination
+       process.on('SIGINT', () => {
+         console.log(chalk.yellow('\n🛑 Shutting down development server...'));
+         child.kill();
+         process.exit(0);
+       });
+
+       // Wait a bit for server to start
+       setTimeout(() => {
+         spinner.succeed(chalk.green('Development server started!'));
+         console.log(chalk.gray(`\n🌐 Open your browser to http://${options.host}:${options.port}`));
+         console.log(chalk.gray('📝 Press Ctrl+C to stop the server'));
+       }, 2000);
+
+     } catch (error) {
+       console.error(chalk.red('❌ Failed to start development server:'), error.message);
+       process.exit(1);
+     }
+   }
 
 // Client generation
 async function generateClient(filename, options) {
@@ -469,6 +594,342 @@ async function generateCode(type, name) {
     spinner.fail(chalk.red(`Failed to generate ${type}`));
     console.error(chalk.red('❌ Error:'), error.message);
     throw error;
+  }
+}
+
+// Quick AI generation with interactive prompts
+async function quickAIGenerate(options) {
+  try {
+    displayLogo();
+
+    console.log(chalk.cyan.bold('🤖 OpenSpeed AI Code Generator'));
+    console.log(chalk.gray('Generate production-ready code with AI assistance\n'));
+
+    // Validate environment before proceeding
+    await validateEnvironment();
+
+    // Choose generation type
+    const type = await select({
+      message: 'What would you like to generate?',
+      choices: [
+        { name: '🔌 REST API (Complete CRUD)', value: 'api' },
+        { name: '🖥️ React Component', value: 'component' },
+        { name: '🗄️ Database Model', value: 'model' },
+        { name: '🛡️ Middleware', value: 'middleware' },
+        { name: '🔧 Plugin', value: 'plugin' },
+        { name: '🧪 Test Suite', value: 'test' },
+      ],
+    });
+
+    // Get name with auto-suggestions
+    const name = await input({
+      message: `Enter name for your ${type}:`,
+      validate: (value) => {
+        if (!value || value.length === 0) return 'Name is required';
+        if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value)) {
+          return 'Name must start with a letter and contain only letters, numbers, hyphens, and underscores';
+        }
+        return true;
+      },
+      transformer: (value) => value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+    });
+
+    // Choose AI provider
+    const provider = await select({
+      message: 'Choose AI provider:',
+      choices: [
+        { name: '🤖 OpenAI GPT-4 (Most capable)', value: 'openai' },
+        { name: '🧠 DeepSeek (Cost-effective)', value: 'deepseek' },
+        { name: '🌐 OpenRouter (Multi-model)', value: 'openrouter' },
+      ],
+      default: options.provider,
+    });
+
+    // Validate provider API key
+    await validateProvider(provider);
+
+    // Confirm generation
+    const confirmGen = await confirm({
+      message: `Generate ${type} "${name}" using ${provider}?`,
+      default: true,
+    });
+
+    if (!confirmGen) {
+      console.log(chalk.yellow('Generation cancelled.'));
+      return;
+    }
+
+    // Generate with AI
+    const spinner = ora({
+      text: chalk.blue(`🤖 Generating ${type} with ${provider}...`),
+      spinner: 'dots',
+    }).start();
+
+    try {
+      const generator = new AICodeGenerator();
+      generator.cacheEnabled = !options.noCache;
+
+      const generationPlan = await generator.generate(type, name, { provider });
+
+      spinner.succeed(chalk.green('AI generation completed!'));
+
+      console.log(chalk.magenta(`\n📋 Generated ${generationPlan.files.length} files:`));
+      generationPlan.files.forEach((file) => {
+        console.log(chalk.cyan(`  • ${file.path}`));
+      });
+
+      if (generationPlan.dependencies.length > 0) {
+        console.log(chalk.yellow(`\n📦 Dependencies to install:`));
+        console.log(chalk.gray(`  npm install ${generationPlan.dependencies.join(' ')}`));
+      }
+
+      console.log(chalk.green('\n✅ Code generation successful!'));
+
+      // Show next steps
+      showNextSteps(type, name);
+
+    } catch (error) {
+      spinner.fail(chalk.red('AI generation failed'));
+      console.error(chalk.red('❌ Error:'), error.message);
+
+      // Fallback to template generation
+      console.log(chalk.yellow('\n🔄 Falling back to template generation...'));
+      await generateCode(type, name);
+    }
+  } catch (error) {
+    console.error(chalk.red('❌ Setup error:'), error.message);
+    console.log(chalk.yellow('\n💡 Tips:'));
+    console.log('  • Make sure you have Node.js installed');
+    console.log('  • Set up your AI provider API keys');
+    console.log('  • Check your internet connection');
+    process.exit(1);
+  }
+}
+
+// Environment validation
+async function validateEnvironment() {
+  // Check Node.js version
+  const nodeVersion = process.versions.node;
+  const majorVersion = parseInt(nodeVersion.split('.')[0]);
+
+  if (majorVersion < 18) {
+    throw new Error(`Node.js version ${nodeVersion} is not supported. Please upgrade to Node.js 18+`);
+  }
+
+  // Check if we're in a project directory (optional)
+  try {
+    await fs.access('package.json');
+  } catch {
+    console.log(chalk.yellow('⚠️  Not in a project directory. Generated files will be created in current directory.'));
+  }
+}
+
+// Provider validation
+async function validateProvider(provider) {
+  const envVars = {
+    openai: 'OPENAI_API_KEY',
+    deepseek: 'DEEPSEEK_API_KEY',
+    openrouter: 'OPENROUTER_API_KEY',
+  };
+
+  const envVar = envVars[provider];
+  if (!process.env[envVar]) {
+    throw new Error(`Missing ${envVar} environment variable. Please set your ${provider} API key.`);
+  }
+
+  // Test API key format (basic validation)
+  const apiKey = process.env[envVar];
+  if (apiKey.length < 20) {
+    throw new Error(`Invalid ${envVar}: API key appears to be too short`);
+  }
+}
+
+// Show next steps after generation
+function showNextSteps(type, name) {
+  const steps = {
+    api: [
+      'Review the generated controller, routes, and model files',
+      'Update database configuration if needed',
+      'Run tests to verify functionality',
+      'Start your server and test the endpoints',
+    ],
+    component: [
+      'Import the component in your React app',
+      'Add it to your component library',
+      'Test the component with different props',
+      'Style it according to your design system',
+    ],
+    model: [
+      'Update your database schema',
+      'Run migrations if using a migration system',
+      'Add the model to your application',
+      'Test database operations',
+    ],
+    middleware: [
+      'Import the middleware in your main app',
+      'Configure middleware options',
+      'Add it to your middleware chain',
+      'Test middleware functionality',
+    ],
+    plugin: [
+      'Review the generated plugin structure',
+      'Implement plugin-specific logic',
+      'Test plugin installation and functionality',
+      'Publish to npm if desired',
+    ],
+    test: [
+      'Run the generated tests',
+      'Review test coverage',
+      'Add more test cases as needed',
+      'Integrate with your CI/CD pipeline',
+    ],
+  };
+
+  const typeSteps = steps[type] || ['Review the generated files', 'Test functionality'];
+
+  console.log(chalk.blue('\n🚀 Next steps:'));
+  typeSteps.forEach((step, index) => {
+    console.log(chalk.gray(`  ${index + 1}. ${step}`));
+  });
+}
+
+// Show performance statistics
+async function showPerformanceStats() {
+  displayLogo();
+
+  try {
+    const { AICodeGenerator } = await import('./commands/generate.js');
+    const generator = new AICodeGenerator();
+
+    console.log(chalk.cyan.bold('📊 OpenSpeed AI Performance Statistics'));
+    console.log(chalk.gray('Tracking AI code generation performance\n'));
+
+    generator.logPerformanceStats();
+
+    console.log(chalk.blue('\n💡 Tips for better performance:'));
+    console.log('  • Use caching to avoid repeated API calls');
+    console.log('  • Choose faster AI providers when available');
+    console.log('  • Generate multiple files at once for parallel processing');
+    console.log('  • Clear cache periodically: openspeed generate --clear-cache');
+
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to load performance stats:'), error.message);
+    process.exit(1);
+  }
+}
+
+// Quick setup with sensible defaults
+async function quickSetup(name, options) {
+  displayLogo();
+
+  try {
+    const projectName = name || 'my-openspeed-app';
+    const { type, runtime, packageManager } = options;
+
+    console.log(chalk.cyan.bold('⚡ Quick OpenSpeed Setup'));
+    console.log(chalk.gray(`Creating ${type} project: ${projectName}\n`));
+
+    // Validate project name
+    if (existsSync(projectName)) {
+      console.error(chalk.red(`❌ Directory "${projectName}" already exists`));
+      process.exit(1);
+    }
+
+    // Quick setup features based on type
+    const quickFeatures = {
+      api: ['auth', 'database', 'security', 'testing'],
+      web: ['auth', 'database', 'upload', 'security', 'testing'],
+      fullstack: ['auth', 'database', 'upload', 'websocket', 'security', 'monitoring', 'testing'],
+    };
+
+    const features = quickFeatures[type] || quickFeatures.api;
+
+    const spinner = ora({
+      text: chalk.blue('Setting up your project...'),
+      spinner: 'dots',
+    }).start();
+
+    await createProject({
+      name: projectName,
+      type,
+      features,
+      runtime,
+      packageManager,
+      useGit: true,
+    });
+
+    spinner.succeed(chalk.green('Quick setup completed!'));
+
+    const nextSteps = boxen(
+      chalk.yellow.bold('🚀 Get started:') +
+        '\n\n' +
+        chalk.white(`  cd ${projectName}`) +
+        '\n' +
+        chalk.white(`  ${packageManager} install`) +
+        '\n' +
+        chalk.white(`  ${packageManager} run dev`) +
+        '\n\n' +
+        chalk.gray(`Runtime: ${runtime} | Type: ${type}`),
+      {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: 'green',
+      }
+    );
+    console.log(nextSteps);
+
+  } catch (error) {
+    console.error(chalk.red('❌ Quick setup failed:'), error.message);
+    process.exit(1);
+  }
+}
+
+// Generate shell completion script
+async function generateCompletion(shell) {
+  displayLogo();
+
+  console.log(chalk.cyan(`🐚 Generating ${shell} completion script...`));
+
+  try {
+    const completionScript = program.getCompletion(shell);
+
+    if (!completionScript) {
+      console.error(chalk.red(`❌ ${shell} completion not supported`));
+      console.log(chalk.yellow('Supported shells: bash, zsh, fish'));
+      process.exit(1);
+    }
+
+    // Output completion script
+    console.log(chalk.green('\n📋 Add this to your shell configuration:'));
+    console.log(chalk.gray('='.repeat(50)));
+    console.log(completionScript);
+    console.log(chalk.gray('='.repeat(50)));
+
+    // Show installation instructions
+    const instructions = {
+      bash: `
+# Add to ~/.bashrc or ~/.bash_profile:
+echo '${completionScript}' >> ~/.bashrc
+source ~/.bashrc`,
+      zsh: `
+# Add to ~/.zshrc:
+echo '${completionScript}' >> ~/.zshrc
+source ~/.zshrc`,
+      fish: `
+# Save as ~/.config/fish/completions/openspeed.fish:
+echo '${completionScript}' > ~/.config/fish/completions/openspeed.fish`
+    };
+
+    if (instructions[shell]) {
+      console.log(chalk.blue(`\n📝 Installation for ${shell}:`));
+      console.log(chalk.gray(instructions[shell]));
+    }
+
+    console.log(chalk.green('\n✅ Completion script generated successfully!'));
+
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to generate completion script:'), error.message);
+    process.exit(1);
   }
 }
 

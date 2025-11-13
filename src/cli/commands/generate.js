@@ -12,6 +12,60 @@ class AICodeGenerator {
   constructor() {
     this.generators = new Map();
     this.templates = new Map();
+    this.lazyTemplates = new Map(); // Lazy loading cache for templates
+    this.performanceMetrics = {
+      totalGenerations: 0,
+      averageGenerationTime: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      aiCalls: 0,
+      templateFallbacks: 0,
+    };
+
+    // Configure AI providers
+    this.providers = {
+      openai: {
+        name: 'OpenAI',
+        apiKey:
+          process.env.OPENAI_API_KEY ||
+          (process.env.OPENAI_API_KEY_FILE
+            ? readFileSync(process.env.OPENAI_API_KEY_FILE, 'utf8').trim()
+            : undefined),
+        baseURL: 'https://api.openai.com/v1',
+        model: 'gpt-4',
+      },
+      deepseek: {
+        name: 'DeepSeek',
+        apiKey:
+          process.env.DEEPSEEK_API_KEY ||
+          (process.env.DEEPSEEK_API_KEY_FILE
+            ? readFileSync(process.env.DEEPSEEK_API_KEY_FILE, 'utf8').trim()
+            : undefined),
+        baseURL: 'https://api.deepseek.com/v1',
+        model: 'deepseek-chat',
+      },
+      openrouter: {
+        name: 'OpenRouter',
+        apiKey:
+          process.env.OPENROUTER_API_KEY ||
+          (process.env.OPENROUTER_API_KEY_FILE
+            ? readFileSync(process.env.OPENROUTER_API_KEY_FILE, 'utf8').trim()
+            : undefined),
+        baseURL: 'https://openrouter.ai/api/v1',
+        model: 'anthropic/claude-3-haiku',
+      },
+    };
+
+    this.currentProvider = 'openai'; // Default provider
+    this.useAI = !!this.providers[this.currentProvider]?.apiKey;
+
+    if (this.useAI) {
+      console.log(`🤖 AI Code Generation enabled (${this.providers[this.currentProvider].name})`);
+    } else {
+      console.log('📝 Template-based code generation (set API keys for AI features)');
+      console.log('Available providers: OpenAI, DeepSeek, OpenRouter');
+    }
+
     this.loadGenerators();
   }
 
@@ -24,8 +78,8 @@ class AICodeGenerator {
         controller: this.generateControllerTemplate.bind(this),
         routes: this.generateRoutesTemplate.bind(this),
         model: this.generateModelTemplate.bind(this),
-        service: this.generateServiceTemplate.bind(this)
-      }
+        service: this.generateServiceTemplate.bind(this),
+      },
     });
 
     // Component Generator
@@ -36,8 +90,8 @@ class AICodeGenerator {
         component: this.generateComponentTemplate.bind(this),
         styles: this.generateStylesTemplate.bind(this),
         test: this.generateTestTemplate.bind(this),
-        index: this.generateIndexTemplate.bind(this)
-      }
+        index: this.generateIndexTemplate.bind(this),
+      },
     });
 
     // Database Model Generator
@@ -47,8 +101,8 @@ class AICodeGenerator {
       templates: {
         model: this.generateDatabaseModelTemplate.bind(this),
         migration: this.generateMigrationTemplate.bind(this),
-        seed: this.generateSeedTemplate.bind(this)
-      }
+        seed: this.generateSeedTemplate.bind(this),
+      },
     });
 
     // Middleware Generator
@@ -57,8 +111,8 @@ class AICodeGenerator {
       description: 'Generate custom middleware for authentication, validation, etc.',
       templates: {
         middleware: this.generateMiddlewareTemplate.bind(this),
-        types: this.generateTypesTemplate.bind(this)
-      }
+        types: this.generateTypesTemplate.bind(this),
+      },
     });
 
     // Plugin Generator
@@ -68,8 +122,8 @@ class AICodeGenerator {
       templates: {
         plugin: this.generatePluginTemplate.bind(this),
         config: this.generatePluginConfigTemplate.bind(this),
-        readme: this.generatePluginReadmeTemplate.bind(this)
-      }
+        readme: this.generatePluginReadmeTemplate.bind(this),
+      },
     });
 
     // Test Generator
@@ -79,46 +133,72 @@ class AICodeGenerator {
       templates: {
         unit: this.generateUnitTestTemplate.bind(this),
         integration: this.generateIntegrationTestTemplate.bind(this),
-        e2e: this.generateE2eTestTemplate.bind(this)
-      }
+        e2e: this.generateE2eTestTemplate.bind(this),
+      },
     });
   }
 
   async generate(type, name, options = {}) {
-    const generator = this.generators.get(type);
-    if (!generator) {
-      throw new Error(`Unknown generator type: ${type}`);
+    const startTime = Date.now();
+
+    try {
+      // Update provider if specified in options
+      if (options.provider && this.providers[options.provider]) {
+        this.currentProvider = options.provider;
+        this.useAI = !!this.providers[this.currentProvider]?.apiKey;
+      }
+
+      const generator = this.generators.get(type);
+      if (!generator) {
+        throw new Error(`Unknown generator type: ${type}`);
+      }
+
+      console.log(`🔧 Generating ${generator.name}: ${name} (${this.currentProvider})`);
+
+      const generationPlan = {
+        type,
+        name,
+        files: [],
+        dependencies: [],
+        configuration: {},
+      };
+
+      // Generate files using AI or templates
+      if (this.useAI) {
+        console.log(`🤖 Using ${this.currentProvider} for code generation...`);
+        const aiGeneratedFiles = await this.generateWithAI(type, name, options);
+        generationPlan.files = aiGeneratedFiles;
+      } else {
+        console.log('📝 Using templates for code generation...');
+        // Generate files based on templates with lazy loading
+        for (const [templateType, templateFn] of Object.entries(generator.templates)) {
+          const fileName = this.getFileName(type, templateType, name, options);
+          const content = await this.getTemplateContent(templateType, templateFn, name, options);
+
+          generationPlan.files.push({
+            path: fileName,
+            content,
+            type: templateType,
+          });
+        }
+      }
+
+      // Add dependencies
+      generationPlan.dependencies = this.getDependencies(type, options);
+
+      // Add configuration
+      generationPlan.configuration = this.getConfiguration(type, name, options);
+
+      // Update performance metrics
+      const generationTime = Date.now() - startTime;
+      this.updatePerformanceMetrics(generationTime, generationPlan.files.length);
+
+      return generationPlan;
+    } catch (error) {
+      // Update error metrics
+      this.performanceMetrics.templateFallbacks++;
+      throw error;
     }
-
-    console.log(`🔧 Generating ${generator.name}: ${name}`);
-
-    const generationPlan = {
-      type,
-      name,
-      files: [],
-      dependencies: [],
-      configuration: {}
-    };
-
-    // Generate files based on templates
-    for (const [templateType, templateFn] of Object.entries(generator.templates)) {
-      const fileName = this.getFileName(type, templateType, name, options);
-      const content = await templateFn(name, options);
-
-      generationPlan.files.push({
-        path: fileName,
-        content,
-        type: templateType
-      });
-    }
-
-    // Add dependencies
-    generationPlan.dependencies = this.getDependencies(type, options);
-
-    // Add configuration
-    generationPlan.configuration = this.getConfiguration(type, name, options);
-
-    return generationPlan;
   }
 
   getFileName(type, templateType, name, options) {
@@ -128,36 +208,250 @@ class AICodeGenerator {
         controller: `src/controllers/${baseName}.controller.ts`,
         routes: `src/routes/${baseName}.routes.ts`,
         model: `src/models/${baseName}.model.ts`,
-        service: `src/services/${baseName}.service.ts`
+        service: `src/services/${baseName}.service.ts`,
       },
       component: {
         component: `src/components/${baseName}/${baseName}.tsx`,
         styles: `src/components/${baseName}/${baseName}.module.css`,
         test: `src/components/${baseName}/${baseName}.test.tsx`,
-        index: `src/components/${baseName}/index.ts`
+        index: `src/components/${baseName}/index.ts`,
       },
       model: {
         model: `src/models/${baseName}.model.ts`,
         migration: `database/migrations/${Date.now()}-create-${baseName}.ts`,
-        seed: `database/seeds/${baseName}.seed.ts`
+        seed: `database/seeds/${baseName}.seed.ts`,
       },
       middleware: {
         middleware: `src/middleware/${baseName}.middleware.ts`,
-        types: `src/types/${baseName}.types.ts`
+        types: `src/types/${baseName}.types.ts`,
       },
       plugin: {
         plugin: `src/plugins/${baseName}.plugin.ts`,
         config: `src/plugins/${baseName}.config.ts`,
-        readme: `src/plugins/${baseName}/README.md`
+        readme: `src/plugins/${baseName}/README.md`,
       },
       test: {
         unit: `tests/unit/${baseName}.test.ts`,
         integration: `tests/integration/${baseName}.test.ts`,
-        e2e: `tests/e2e/${baseName}.test.ts`
-      }
+        e2e: `tests/e2e/${baseName}.test.ts`,
+      },
     };
 
     return fileNames[type]?.[templateType] || `${baseName}.${templateType}.ts`;
+  }
+
+  async generateWithAI(type, name, options = {}) {
+    const generator = this.generators.get(type);
+    const templateTypes = Object.keys(generator.templates);
+
+    // Generate all files in parallel with performance monitoring
+    const filePromises = templateTypes.map(async (templateType) => {
+      const fileName = this.getFileName(type, templateType, name, options);
+      const cacheKey = this.getCacheKey(type, name, templateType, options);
+
+      // Check cache first
+      if (this.cacheEnabled && this.cache.has(cacheKey)) {
+        this.performanceMetrics.cacheHits++;
+        console.log(`⚡ Using cached ${templateType}`);
+        return {
+          path: fileName,
+          content: this.cache.get(cacheKey),
+          type: templateType,
+        };
+      }
+
+      this.performanceMetrics.cacheMisses++;
+      const prompt = this.buildPrompt(type, templateType, name, options);
+
+      try {
+        const content = await this.callAI(prompt);
+        this.performanceMetrics.aiCalls++;
+
+        // Cache the result
+        if (this.cacheEnabled) {
+          this.cache.set(cacheKey, content);
+        }
+
+        console.log(`✅ Generated ${templateType} with AI`);
+        return {
+          path: fileName,
+          content,
+          type: templateType,
+        };
+      } catch (error) {
+        console.warn(`⚠️ AI generation failed for ${templateType}, falling back to template`);
+        this.performanceMetrics.templateFallbacks++;
+
+        // Fallback to template with lazy loading
+        const templateFn = generator.templates[templateType];
+        const content = await this.getTemplateContent(templateType, templateFn, name, options);
+
+        // Cache template result too
+        if (this.cacheEnabled) {
+          this.cache.set(cacheKey, content);
+        }
+
+        return {
+          path: fileName,
+          content,
+          type: templateType,
+        };
+      }
+    });
+
+    // Wait for all files to be generated
+    const files = await Promise.all(filePromises);
+    return files;
+  }
+
+  buildPrompt(type, templateType, name, options) {
+    const className = this.toPascalCase(name);
+    const baseName = name.toLowerCase();
+
+    const prompts = {
+      api: {
+        controller: `Generate a TypeScript controller class for ${className} with CRUD operations using OpenSpeed framework. Include proper error handling, validation, and response formatting.`,
+        routes: `Generate TypeScript route definitions for ${className} API endpoints using OpenSpeed framework. Include all CRUD routes with proper middleware.`,
+        model: `Generate a TypeScript interface and Zod schema for ${className} data model with validation.`,
+        service: `Generate a TypeScript service class for ${className} with in-memory CRUD operations.`,
+      },
+      component: {
+        component: `Generate a React TypeScript component for ${className} with modern hooks, proper TypeScript types, and accessibility.`,
+        styles: `Generate CSS modules for ${className} component with modern styling, responsive design, and proper class naming.`,
+        test: `Generate React Testing Library tests for ${className} component with comprehensive coverage.`,
+        index: `Generate a TypeScript index file that exports the ${className} component and its types.`,
+      },
+      model: {
+        model: `Generate a Sequelize TypeScript model for ${className} with proper types, validations, and associations.`,
+        migration: `Generate a Sequelize migration file for creating ${baseName}s table with indexes.`,
+        seed: `Generate a Sequelize seed file with sample data for ${className}.`,
+      },
+      middleware: {
+        middleware: `Generate a TypeScript middleware class for ${className} functionality with proper OpenSpeed integration.`,
+        types: `Generate TypeScript type definitions for ${className} middleware configuration and options.`,
+      },
+      plugin: {
+        plugin: `Generate an OpenSpeed plugin class for ${className} with proper plugin interface implementation.`,
+        config: `Generate TypeScript configuration interface and defaults for ${className} plugin.`,
+        readme: `Generate a comprehensive README.md for ${className} plugin with installation and usage instructions.`,
+      },
+      test: {
+        unit: `Generate Vitest unit tests for ${className} service with comprehensive test cases.`,
+        integration: `Generate integration tests for ${className} API endpoints using Vitest and fetch.`,
+        e2e: `Generate Playwright E2E tests for ${className} functionality with proper test scenarios.`,
+      },
+    };
+
+    return (
+      prompts[type]?.[templateType] ||
+      `Generate ${templateType} for ${className} in ${type} category.`
+    );
+  }
+
+  getCacheKey(type, name, templateType, options) {
+    const optionsHash = this.hashOptions(options);
+    return `${this.currentProvider}:${type}:${name}:${templateType}:${optionsHash}`;
+  }
+
+  hashOptions(options) {
+    // Simple hash for options object
+    const str = JSON.stringify(options);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString();
+  }
+
+  clearCache() {
+    this.cache.clear();
+    console.log('🧹 Cache cleared');
+  }
+
+  // Lazy loading for templates
+  async getTemplateContent(templateType, templateFn, name, options) {
+    const cacheKey = `template:${templateType}:${name}:${JSON.stringify(options)}`;
+
+    if (this.lazyTemplates.has(cacheKey)) {
+      return this.lazyTemplates.get(cacheKey);
+    }
+
+    const content = await templateFn(name, options);
+    this.lazyTemplates.set(cacheKey, content);
+
+    return content;
+  }
+
+  // Performance monitoring
+  updatePerformanceMetrics(generationTime, fileCount) {
+    this.performanceMetrics.totalGenerations++;
+    this.performanceMetrics.averageGenerationTime =
+      (this.performanceMetrics.averageGenerationTime *
+        (this.performanceMetrics.totalGenerations - 1) +
+        generationTime) /
+      this.performanceMetrics.totalGenerations;
+  }
+
+  getPerformanceStats() {
+    const stats = { ...this.performanceMetrics };
+    stats.cacheHitRate = (stats.cacheHits / (stats.cacheHits + stats.cacheMisses)) * 100 || 0;
+    stats.aiSuccessRate = ((stats.aiCalls - stats.templateFallbacks) / stats.aiCalls) * 100 || 0;
+
+    return stats;
+  }
+
+  logPerformanceStats() {
+    const stats = this.getPerformanceStats();
+    console.log('\n📊 Performance Statistics:');
+    console.log(`   Total generations: ${stats.totalGenerations}`);
+    console.log(`   Average generation time: ${stats.averageGenerationTime.toFixed(0)}ms`);
+    console.log(`   Cache hit rate: ${stats.cacheHitRate.toFixed(1)}%`);
+    console.log(`   AI success rate: ${stats.aiSuccessRate.toFixed(1)}%`);
+    console.log(`   Template fallbacks: ${stats.templateFallbacks}`);
+  }
+
+  async callAI(prompt) {
+    const startTime = Date.now();
+    const provider = this.providers[this.currentProvider];
+
+    if (!provider.apiKey) {
+      throw new Error(`No API key configured for ${provider.name}`);
+    }
+
+    try {
+      const client = new OpenAI({
+        apiKey: provider.apiKey,
+        baseURL: provider.baseURL,
+      });
+
+      const response = await client.chat.completions.create({
+        model: provider.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an expert TypeScript and React developer. Generate clean, well-documented, and production-ready code. Follow best practices and include proper error handling.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      });
+
+      const callTime = Date.now() - startTime;
+      console.log(`⏱️  AI call completed in ${callTime}ms`);
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      const callTime = Date.now() - startTime;
+      console.warn(`❌ AI call failed after ${callTime}ms:`, error.message);
+      throw error;
+    }
   }
 
   async generateControllerTemplate(name, options) {
@@ -1387,7 +1681,7 @@ test.describe('${className} E2E Tests', () => {
       model: ['sequelize', 'zod'],
       middleware: [],
       plugin: [],
-      test: ['vitest', '@playwright/test']
+      test: ['vitest', '@playwright/test'],
     };
 
     return deps[type] || [];
@@ -1399,32 +1693,32 @@ test.describe('${className} E2E Tests', () => {
         basePath: `/api/${name.toLowerCase()}`,
         pagination: true,
         sorting: true,
-        filtering: true
+        filtering: true,
       },
       component: {
         typescript: true,
         cssModules: true,
-        testing: true
+        testing: true,
       },
       model: {
         database: 'postgresql',
         timestamps: true,
-        indexes: true
+        indexes: true,
       },
       middleware: {
         enabled: true,
-        priority: 1
+        priority: 1,
       },
       plugin: {
         enabled: true,
         priority: 1,
-        autoStart: true
+        autoStart: true,
       },
       test: {
         framework: 'vitest',
         e2e: 'playwright',
-        coverage: true
-      }
+        coverage: true,
+      },
     };
 
     return configs[type] || {};
@@ -1433,7 +1727,7 @@ test.describe('${className} E2E Tests', () => {
   toPascalCase(str) {
     return str
       .split(/[-_\s]+/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join('');
   }
 
@@ -1468,9 +1762,30 @@ export function generateCommand() {
     .option('-f, --force', 'Overwrite existing files')
     .option('-d, --dry-run', 'Show what would be generated without creating files')
     .option('-y, --yes', 'Skip confirmations')
+    .option(
+      '-p, --provider <provider>',
+      'AI provider to use (openai, deepseek, openrouter)',
+      'openai'
+    )
+    .option('--no-cache', 'Disable caching for this generation')
+    .option('--clear-cache', 'Clear the generation cache')
+    .option('--format', 'Auto-format generated code with Prettier')
+    .option('--lint', 'Run ESLint on generated code')
     .action(async (type, name, options) => {
       try {
         const generator = new AICodeGenerator();
+
+        // Handle cache clearing
+        if (options.clearCache) {
+          generator.clearCache();
+          console.log('✅ Cache cleared successfully');
+          return;
+        }
+
+        // Disable cache if requested
+        if (options.noCache) {
+          generator.cacheEnabled = false;
+        }
 
         if (!generator.generators.has(type)) {
           console.error(`❌ Unknown generator type: ${type}`);
@@ -1498,7 +1813,7 @@ export function generateCommand() {
         }
 
         console.log('\n📁 Files:');
-        generationPlan.files.forEach(file => {
+        generationPlan.files.forEach((file) => {
           console.log(`• ${file.path}`);
         });
 
@@ -1511,7 +1826,7 @@ export function generateCommand() {
         if (!options.yes) {
           const confirmed = await confirm({
             message: `Generate ${generationPlan.files.length} files in ${options.output}?`,
-            default: false
+            default: false,
           });
 
           if (!confirmed) {
@@ -1531,12 +1846,12 @@ export function generateCommand() {
 
         if (existingFiles.length > 0) {
           console.log('\n⚠️  Existing files found:');
-          existingFiles.forEach(file => console.log(`• ${file}`));
+          existingFiles.forEach((file) => console.log(`• ${file}`));
 
           if (!options.force) {
             const overwrite = await confirm({
               message: 'Overwrite existing files?',
-              default: false
+              default: false,
             });
 
             if (!overwrite) {
@@ -1548,6 +1863,18 @@ export function generateCommand() {
 
         // Generate files
         await generator.writeFiles(generationPlan, options.output, options);
+
+        // Auto-format generated files
+        if (options.format) {
+          console.log('\n🔧 Formatting generated code...');
+          await formatGeneratedFiles(generationPlan.files, options.output);
+        }
+
+        // Run linter on generated files
+        if (options.lint) {
+          console.log('\n🔍 Running linter on generated code...');
+          await lintGeneratedFiles(generationPlan.files, options.output);
+        }
 
         console.log('\n✅ Generation Complete!');
         console.log(`Created ${generationPlan.files.length} files`);
@@ -1562,7 +1889,6 @@ export function generateCommand() {
         console.log('2. Install dependencies if needed');
         console.log('3. Run tests to verify functionality');
         console.log('4. Integrate with your application');
-
       } catch (error) {
         console.error('❌ Generation failed:', error.message);
         process.exit(1);
@@ -1578,6 +1904,14 @@ export function generateCommand() {
         .option('-o, --output <dir>', 'Output directory', process.cwd())
         .option('-f, --force', 'Overwrite existing files')
         .option('-d, --dry-run', 'Show what would be generated')
+        .option(
+          '-p, --provider <provider>',
+          'AI provider to use (openai, deepseek, openrouter)',
+          'openai'
+        )
+        .option('--no-cache', 'Disable caching for this generation')
+        .option('--format', 'Auto-format generated code with Prettier')
+        .option('--lint', 'Run ESLint on generated code')
         .action(async (name, options) => {
           // Reuse the main action with the specific type
           await cmd.action(type, name, options);
@@ -1586,4 +1920,67 @@ export function generateCommand() {
   }
 
   return cmd;
+}
+
+// Helper functions for formatting and linting
+async function formatGeneratedFiles(files, outputDir) {
+  try {
+    const prettier = await import('prettier');
+    const fs = await import('fs/promises');
+    const path = await import('path');
+
+    for (const file of files) {
+      const filePath = path.join(outputDir, file.path);
+
+      try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        const formatted = await prettier.format(content, {
+          filepath: filePath,
+          semi: true,
+          singleQuote: true,
+          tabWidth: 2,
+          useTabs: false,
+        });
+
+        await fs.writeFile(filePath, formatted, 'utf-8');
+        console.log(`✅ Formatted ${file.path}`);
+      } catch (error) {
+        console.warn(`⚠️ Failed to format ${file.path}:`, error.message);
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Prettier not available, skipping formatting');
+  }
+}
+
+async function lintGeneratedFiles(files, outputDir) {
+  try {
+    const { ESLint } = await import('eslint');
+    const path = await import('path');
+
+    const eslint = new ESLint({
+      fix: true,
+      useEslintrc: true,
+    });
+
+    const filePaths = files.map((file) => path.join(outputDir, file.path));
+
+    const results = await eslint.lintFiles(filePaths);
+
+    // Apply fixes
+    await ESLint.outputFixes(results);
+
+    // Report issues
+    const formatter = await eslint.loadFormatter('stylish');
+    const resultText = formatter.format(results);
+
+    if (resultText.trim()) {
+      console.log('\n📋 Linting Results:');
+      console.log(resultText);
+    } else {
+      console.log('✅ No linting issues found');
+    }
+  } catch (error) {
+    console.warn('⚠️ ESLint not available, skipping linting');
+  }
 }
